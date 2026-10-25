@@ -23,6 +23,6 @@ Windows'ta depoyu indirip tüm dosyaları aynı klasörde tutun ve `BASLAT.bat` 
 
 ## Doğrulama notu
 
-Bu başlangıç sürümündeki Python dosyaları sözdizimi kontrolünden geçirildi; depolama bakımının aylık arşivleme, SHA-256 doğrulaması ve yinelenmeme akışı geçici test verileriyle sınandı. **Windows üzerinde tam GUI + canlı Binance/BtcTurk uçtan uca çalışma testi henüz yapılmış değildir; bu commit bitmiş/dağıtıma hazır ZIP olarak değerlendirilmemelidir.**
+Başlangıç sürümünde Python sözdizimi ve depolama bakımının arşivleme/SHA-256 akışı daha önce kontrol edilmiştir. Bu komisyon/kayma hesabını kaldıran son değişiklik GitHub kaynakları üzerinden statik olarak gözden geçirildi; bu son değişiklikten sonra yerel Python derleyicisiyle yeniden derleme ve Windows üzerinde canlı Binance/BtcTurk uçtan uca çalışma testi yapılmadı. **Bu commit bitmiş/dağıtıma hazır ZIP olarak değerlendirilmemelidir.**
 
 `ayarlar.json` komisyon/kayma ayarlarını içermez. Program bu oranları hesaplamaz ve karar/alarmlarda kullanmaz. Güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir.
