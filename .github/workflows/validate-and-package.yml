@@ -89,34 +89,12 @@ jobs:
       - name: Render piyasa geçidi testleri
         run: npm test --prefix render_relay
 
-      - name: Cloudflare kimlik bilgilerini denetle
-        id: cloudflare
+      - name: Canlı Render piyasa verisi ve WebSocket doğrulaması
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "Cloudflare bilgileri bulundu; piyasa geçidi dağıtılacak."
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Cloudflare bilgileri henüz eklenmedi; piyasa geçidi dağıtımı atlanıyor."
-          fi
-
-      - name: Piyasa verisi bulut geçidini dağıt
-        id: deploy-relay
-        if: steps.cloudflare.outputs.available == 'true'
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: cloudflare_worker
-          command: deploy
+          RELAY_URL: https://firsat-kontrol-market-relay.onrender.com
+        run: npm run smoke --prefix render_relay
 
       - name: Her main gönderiminde Sürüm 00 ZIP ve SHA-256 oluştur
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           python - <<'PY'
           import hashlib
@@ -126,24 +104,8 @@ jobs:
           import requests
           from zipfile import ZipFile, ZIP_DEFLATED
 
-          relay_url = ""
-          cf_token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
-          cf_account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
-          if cf_token and cf_account:
-              response = requests.get(
-                  f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/workers/subdomain",
-                  headers={"Authorization": f"Bearer {cf_token}", "Accept": "application/json"},
-                  timeout=20,
-              )
-              response.raise_for_status()
-              result = response.json()
-              subdomain = str(result.get("result", {}).get("subdomain", "")).strip()
-              if result.get("success") is not True or not subdomain:
-                  raise SystemExit("Cloudflare workers.dev alt alan adı okunamadı; paket yanlış relay adresiyle oluşturulmayacak.")
-              relay_url = f"https://firsat-kontrol-market-data.{subdomain}.workers.dev"
-              print(f"Bulut geçidi paket için yapılandırıldı: {relay_url}")
-          else:
-              print("Cloudflare kimlik bilgileri olmadığı için paket doğrudan API kipinde oluşturuluyor.")
+          relay_url = "https://firsat-kontrol-market-relay.onrender.com"
+          print(f"Frankfurt Render piyasa geçidi ZIP içine yazılacak: {relay_url}")
 
           root = Path(".")
           dist = root / "dist"
