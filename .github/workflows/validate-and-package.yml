@@ -26,7 +26,21 @@ jobs:
       - name: Python hazırla
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14.8"
+
+      - name: Python sürümünü doğrula
+        run: |
+          python - <<'PY'
+          import sys
+
+          expected = (3, 14, 8)
+          print(f"CI Python: {sys.version}")
+          if sys.version_info[:3] != expected:
+              raise SystemExit(
+                  f"Beklenen Python {expected[0]}.{expected[1]}.{expected[2]}, "
+                  f"bulunan {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+              )
+          PY
 
       - name: Bağımlılıkları doğrula
         run: python -m pip install -r requirements.txt
