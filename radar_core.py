@@ -1182,7 +1182,7 @@ def build_trade_plan(
     settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a conditional technical entry/stop/target plan; no order is sent."""
-    cfg = settings or {}
+    # Komisyon ve kayma hesapları bu programın dışında tutulur.
     if candidate.get("data_freshness") != "CANLI AKIŞ GÜNCEL":
         return {
             "status": "VERİ ESKİ — PLAN YOK",
@@ -1349,43 +1349,6 @@ def build_trade_plan(
             "change_pct": round(((target / entry_reference) - 1.0) * 100.0, 4),
         })
 
-    liquidity = candidate.get("liquidity_assessment")
-    liquidity = liquidity if isinstance(liquidity, dict) else {}
-    spread_pct = liquidity.get("spread_pct")
-    commission_pct = cfg.get("commission_rate_per_side_pct")
-    slippage_pct = cfg.get("slippage_pct_per_side")
-    cost_inputs_valid = all(
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
-        and float(value) >= 0
-        for value in (commission_pct, slippage_pct, spread_pct)
-    )
-    round_trip_cost_pct = None
-    net_risk_reward = None
-    net_targets = []
-    if cost_inputs_valid:
-        round_trip_cost_pct = (
-            2.0 * float(commission_pct)
-            + 2.0 * float(slippage_pct)
-            + float(spread_pct)
-        )
-        cost_amount = entry_reference * round_trip_cost_pct / 100.0
-        net_risk = risk + cost_amount
-        for target in target_levels:
-            gross_reward = target["price"] - entry_reference
-            net_reward = gross_reward - cost_amount
-            net_rr = net_reward / net_risk if net_risk > 0 else None
-            net_targets.append({
-                **target,
-                "gross_reward_pct": round(gross_reward / entry_reference * 100.0, 4),
-                "net_reward_pct": round(net_reward / entry_reference * 100.0, 4),
-                "gross_risk_reward": round(gross_reward / risk, 4),
-                "net_risk_reward": round(net_rr, 4) if net_rr is not None else None,
-            })
-        if net_targets:
-            net_risk_reward = net_targets[0]["net_risk_reward"]
-
     if current_price < entry_low:
         # A live price below the entry/breakout zone means do not open a new position.
         # It is not, by itself, confirmation that the structural setup has failed.
@@ -1395,12 +1358,6 @@ def build_trade_plan(
     else:
         status = "FİYAT GİRİŞ BÖLGESİNİN ÜZERİNDE — KOVALAMA YOK"
     technical_targets_available = bool(target_levels)
-    costs_included = bool(cost_inputs_valid)
-    costs_note = (
-        "Komisyon, spread ve kayma girdileriyle gidiş-dönüş maliyeti hesaplandı."
-        if costs_included else
-        "Komisyon/kayma ayarı veya güncel spread eksik; masraf sonrası net risk/getiri doğrulanmadı."
-    )
     return {
         "status": status,
         "timeframe": timeframe,
@@ -1424,14 +1381,7 @@ def build_trade_plan(
                 "basis": item["basis"],
                 "source_timeframes": item["source_timeframes"],
                 "touch_count": item["touch_count"],
-                "gross_risk_reward": (
-                    net_targets[index - 1].get("gross_risk_reward")
-                    if index - 1 < len(net_targets) else round((item["price"] - entry_reference) / risk, 4)
-                ),
-                "net_risk_reward": (
-                    net_targets[index - 1].get("net_risk_reward")
-                    if index - 1 < len(net_targets) else None
-                ),
+                "gross_risk_reward": round((item["price"] - entry_reference) / risk, 4),
             }
             for index, item in enumerate(target_levels, start=1)
         ],
@@ -1441,13 +1391,7 @@ def build_trade_plan(
             "Ana hedefler kapanmış mumlarla doğrulanmış direnç bölgeleri ve 4h/1d/1w/1M Fibonacci uzatmalarından seçilir. "
             "1R/2R/3R yalnızca ikincil karşılaştırmadır."
         ),
-        "costs_included": costs_included,
-        "commission_rate_per_side_pct": commission_pct if costs_included else None,
-        "slippage_pct_per_side": slippage_pct if costs_included else None,
-        "spread_pct": spread_pct if costs_included else None,
-        "round_trip_cost_pct": round(round_trip_cost_pct, 6) if round_trip_cost_pct is not None else None,
-        "net_risk_reward": net_risk_reward,
-        "costs_note": costs_note,
+        "risk_reward_basis": "Brüt teknik risk/getiri; komisyon ve kayma hesaplanmaz.",
         "invalid_if": f"{stop:.10g} USDT altındaki zarar durdurma seviyesi görülürse senaryo geçersiz sayılır.",
         "note": "Giriş referansı bölge orta noktasıdır; hedefler teknik seviyelerdir. Otomatik emir gönderilmez.",
     }
@@ -2302,11 +2246,10 @@ def score_opportunity(
         and has_target_beyond_entry_zone
         and has_explicit_invalidation
     )
-    cost_rr = plan.get("net_risk_reward")
-    after_cost_rr_valid = (
-        isinstance(cost_rr, (int, float)) and math.isfinite(cost_rr) and cost_rr >= 1.5
-        and plan.get("costs_included") is True
-    )
+    technical_rr = None
+    if isinstance(plan_targets, list) and plan_targets and isinstance(plan_targets[0], dict):
+        technical_rr = _finite_numeric_metric(plan_targets[0].get("risk_multiple"))
+    technical_rr_valid = technical_rr is not None and technical_rr >= 1.5
     entry_not_chased = (
         candidate_price is not None and entry_low is not None and entry_high is not None
         and entry_low <= candidate_price <= entry_high
@@ -2333,7 +2276,7 @@ def score_opportunity(
         and liquidity_passed
         and entry_not_chased
         and valid_plan
-        and after_cost_rr_valid
+        and technical_rr_valid
         and btc_context_gate_passed
     )
 
@@ -2360,8 +2303,8 @@ def score_opportunity(
         gate_reasons.append("Teknik giriş bölgesi güncel fiyatta kovalanmadan doğrulanmadı.")
     if not valid_plan:
         gate_reasons.append("Teknik destek/direnç veya Fibonacci tabanlı hedef içeren geçerli plan yok.")
-    if not after_cost_rr_valid:
-        gate_reasons.append("Komisyon, spread ve kayma sonrası net risk/getiri ≥1,5 doğrulanmadı.")
+    if not technical_rr_valid:
+        gate_reasons.append("En yakın teknik hedef için brüt teknik risk/getiri oranı ≥1,5 doğrulanmadı.")
     gate_reasons.extend(btc_strong_gate["reasons"])
 
     near_resistance = any(row.get("near_resistance") is True for row in short_metrics)
@@ -2390,7 +2333,8 @@ def score_opportunity(
         decision = "GÜÇLÜ FIRSAT"
         decision_reason = (
             "Puan, B/C teyidi, güncel veri, teknik giriş/stop/hedef, likidite "
-            "ve maliyet sonrası net risk/getiri koşullarının tamamı sağlandı."
+            "ve en yakın teknik hedef için brüt risk/getiri koşullarının tamamı sağlandı. "
+            "Komisyon ve kayma hesaplanmaz."
         )
     elif total_score < 45:
         decision = "İŞLEM YOK"
