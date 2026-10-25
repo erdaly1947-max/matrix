@@ -425,12 +425,6 @@ def _build_technical_plan_evaluation(
         and not isinstance(raw_score, bool) and math.isfinite(float(raw_score))
         and 0.0 <= float(raw_score) <= 100.0 else None
     )
-    raw_cost = plan.get("round_trip_cost_pct")
-    costs_included = (
-        plan.get("costs_included") is True and isinstance(raw_cost, (int, float))
-        and not isinstance(raw_cost, bool) and math.isfinite(float(raw_cost))
-        and float(raw_cost) >= 0.0
-    )
     return {
         "status": "GİRİŞ BEKLENİYOR", "created_epoch": float(now_epoch), "created_utc": now_utc,
         "decision_at_creation": str(decision), "score_at_creation": score,
@@ -438,23 +432,26 @@ def _build_technical_plan_evaluation(
         "entry_zone_low": low, "entry_zone_high": high, "entry_reference": reference,
         "stop_loss": stop, "target_1_price": target_price,
         "target_1_name": str(target_row.get("name") or "Teknik hedef 1"),
-        "costs_included": costs_included,
-        "round_trip_cost_pct": float(raw_cost) if costs_included else None,
         "entry_observed": False, "entry_observed_epoch": None, "entry_observed_utc": None,
         "entry_observed_price": None, "outcome_deadline_epoch": None, "last_observed_price": None,
         "price_change_vs_entry_reference_pct": None, "current_gross_return_pct": None,
-        "current_estimated_net_return_pct": None,
         "outcome_observed_epoch": None, "outcome_observed_utc": None, "observed_price": None,
-        "planned_exit_price": None, "gross_return_pct": None, "estimated_net_return_pct": None,
+        "planned_exit_price": None, "gross_return_pct": None,
         "coverage_note": (
-            "Örneklenen fiyatlar ve dondurulmuş teknik seviyeler kullanılır; gerçek emir/dolum, "
-            "mum içi sıra veya gerçek kayma ölçümü değildir."
+            "Örneklenen fiyatlar ve dondurulmuş teknik seviyeler kullanılır. Komisyon ve kayma "
+            "hesaplanmaz; bu kayıt gerçek emir/dolum veya mum içi fiyat sırası ölçümü değildir."
         ),
     }
 
 
 def _update_current_price_metrics(evaluation: dict[str, Any], price: float, reference: float) -> None:
-    """Keep a current price comparison even when fees are unknown or entry is not observed."""
+    """Record gross price movement only; commission and slippage are not estimated."""
+    # Clear fields written by older versions so legacy fee estimates do not continue updating.
+    for key in (
+        "costs_included", "round_trip_cost_pct",
+        "current_estimated_net_return_pct", "estimated_net_return_pct",
+    ):
+        evaluation.pop(key, None)
     evaluation["last_observed_price"] = price
     evaluation["price_change_vs_entry_reference_pct"] = round(
         (price / reference - 1.0) * 100.0, 4
@@ -465,19 +462,9 @@ def _update_current_price_metrics(evaluation: dict[str, Any], price: float, refe
     )
     if entry_price is None:
         evaluation["current_gross_return_pct"] = None
-        evaluation["current_estimated_net_return_pct"] = None
         return
     gross = (price / entry_price - 1.0) * 100.0
     evaluation["current_gross_return_pct"] = round(gross, 4)
-    raw_cost = evaluation.get("round_trip_cost_pct")
-    has_cost = (
-        evaluation.get("costs_included") is True and isinstance(raw_cost, (int, float))
-        and not isinstance(raw_cost, bool) and math.isfinite(float(raw_cost))
-        and float(raw_cost) >= 0.0
-    )
-    evaluation["current_estimated_net_return_pct"] = (
-        round(gross - float(raw_cost), 4) if has_cost else None
-    )
 
 
 def _advance_technical_plan_evaluation(
@@ -486,6 +473,9 @@ def _advance_technical_plan_evaluation(
 ) -> tuple[dict[str, Any], str | None]:
     """Advance a frozen plan only from a current price observation."""
     updated = dict(evaluation)
+    # Existing database records may contain fields produced by an older fee model.
+    for key in ("costs_included", "round_trip_cost_pct", "current_estimated_net_return_pct", "estimated_net_return_pct"):
+        updated.pop(key, None)
     terminal = {
         "HEDEF 1 GÖZLENDİ", "STOP SEVİYESİ GÖZLENDİ", "GİRİŞ GÖZLENMEDİ (24 SAAT)",
         "KURULUM GEÇERSİZLEŞTİ — GİRİŞ ÖNCESİ", "24 SAATTE HEDEF/STOP GÖZLENMEDİ",
@@ -552,16 +542,10 @@ def _advance_technical_plan_evaluation(
     if outcome is None:
         return updated, None
     gross = (planned_exit / float(reference) - 1.0) * 100.0
-    raw_cost = updated.get("round_trip_cost_pct")
-    has_cost = (
-        updated.get("costs_included") is True and isinstance(raw_cost, (int, float))
-        and not isinstance(raw_cost, bool) and math.isfinite(float(raw_cost)) and float(raw_cost) >= 0.0
-    )
     updated.update({
         "status": outcome, "outcome_observed_epoch": float(now_epoch),
         "outcome_observed_utc": SignalTracker._utc(now_epoch), "observed_price": price,
         "planned_exit_price": planned_exit, "gross_return_pct": round(gross, 4),
-        "estimated_net_return_pct": round(gross - float(raw_cost), 4) if has_cost else None,
     })
     return updated, event_type
 
@@ -587,10 +571,8 @@ def historical_summary() -> dict[str, Any]:
                 "plan_count": 0, "status_counts": {}, "target_1_observed_count": 0,
                 "stop_observed_count": 0, "entry_not_observed_count": 0,
                 "entry_invalidated_before_entry_count": 0, "no_target_or_stop_in_24h_count": 0,
-                "estimated_net_return_observations": 0, "mean_estimated_net_return_pct": None,
                 "current_price_reference_observations": 0, "mean_current_price_vs_entry_reference_pct": None,
                 "current_gross_return_observations": 0, "mean_current_gross_return_pct": None,
-                "current_estimated_net_return_observations": 0, "mean_current_estimated_net_return_pct": None,
                 "note": "Henüz teknik plan gözlemi yok.",
             },
             "note": "Henüz sinyal kaydı yok.",
@@ -609,13 +591,11 @@ def historical_summary() -> dict[str, Any]:
         episodes_without_final_decision = 0
         technical_plan_status_counts: dict[str, int] = {}
         technical_plan_count = 0
-        estimated_net_returns: list[float] = []
         forward_elapsed_observations: dict[str, list[float]] = {
             field: [] for field in ("return_30m_pct", "return_1h_pct", "return_4h_pct", "return_24h_pct")
         }
         price_reference_changes: list[float] = []
         current_gross_returns: list[float] = []
-        current_estimated_net_returns: list[float] = []
         for record in conn.execute("SELECT metrics_json FROM episodes").fetchall():
             try:
                 metrics_record = json.loads(record["metrics_json"] or "{}")
@@ -649,16 +629,9 @@ def historical_summary() -> dict[str, Any]:
                 technical_plan_count += 1
                 outcome_status = str(evaluation.get("status") or "DURUM BİLİNMİYOR")
                 technical_plan_status_counts[outcome_status] = technical_plan_status_counts.get(outcome_status, 0) + 1
-                net_return = evaluation.get("estimated_net_return_pct")
-                if (
-                    isinstance(net_return, (int, float)) and not isinstance(net_return, bool)
-                    and math.isfinite(float(net_return))
-                ):
-                    estimated_net_returns.append(float(net_return))
                 metric_sets = (
                     ("price_change_vs_entry_reference_pct", price_reference_changes),
                     ("current_gross_return_pct", current_gross_returns),
-                    ("current_estimated_net_return_pct", current_estimated_net_returns),
                 )
                 for metric_name, metric_values in metric_sets:
                     metric_value = evaluation.get(metric_name)
@@ -709,10 +682,6 @@ def historical_summary() -> dict[str, Any]:
             "entry_not_observed_count": technical_plan_status_counts.get("GİRİŞ GÖZLENMEDİ (24 SAAT)", 0),
             "entry_invalidated_before_entry_count": technical_plan_status_counts.get("KURULUM GEÇERSİZLEŞTİ — GİRİŞ ÖNCESİ", 0),
             "no_target_or_stop_in_24h_count": technical_plan_status_counts.get("24 SAATTE HEDEF/STOP GÖZLENMEDİ", 0),
-            "estimated_net_return_observations": len(estimated_net_returns),
-            "mean_estimated_net_return_pct": (
-                round(sum(estimated_net_returns) / len(estimated_net_returns), 4) if estimated_net_returns else None
-            ),
             "current_price_reference_observations": len(price_reference_changes),
             "mean_current_price_vs_entry_reference_pct": (
                 round(sum(price_reference_changes) / len(price_reference_changes), 4)
@@ -723,14 +692,9 @@ def historical_summary() -> dict[str, Any]:
                 round(sum(current_gross_returns) / len(current_gross_returns), 4)
                 if current_gross_returns else None
             ),
-            "current_estimated_net_return_observations": len(current_estimated_net_returns),
-            "mean_current_estimated_net_return_pct": (
-                round(sum(current_estimated_net_returns) / len(current_estimated_net_returns), 4)
-                if current_estimated_net_returns else None
-            ),
             "note": (
                 "Sonuçlar sabitlenmiş teknik seviyeler ve örneklenen fiyatlardan çıkarılır. "
-                "Gerçek emir, dolum, mum içi fiyat sırası veya gerçek kayma değildir."
+                "Komisyon ve kayma hesaplanmaz; gerçek emir/dolum veya mum içi fiyat sırası ölçülmez."
             ),
         },
         "note": (
