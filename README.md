@@ -122,7 +122,7 @@ Matris en az şu sütunları içerir:
 
 **İnceleme sınırı:** Bu matris main üzerindeki mevcut kaynak kodun statik okunmasına dayanır. Bu çalışmada Python derlemesi, birim/regresyon testi, canlı Binance/BtcTurk bağlantısı, tarihsel backtest veya Windows panel testi çalıştırılmadı. Depoda bu incelemede görülen ağaçta ayrı bir test dizini/suite'i de bulunmuyor. Bu nedenle “uygulanmış” kodun testten geçtiği anlamına gelmez; tüm satırlarda doğrulama işi açık kalır.
 
-Bu matris tamamlandıktan sonra sıradaki iş, **kayıtlı eksiklerin tasarım kararlarını** (özellikle korelasyonun karar puanına etkisi, net maliyet varsayımları ve panel hızlı özeti) netleştirip kullanıcı onayı almaktır. Bu kayıt ve onaylar tamamlanmadan yeni özellik kodlanmaz.
+Bu matris, Sürüm 00 için ilk düzeltme grubunu yönlendirmiştir. Komisyon ve kayma sonrası net getiri hesabı bilinçli olarak kapsam dışıdır; brüt teknik risk/getiri kuralı korunur. Uygulanan korelasyon risk eşikleri geçici başlangıç kurallarıdır; canlı kullanım ve tarihsel performans sonucu gibi değerlendirilmemelidir. Aşağıdaki Sürüm 00 uygulama kaydı gerçek kod değişiklikleri ile doğrulama durumunu birbirinden ayırır.
 
 ### 8. Hesaplamaların korunması ve karar gereksinimleri
 
@@ -240,3 +240,22 @@ Bu yol haritası, üzerinde çalışılıp doğrulanacak **tasarım planıdır**
 - **Yeni sürüm 1**, yalnızca gerekli kontroller tamamlandıktan ve sonuçları doğrulandıktan sonra hazırlanır. README'ye tasarım planının kaydedilmesi veya sürüm etiketinin değiştirilmesi, özelliklerin tamamlandığı ya da ZIP paketinin hazır olduğu anlamına gelmez.
 
 Bu gereksinimlerin README'ye kaydedilmesi tek başına kod değişikliği değildir. İlk uygulama işi, mevcut kodun kanıtlarla incelenmesi ve fonksiyon bazında matrisin doldurulmasıdır; sonuçlara göre her eksikliğin hangi mevcut modüle bağlanacağı, hangi hesaplamayı yeniden kullanacağı ve nasıl doğrulanacağı belirlenecektir.
+
+## Sürüm 00 — son uygulama kaydı (25 Ekim 2026)
+
+### Bu düzeltme grubunda uygulanan kod değişiklikleri
+
+- Sürüm etiketi `APP_VERSION = "00"` olarak korunmuştur. Programın tek motorlu mimarisi ve mevcut hesaplamaları baştan yazılmamıştır.
+- `radar_core.py` içinde BTC korelasyonu, tek başına yön sinyali veya pozitif puan sayılmaz. Yalnızca eşzamanlı kapanmış mumlardan yeterli 1h/4h korelasyonu varsa, BTC bağlamı tam ve riskliyse aday puanına risk düzeltmesi eklenir: ortalama korelasyon ≥0,80 için -6 puan; ≥0,60 için -3 puan. Eski/eksik BTC bağlamında, ölçüm örnek sayısı yetersizse, BTC bağlamı sağlıklıysa veya ortalama korelasyon 0,60'ın altındaysa ceza uygulanmaz. Negatif korelasyon ayrıca olumlu puan getirmez.
+- `tek_motor_paneli.pyw` içinde BTC 1h/4h piyasa bağlamı özeti, aday listesinde BTC'ye göre 1h getiri farkı ve BTC 1h korelasyonu; seçilen coin alanında karar gerekçesi, korelasyon düzeltmesi, yakın destek/direnç, koşullu giriş, zarar durdurma, ilk teknik hedef ve eksik teyitlerin özeti eklenmiştir. Ayrıntılı mevcut metrikler, risk planı ve kontrol alanları korunmuştur.
+- Pencere boyutu ekran ölçülerine göre hesaplanıp ortalanır. Ses kontrollerine yakın, ayarları kaydedilen açık-gri aralıkta aydınlık kontrolü eklenmiştir.
+- Durum raporunun aday tablosuna BTC göreceli güç/korelasyon sütunları eklenmiştir. Motorun `important_note` açıklaması korelasyon düzeltmesini yansıtacak şekilde güncellenmiştir.
+- `tests/test_btc_correlation_adjustment.py` içine eşik, riskli/sağlıklı BTC, eski veri, yetersiz örnek, negatif korelasyon ve puan bileşeni için otomatik testler eklendi. `.github/workflows/validate-and-package.yml` kaynak derleme, birim test ve ZIP/SHA-256 üretimini tarif eder.
+
+### Doğrulama durumu — dikkat
+
+- Otomatik doğrulama iş akışı başlatılmaya çalışıldı. GitHub Actions iki denemede de çalışma adımlarına ulaşmadan başarısız oldu; iş kayıtlarında çalıştırıcı atanmamış ve adım listesi boştu. Bu nedenle Python derlemesi, otomatik testler ve iş akışıyla ZIP üretimi **çalıştırılmış veya başarılı sayılmaz**.
+- Bu oturumda yerel Python çalıştırıcısıyla derleme, birim/regresyon testleri, canlı Binance/BtcTurk bağlantısı veya Windows/Tkinter ekran testi yapılamadı. Kod değişiklikleri kaynakta okunarak doğrulandı; bu, çalışan uygulama testi değildir.
+- Komisyon ve kayma sonrası net getiri hesabı eklenmedi ve bilerek eklenmeyecektir. Teknik risk/getiri brüt kalır; emir gönderimi veya otomatik alım-satım bulunmaz.
+- Sürüm 00 kaynak arşivini indirmek için GitHub'ın `main` dalı ZIP bağlantısı kullanılabilir: https://github.com/erdaly1947-max/matrix/archive/refs/heads/main.zip . Bu, GitHub'ın ürettiği kaynak arşividir; çalıştırıcı başarısızlığı nedeniyle bu oturumda bağımsız bir derleme/artifact ZIP'i oluşturulmuş gibi raporlanmaz.
+- Kullanıcının yerel canlı test sonucu gelene kadar Sürüm 1 çalışmasına geçilmez. Dal açılması gerekirse kullanıcıdan önceden açık onay alınır; Sürüm 1 dalı adı ancak onaydan sonra `1.surum-readme-gereksinimler` olur.
