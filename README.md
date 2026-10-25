@@ -29,6 +29,10 @@ Kaynak koddaki sürüm etiketi `radar_core.py` içinde `APP_VERSION = "00"` olar
 
 `ayarlar.json` komisyon/kayma ayarlarını içermez. Program bu oranları hesaplamaz ve karar/alarmlarda kullanmaz. Güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir.
 
+### Windows HTTPS bağlantı tanılaması
+
+`TLS WRONG_VERSION_NUMBER` hatası birden fazla bağımsız API alanında görülürse, bu durum tek başına ilgili borsanın API arızasını göstermez. Programın yerel tanılaması artık yalnızca ortam değişkenlerini değil, Python'ın algıladığı proxy uç noktalarını (kimlik bilgileri ve URL yolları gizlenerek), Windows Internet Settings içindeki proxy/PAC/otomatik algılama bayraklarını ve WinHTTP proxy durumunu da kaydeder. İlk TLS hatasında doğrudan TCP/443 bağlantısının ilk yanıtının TLS kaydı mı, açık HTTP mi, yoksa tanınmayan veri mi olduğu sınırlı bir tanılamayla sınanır; yanıt gövdesi kaydedilmez ve sertifika doğrulaması kapatılmaz. Bu kayıtlar yerel log ve durum raporuna eklenir. Tanılama, bilgisayarın veya ağın proxy/VPN/güvenlik yazılımı ayarlarını kendiliğinden değiştirmez.
+
 ## Sürüm 00 — başlangıç noktası ve geçerli durum
 
 - **Sürüm 00, geliştirmelerin başlangıç tabanıdır.** Bu aşamada amaç, mevcut tek motorlu programı ve işlevlerini inceleyip başlangıç noktasını tutarlı ve doğrulanabilir hâle getirmektir; programı baştan yazmak değildir.

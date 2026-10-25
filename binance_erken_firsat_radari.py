@@ -19,9 +19,9 @@ from urllib.parse import quote
 import requests
 import websocket
 
-from ortak_piyasa import (append_universe_snapshot, fetch_binance_usdt_spot,
-                          fetch_common_usdt_symbols, load_settings, load_settings_snapshot,
-                          public_get)
+from ortak_piyasa import (append_universe_snapshot, collect_network_diagnostics,
+                          fetch_binance_usdt_spot, fetch_common_usdt_symbols,
+                          load_settings, load_settings_snapshot, public_get)
 from tek_motor_evreni import (
     NoActiveCachedIntersectionError, build_single_engine_universe,
 )
@@ -981,15 +981,11 @@ class BinanceRadar:
         self._storage_maintenance_lock = threading.Lock()
         self._storage_maintenance_running = False
         self.logger = setup_logger("binance_radar", LOG_DIR / "binance_radar.log")
-        proxy_flags = {
-            name: bool(os.environ.get(name))
-            for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-                         "http_proxy", "https_proxy", "all_proxy", "no_proxy")
-        }
+        self.network_diagnostics = collect_network_diagnostics()
         self.logger.info(
-            "Ağ çalışma ortamı: Python=%s; OpenSSL=%s; proxy ortam anahtarları=%s",
+            "Ağ çalışma ortamı: Python=%s; OpenSSL=%s; HTTPS proxy/TLS tanısı=%s",
             sys.version.split()[0], ssl.OPENSSL_VERSION,
-            [name for name, configured in proxy_flags.items() if configured],
+            json.dumps(self.network_diagnostics, ensure_ascii=False, sort_keys=True),
         )
         self.lock = threading.RLock()
         self.universe: dict[str, Any] = {}
@@ -2197,6 +2193,7 @@ class BinanceRadar:
                     "scan_symbol_count": 0,
                     "common_pair_count": 0,
                     "strong_alerts_enabled": False,
+                    "runtime_diagnostics": collect_network_diagnostics(),
                     "error": waiting_warning,
                     "universe_warning": waiting_warning,
                     "automatic_retry_enabled": False,
@@ -2227,6 +2224,7 @@ class BinanceRadar:
                 "universe_mode": "WAITING_FOR_BTCTURK_UNIVERSE",
                 "scan_symbol_count": 0,
                 "strong_alerts_enabled": False,
+                    "runtime_diagnostics": collect_network_diagnostics(),
                 "error": error_text,
                 "retry_seconds": 0,
                 "automatic_retry_enabled": False,
@@ -2541,11 +2539,7 @@ class BinanceRadar:
                         "runtime_diagnostics": {
                             "python_version": sys.version.split()[0],
                             "openssl_version": ssl.OPENSSL_VERSION,
-                            "proxy_environment_keys_present": [
-                                name for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-                                                  "http_proxy", "https_proxy", "all_proxy", "no_proxy")
-                                if os.environ.get(name)
-                            ],
+                            **collect_network_diagnostics(),
                         },
                         "api_warnings": self.api_warnings,
                         "signal_history_database": "data/sinyal_gecmisi.sqlite3",

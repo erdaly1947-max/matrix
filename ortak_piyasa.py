@@ -16,8 +16,12 @@ import json
 import hashlib
 import csv
 import os
+import socket
+import ssl
 import threading
 import time
+import urllib.request
+from urllib.parse import urlsplit
 import requests
 
 from radar_core import ROOT
@@ -97,6 +101,178 @@ def load_settings() -> dict[str, Any]:
 
 
 
+_network_diagnostics_lock = threading.Lock()
+_network_diagnostics_cache: dict[str, Any] | None = None
+
+
+def _safe_proxy_endpoint(value: Any) -> str | None:
+    """Summarize a proxy endpoint without exposing credentials, URL paths, or query values."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    candidate = text if "://" in text else f"//{text}"
+    try:
+        parsed = urlsplit(candidate)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return "configured (format not parsed)"
+    if not hostname:
+        return "configured (format not parsed)"
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = f"[{hostname}]"
+    scheme = parsed.scheme.lower() if parsed.scheme else "scheme-unspecified"
+    return f"{scheme}://{hostname}" + (f":{port}" if port is not None else "")
+
+
+def _windows_internet_proxy_flags() -> dict[str, Any]:
+    """Read only enable/presence flags from Windows Internet Settings."""
+    if not sys.platform.startswith("win"):
+        return {"available": False}
+    try:
+        import winreg
+
+        path = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, path) as key:
+            def read_value(name: str) -> Any:
+                try:
+                    return winreg.QueryValueEx(key, name)[0]
+                except FileNotFoundError:
+                    return None
+
+            proxy_enable = read_value("ProxyEnable")
+            proxy_server = read_value("ProxyServer")
+            auto_config_url = read_value("AutoConfigURL")
+            auto_detect = read_value("AutoDetect")
+        return {
+            "available": True,
+            "registry_key_found": True,
+            "proxy_enabled": bool(proxy_enable) if proxy_enable is not None else None,
+            "proxy_server_configured": bool(str(proxy_server or "").strip()),
+            "auto_config_url_configured": bool(str(auto_config_url or "").strip()),
+            "auto_detect_enabled": bool(auto_detect) if auto_detect is not None else None,
+        }
+    except FileNotFoundError:
+        return {"available": True, "registry_key_found": False}
+    except Exception as exc:
+        return {"available": True, "query_error": type(exc).__name__}
+
+
+def _winhttp_proxy_status() -> str:
+    """Return a privacy-safe summary of Windows WinHTTP proxy settings."""
+    if not sys.platform.startswith("win"):
+        return "not_applicable"
+    executable = shutil.which("netsh")
+    if not executable:
+        return "netsh_not_found"
+    try:
+        completed = subprocess.run(
+            [executable, "winhttp", "show", "proxy"],
+            capture_output=True,
+            timeout=2.0,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"query_failed:{type(exc).__name__}"
+    if completed.returncode != 0:
+        return f"query_failed:exit_{completed.returncode}"
+    output = (completed.stdout + completed.stderr).decode("utf-8", errors="replace").casefold()
+    direct_phrases = (
+        ("direct access", "no proxy"),
+        ("doğrudan erişim", "proxy sunucusu yok"),
+        ("doğrudan erişim", "proxy yok"),
+    )
+    if any(all(phrase in output for phrase in group) for group in direct_phrases):
+        return "direct_no_proxy"
+    return "proxy_configured_or_unrecognized"
+
+
+def _classify_tls_first_response(response: bytes) -> str:
+    """Classify initial TCP response bytes without logging content or headers."""
+    if not response:
+        return "no_data_after_client_hello"
+    if response.startswith(b"HTTP/"):
+        first_line = response.split(b"\r\n", 1)[0].decode("ascii", errors="replace")
+        parts = first_line.split()
+        status = " ".join(parts[:2]) if len(parts) >= 2 else "HTTP response"
+        return f"plain_http_response_instead_of_tls:{status}"
+    if (
+        len(response) >= 5
+        and response[0] in (0x14, 0x15, 0x16, 0x17)
+        and response[1] == 0x03
+    ):
+        return (
+            "tls_record_header_received:"
+            f"content_type=0x{response[0]:02x}:version=0x{response[1]:02x}{response[2]:02x}"
+        )
+    return f"non_tls_or_unknown_response:first8_hex={response[:8].hex()}"
+
+
+def _probe_direct_tls_first_response(host: str, timeout: float = 3.0) -> str:
+    """Send a TLS ClientHello directly to TCP/443 and summarize the first response."""
+    try:
+        with socket.create_connection((host, 443), timeout=timeout) as connection:
+            connection.settimeout(timeout)
+            incoming = ssl.MemoryBIO()
+            outgoing = ssl.MemoryBIO()
+            client = ssl.create_default_context().wrap_bio(
+                incoming, outgoing, server_side=False, server_hostname=host
+            )
+            try:
+                client.do_handshake()
+            except (ssl.SSLWantReadError, ssl.SSLWantWriteError):
+                pass
+            except ssl.SSLError as exc:
+                return f"client_hello_creation_failed:{type(exc).__name__}"
+            client_hello = outgoing.read()
+            if not client_hello:
+                return "client_hello_not_generated"
+            connection.sendall(client_hello)
+            response = connection.recv(512)
+            return _classify_tls_first_response(response)
+    except socket.timeout:
+        return "direct_tcp_443_probe_timeout"
+    except Exception as exc:
+        return f"direct_tls_probe_failed:{type(exc).__name__}"
+
+
+def collect_network_diagnostics(*, tls_probe_host: str | None = None) -> dict[str, Any]:
+    """Collect privacy-conscious Windows proxy and HTTPS-path diagnostics."""
+    global _network_diagnostics_cache
+    environment_names = (
+        "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+        "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+    )
+    with _network_diagnostics_lock:
+        if _network_diagnostics_cache is None:
+            try:
+                detected_proxies = urllib.request.getproxies()
+                proxy_map = {
+                    str(name): _safe_proxy_endpoint(value)
+                    for name, value in sorted(detected_proxies.items())
+                    if value
+                }
+            except Exception as exc:
+                proxy_map = {"diagnostic_error": type(exc).__name__}
+            _network_diagnostics_cache = {
+                "platform": sys.platform,
+                "proxy_environment_keys_present": [
+                    name for name in environment_names if os.environ.get(name)
+                ],
+                "python_effective_proxy_endpoints_redacted": proxy_map,
+                "windows_internet_settings": _windows_internet_proxy_flags(),
+                "winhttp_proxy_status": _winhttp_proxy_status(),
+                "direct_tls_probe_host": None,
+                "direct_tls_first_response": None,
+            }
+        if tls_probe_host and not _network_diagnostics_cache.get("direct_tls_first_response"):
+            _network_diagnostics_cache["direct_tls_probe_host"] = tls_probe_host
+            _network_diagnostics_cache["direct_tls_first_response"] = (
+                _probe_direct_tls_first_response(tls_probe_host)
+            )
+        return json.loads(json.dumps(_network_diagnostics_cache, ensure_ascii=False))
+
+
 def _curl_get_fallback(
     url: str, *, params: dict[str, Any] | None,
     timeout: float | tuple[float, float], headers: dict[str, str],
@@ -165,7 +341,7 @@ def _curl_get_fallback(
 def _requests_get(url: str, *, params: dict[str, Any] | None,
                   timeout: float | tuple[float, float],
                   headers: dict[str, str]) -> requests.Response:
-    """Retry specific TLS wrong-version failures, then use verified Windows curl as a fallback."""
+    """Retry TLS wrong-version failures and diagnose the effective network path."""
     try:
         response = requests.get(url, params=params, timeout=timeout, headers=headers)
         response.raise_for_status()
@@ -175,10 +351,13 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
         if "wrong_version_number" not in message and "wrong version number" not in message:
             raise
         try:
-            configured_proxies = requests.utils.get_environ_proxies(url)
+            configured_proxies = urllib.request.getproxies()
         except Exception:
             configured_proxies = {}
-        proxy_note = "ortam proxy'si devre dışı bırakılarak" if configured_proxies else "ortam ayarları devre dışı bırakılarak"
+        proxy_note = (
+            "Python'ın algıladığı proxy ayarları dışında doğrudan bağlantı denenerek"
+            if configured_proxies else "ortam/sistem proxy yolu dışında doğrudan bağlantı denenerek"
+        )
         with requests.Session() as direct_session:
             direct_session.trust_env = False
             try:
@@ -186,7 +365,13 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                 response.raise_for_status()
                 return response
             except Exception as direct_error:
-                host = url.split("://", 1)[-1].split("/", 1)[0]
+                host = urlsplit(url).hostname or "unknown-host"
+                diagnostics = collect_network_diagnostics(tls_probe_host=host)
+                logging.getLogger(__name__).warning(
+                    "TLS bağlantı tanılaması: %s",
+                    json.dumps(diagnostics, ensure_ascii=False, sort_keys=True),
+                )
+                direct_reply = diagnostics.get("direct_tls_first_response") or "probe_not_available"
                 if sys.platform.startswith("win"):
                     try:
                         response = _curl_get_fallback(
@@ -194,13 +379,15 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                         )
                     except Exception as curl_error:
                         raise RuntimeError(
-                            "TLS WRONG_VERSION_NUMBER: {} için Python HTTPS bağlantısı ve "
-                            "ortam ayarları kapalı yeniden deneme başarısız oldu; curl.exe yedeği "
-                            "de başarısız ({}). Windows proxy/VPN, güvenlik yazılımının HTTPS "
-                            "incelemesi veya ağ filtresi kontrol edilmeli. TLS sertifika doğrulaması "
-                            "hiçbir aşamada kapatılmadı. Ayrıntılar: ilk hata: {}; doğrudan yeniden "
-                            "deneme: {}.".format(
-                                host, str(curl_error)[:500], first_error, direct_error
+                            "TLS WRONG_VERSION_NUMBER: {} için varsayılan Python HTTPS, "
+                            "{} doğrudan Python HTTPS ve curl.exe yedeği başarısız. "
+                            "Doğrudan TCP/443 ilk yanıt tanısı: {}. Windows otomatik proxy/PAC, "
+                            "WinHTTP, VPN, güvenlik yazılımı veya ağ filtresi olasılığı araştırılmalı. "
+                            "TLS sertifika doğrulaması hiçbir aşamada kapatılmadı. "
+                            "Ayrıntılar: ilk hata: {}; doğrudan yeniden deneme: {}; curl.exe: {}."
+                            .format(
+                                host, proxy_note, direct_reply,
+                                first_error, direct_error, str(curl_error)[:500]
                             )
                         ) from curl_error
                     logging.getLogger(__name__).warning(
@@ -209,11 +396,11 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                     )
                     return response
                 raise RuntimeError(
-                    "TLS WRONG_VERSION_NUMBER: {} için varsayılan bağlantı yolu başarısız oldu "
-                    "({}). {} yeniden deneme de başarısız ({}). SSL sertifika doğrulaması "
-                    "kapatılmadı; proxy/ağ filtresi veya HTTPS incelemesi kontrol edilmeli.".format(
-                        host, first_error, proxy_note, direct_error
-                    )
+                    "TLS WRONG_VERSION_NUMBER: {} için varsayılan Python HTTPS ve {} "
+                    "yeniden deneme başarısız. Doğrudan TCP/443 ilk yanıt tanısı: {}. "
+                    "Proxy/PAC, VPN, güvenlik yazılımı veya ağ filtresi olasılığı araştırılmalı; "
+                    "SSL sertifika doğrulaması kapatılmadı. Hatalar: ilk={}; doğrudan={}."
+                    .format(host, proxy_note, direct_reply, first_error, direct_error)
                 ) from direct_error
 
 def public_get(url: str, *, params: dict[str, Any] | None = None,
