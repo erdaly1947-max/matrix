@@ -39,10 +39,10 @@ class WindowsCurlTlsFallbackTests(unittest.TestCase):
         self.assertIn("symbol=BTCUSDT", command[-1])
         self.assertTrue(command[-1].startswith("https://"))
 
-    @patch("ortak_piyaka.sys.platform", "win32")
+    @patch("ortak_piyasa.sys.platform", "win32")
     def test_curl_fallback_refuses_plain_http(self):
         with self.assertRaisesRegex(ValueError, "yalnızca HTTPS"):
-            ortak_piyaka._curl_get_fallback(
+            ortak_piyasa._curl_get_fallback(
                 "http://api.example.test/data",
                 params=None,
                 timeout=2.0,
@@ -70,9 +70,9 @@ class WindowsCurlTlsFallbackTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         curl_fallback.assert_called_once()
 
-    @patch("ortak_piyaka.sys.platform", "win32")
-    @patch("ortak_piyaka.shutil.which", return_value=r"C:\\Windows\\System32\\curl.exe")
-    @patch("ortak_piyaka.subprocess.run")
+    @patch("ortak_piyasa.sys.platform", "win32")
+    @patch("ortak_piyasa.shutil.which", return_value=r"C:\\Windows\\System32\\curl.exe")
+    @patch("ortak_piyasa.subprocess.run")
     def test_failed_curl_request_reports_error(self, run, _which):
         run.return_value = subprocess.CompletedProcess(
             args=["curl.exe"], returncode=35, stdout=b"",
