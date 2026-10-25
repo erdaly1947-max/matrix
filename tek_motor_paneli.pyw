@@ -401,6 +401,14 @@ class ControlPanel(tk.Tk):
         ttk.Label(status_row, textvariable=self.alert_var, padding=(20, 0, 0, 0)).pack(side="left")
         ttk.Label(status_row, textvariable=self.level_var, padding=(20, 0, 0, 0)).pack(side="left")
 
+        btc_row = ttk.Frame(self, padding=(12, 0, 12, 6))
+        btc_row.pack(fill="x")
+        ttk.Label(btc_row, text="BTC bağlamı:", style="BTC.TLabel").pack(side="left", anchor="n")
+        ttk.Label(
+            btc_row, textvariable=self.btc_context_var, justify="left",
+            wraplength=max(500, window_width - 180), anchor="w",
+        ).pack(side="left", fill="x", expand=True, padx=(8, 0))
+
         controls = ttk.Frame(self, padding=(12, 0, 12, 8))
         controls.pack(fill="x")
         self.start_button = ttk.Button(controls, text="Başlat", command=self.start_engine)
@@ -427,6 +435,16 @@ class ControlPanel(tk.Tk):
         self.volume_label = ttk.Label(sound, text=f"{self.alarm_volume}%", width=4)
         self.volume_label.pack(side="left", padx=(4, 0))
         ttk.Button(sound, text="Sesi dene", command=self._test_sound).pack(side="left", padx=6)
+        ttk.Label(sound, text="Aydınlık").pack(side="left", padx=(6, 0))
+        self.brightness_scale = ttk.Scale(
+            sound, from_=60, to=100, orient="horizontal", length=78,
+            variable=self.brightness_var, command=self._brightness_moved,
+        )
+        self.brightness_scale.pack(side="left", padx=(4, 0))
+        self.brightness_scale.bind("<ButtonRelease-1>", self._save_brightness)
+        self.brightness_scale.bind("<KeyRelease>", self._save_brightness)
+        self.brightness_label = ttk.Label(sound, text=f"{self.panel_brightness}%", width=4)
+        self.brightness_label.pack(side="left", padx=(4, 0))
 
         pane = ttk.Panedwindow(self, orient="horizontal")
         pane.pack(fill="both", expand=True, padx=12, pady=(0, 8))
@@ -438,14 +456,15 @@ class ControlPanel(tk.Tk):
 
         tree_frame = ttk.Frame(left)
         tree_frame.pack(fill="both", expand=True)
-        columns = ("star", "symbol", "route", "phase", "price", "timeframe", "freshness", "decision")
+        columns = ("star", "symbol", "route", "phase", "price", "btc_relative", "btc_correlation", "timeframe", "freshness", "decision")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", selectmode="browse")
         headers = {
             "star": "★", "symbol": "Coin / Parite", "route": "Keşif yolu", "phase": "A/B/C",
-            "price": "Binance fiyatı", "timeframe": "Zaman dilimi", "freshness": "Veri", "decision": "Karar sınıfı",
+            "price": "Binance fiyatı", "btc_relative": "BTC göreli 1h", "btc_correlation": "BTC corr 1h",
+            "timeframe": "Zaman dilimi", "freshness": "Veri", "decision": "Karar sınıfı",
         }
-        widths = {"star": 35, "symbol": 115, "route": 115, "phase": 55, "price": 115,
-                  "timeframe": 90, "freshness": 135, "decision": 150}
+        widths = {"star": 35, "symbol": 115, "route": 115, "phase": 55, "price": 105,
+                  "btc_relative": 95, "btc_correlation": 90, "timeframe": 85, "freshness": 110, "decision": 150}
         for col in columns:
             self.tree.heading(col, text=headers[col])
             self.tree.column(col, width=widths[col], minwidth=35,
@@ -479,6 +498,24 @@ class ControlPanel(tk.Tk):
         self.log_view.pack(fill="x", expand=True)
         ttk.Label(self, text="A/B/C araştırma aşamalarıdır; fiyat senaryoları garanti değildir. Otomatik alım-satım yoktur.",
                   padding=(12, 0, 12, 8)).pack(anchor="w")
+        self._apply_brightness()
+
+    def _apply_brightness(self) -> None:
+        """Adjust only the light grayscale UI brightness; no dark theme is used."""
+        value = max(60, min(100, int(self.panel_brightness)))
+        gray = round(220 + (value - 60) * 35 / 40)
+        background = f"#{gray:02x}{gray:02x}{gray:02x}"
+        foreground = "#444444"
+        style = ttk.Style(self)
+        self.configure(background=background)
+        for widget_style in ("TFrame", "TLabel", "TLabelframe", "TLabelframe.Label", "TButton"):
+            style.configure(widget_style, background=background, foreground=foreground)
+        style.configure("Treeview", background="#ffffff", fieldbackground=background, foreground=foreground)
+        style.configure("Treeview.Heading", background=background, foreground=foreground)
+        for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
+            if widget is not None:
+                widget.configure(background=background, foreground=foreground, insertbackground=foreground)
+        self.brightness_label.configure(text=f"{value}%")
 
     def _append_details(self, text: str) -> None:
         self.details.configure(state="normal")
