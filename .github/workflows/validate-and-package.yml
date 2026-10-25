@@ -81,46 +81,6 @@ jobs:
         shell: bash
         run: python -m unittest discover -s tests -v
 
-      - name: Live integration: fetch real Binance and BtcTurk universes (temporary trigger)
-        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[integration-s00]')
-        run: |
-          python - <<'PY'
-          import json
-          import logging
-          from pathlib import Path
-          import time
-
-          logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-          from ortak_piyasa import fetch_binance_usdt_spot, fetch_btcturk_usdt_spot
-
-          started = time.monotonic()
-          binance = fetch_binance_usdt_spot()
-          print(f"BINANCE_LIVE_USDT_SPOT_COUNT={len(binance)}", flush=True)
-          print(f"BINANCE_BTCUSDT={binance.get('BTC')}", flush=True)
-          if not binance or binance.get("BTC", {}).get("symbol") != "BTCUSDT":
-              raise SystemExit("Actual fetch_binance_usdt_spot() did not return BTCUSDT.")
-
-          btcturk = fetch_btcturk_usdt_spot(allow_unverified_cache=False)
-          ticker_fallback = any(
-              item.get("pair_status") == "TICKER_SNAPSHOT_FALLBACK_NOT_EXCHANGEINFO_VERIFIED"
-              for item in btcturk.values()
-          )
-          print(f"BTCTURK_LIVE_USDT_COUNT={len(btcturk)}", flush=True)
-          print(f"BTCTURK_USED_TICKER_FALLBACK={ticker_fallback}", flush=True)
-          print(f"BTCTURK_BTCUSDT={btcturk.get('BTC')}", flush=True)
-          if not btcturk or btcturk.get("BTC", {}).get("symbol") != "BTCUSDT":
-              raise SystemExit("Actual fetch_btcturk_usdt_spot() did not return BTCUSDT.")
-          if ticker_fallback:
-              raise SystemExit("BtcTurk integration fell back to an unverified ticker instead of active exchangeInfo.")
-
-          common = sorted(set(binance).intersection(btcturk))
-          print(f"COMMON_LIVE_USDT_BASE_COUNT={len(common)}", flush=True)
-          print(f"COMMON_SAMPLE={common[:25]}", flush=True)
-          if "BTC" not in common or not common:
-              raise SystemExit("The live Binance/BtcTurk common USDT universe is empty or missing BTC.")
-          print(f"INTEGRATION_RESULT=PASS elapsed={time.monotonic()-started:.2f}s", flush=True)
-          PY
-
       - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
         if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
         run: |
