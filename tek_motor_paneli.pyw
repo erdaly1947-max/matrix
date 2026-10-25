@@ -670,6 +670,11 @@ class ControlPanel(tk.Tk):
             self._previous_strong_keys.clear()
             self._alarm_primed = False
             return
+        if state.get("status") != "CANLI AKIŞ GÜNCEL":
+            # Do not sound while the overall engine/history/WebSocket state is stale.
+            self._previous_strong_keys.clear()
+            self._alarm_primed = False
+            return
         candidates = state.get("candidates")
         if not isinstance(candidates, list):
             return
