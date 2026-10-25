@@ -139,6 +139,16 @@ Mevcut README'de kayıtlı başlangıç davranışı korunarak dikkate alınır:
 
 Panel bütün analizleri aynı anda ekrana yığmak yerine karar için gerekli bilgileri öne çıkarır; ayrıntılar kaybolmaz, gerektiğinde incelenebilir. Mevcut alanlar ve davranışlar, aşağıdaki yeni yerleşimle uyumlu biçimde korunur.
 
+#### Kullanıcının kesinleştirdiği görünüm ve mevcut kontroller
+
+- Hedef çalışma ortamı Windows, ekran çözünürlüğü 1920×1080 ve Windows ölçeklendirmesi %125'tir. Panel başlangıçta ekran genişliğinin yaklaşık yarısına sığacak şekilde tasarlanır; okunabilirlik gerektirirse genişlik en fazla ekranın yaklaşık %80'ine çıkarılabilir. Pencere yüksekliği ekran yüksekliğinden en az %7 daha kısa olmalıdır.
+- Koyu tema temel alınmaz. Açık/normal görünümde kırmızı, sarı, mavi, yeşil, lila, turkuaz ve lacivert gibi durum renkleri kullanılabilir; yazıların arka planı gri tonlarında, ayırıcı çizgiler beyaz olur. Renk tek başına karar gerekçesi sayılmaz; renkli durumun anlaşılır metinsel karşılığı bulunur.
+- Ses seviyesi kontrolüne benzer bir parlaklık/aydınlık ayarı eklenmesi planlanır. Mümkünse ses kontrollerinin yakınında yer alır. Bu kontrol henüz mevcut özellik sayılmaz; kodlamadan önce nihai yerleşim içinde gösterimi netleştirilir.
+- Mevcut yararlı kontroller korunur veya aynı işlev açık kalacak şekilde uyarlanır: parite/harita listesini güncelleme, rapor ve devir ZIP'i oluşturma, Başlat, Durdur, Alarm Açık/Kapalı, ses seviyesi, sesi denetleme ve seçilen coin için giriş/hedef seviyelerini izleme. Kontrol etiketleri tasarım onayında tutarlılaştırılır.
+- Adayların mevcut A/B/C aşamaları ve anlamları korunur: A hazırlık, B yapı/kırılım, C devamlılık. Kapalı mumda katılım, geri test ve devamlılık teyitleri kaybolmaz. Eski/eksik veri için mavi uyarı korunur.
+- Karar alanları mevcut işlevler üzerinden düzenlenir: **Adaylar** listesi; **Giriş Kontrolü** içinde senaryo zaman dilimi, kırılım seviyesi, zarar durdurma ve olası giriş; **Seçilen Coin** içinde kırılım seviyesi, zarar durdurma ve teknik hedefler. Bunlar ham hesap çıktıları yığınına çevrilmez; hızlı karar bilgisi öne çıkarılır, ayrıntılar erişilebilir kalır.
+- Yerleşim ve ölçüler için tasarım kararı kod değişikliğinden önce gözden geçirilir. Bu maddeler arayüzün gereksinimidir; mevcut panelin bunları uyguladığı veya ekran üzerinde sınandığı anlamına gelmez.
+
 #### A. Üst bölüm — BTC ve genel piyasa
 
 Mevcut motor durumu, bağlantı bilgileri, alarmlar ve parite evreni bilgileri korunur. Mevcut **“Piyasa ve parite evreni”** alanı kaldırılmaz; BTC piyasa bağlamıyla genişletilir. Burada kısa ve anlaşılır biçimde şunlar gösterilir:
