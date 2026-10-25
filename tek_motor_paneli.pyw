@@ -381,7 +381,7 @@ class ControlPanel(tk.Tk):
             "", "--- Zaman dilimi metrikleri ---",
             _short({tf: row.get("metrics", {}) for tf, row in (candidate.get("timeframes", {}) or {}).items()
                     if isinstance(row, dict)}, 11000),
-            "", "Planlar koşulludur; komisyon/kayma ayarları veya gerçek piyasa koşulları eksik olabilir. Emir gönderilmez.",
+            "", "Planlar koşulludur. Komisyon ve kayma hesaplanmaz; güçlü fırsat kapısında brüt teknik risk/getiri kullanılır. Spread ayrı likidite filtresindedir. Emir gönderilmez.",
         ]
         self._append_details("\n".join(map(str, lines)))
 
@@ -881,8 +881,6 @@ class ControlPanel(tk.Tk):
                 "sha256": _sha256_file(SETTINGS_PATH),
                 "fan_token_exclusion_count": len(fan) if isinstance(fan, list) else None,
                 "stablecoin_exclusion_count": len(stable) if isinstance(stable, list) else None,
-                "commission_configured": _safe_float(config.get("commission_rate_per_side_pct")) is not None,
-                "slippage_configured": _safe_float(config.get("slippage_pct_per_side")) is not None,
             },
             "engine_status": self.current_state.get("status"),
             "state_generated_at_utc": self.current_state.get("generated_at_utc"),
@@ -891,7 +889,7 @@ class ControlPanel(tk.Tk):
             "websocket_connected_shards": self.current_state.get("websocket_connected_shards"),
             "websocket_total_shards": self.current_state.get("websocket_total_shards"),
             "candidate_count": len(self.current_candidates),
-            "note": "Tanı özeti ayarların tam içeriğini içermez; komisyon/kayma yalnız ayarlandığına dair boole bilgisiyle raporlanır.",
+            "note": "Tanı özeti ayarların tam içeriğini içermez. Komisyon ve kayma hesaplanmaz; teknik risk/getiri oranı brüt olarak değerlendirilir.",
         }
 
     def _make_report(self) -> tuple[Path, Path, Path, str]:
@@ -935,7 +933,7 @@ class ControlPanel(tk.Tk):
         markdown.extend([
             "", "## Güvenlik ve yorum", "",
             "A/B/C araştırma aşamalarıdır; alım emri veya kârlılık garantisi değildir. Program emir göndermez.",
-            "Fiyat/stop/hedef planları koşullu teknik senaryolardır. Komisyon, kayma, gerçekleşen emir ve BtcTurk uygulanabilirliği doğrulanmayabilir.",
+            "Fiyat/stop/hedef planları koşullu teknik senaryolardır. Komisyon ve kayma hesaplanmaz; spread ayrı likidite filtresinde değerlendirilir. Gerçek emir/dolum ve BtcTurk uygulanabilirliği bu programda doğrulanmaz.",
             "", "## Tanı bilgisi", "", "Ayrıntılar JSON raporundaki diagnostics alanında saklanır. Tam ayarlar.json içeriği rapora kopyalanmaz.", "",
         ])
         md_path.write_text("\n".join(markdown), encoding="utf-8")
