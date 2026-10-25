@@ -236,22 +236,46 @@ def _json_get(url: str, timeout: float = 12.0,
 
 
 def _binance_json_get(path: str, timeout: float = 8.0) -> dict[str, Any]:
-    """Binance'in resmî REST adreslerini sırayla dener; başarılı adres sonraki istekte önce gelir."""
+    """Try every configured official REST base and log each endpoint result separately."""
     global _active_binance_rest_base
     with _binance_base_lock:
         active = _active_binance_rest_base
-    bases = ([active] if active in BINANCE_REST_BASES else []) + [base for base in BINANCE_REST_BASES if base != active]
+    bases = ([active] if active in BINANCE_REST_BASES else []) + [
+        base for base in BINANCE_REST_BASES if base != active
+    ]
     errors: list[str] = []
+    logger = logging.getLogger(__name__)
+    attempted: list[str] = []
     for base in bases:
+        attempted.append(base)
+        started = time.monotonic()
         try:
             payload = _json_get(f"{base}{path}", timeout=timeout)
+            elapsed = time.monotonic() - started
             with _binance_base_lock:
                 _active_binance_rest_base = base
+            logger.info(
+                "Binance REST uç noktası başarılı: base=%s path=%s süre=%.2fs",
+                base, path, elapsed,
+            )
             return payload
         except Exception as exc:
-            errors.append(f"{base}: {exc}")
-    raise RuntimeError("Binance REST adreslerinin hiçbiri yanıt vermedi. " + " | ".join(errors[-3:]))
-
+            elapsed = time.monotonic() - started
+            detail = f"{type(exc).__name__}: {str(exc)}"
+            errors.append(f"{base}: {detail}")
+            # Log each host separately: the final state/error message may be shortened
+            # for the UI, but this diagnostic line preserves the outcome per endpoint.
+            logger.warning(
+                "Binance REST uç noktası başarısız: base=%s path=%s süre=%.2fs hata=%s",
+                base, path, elapsed, detail[:1200],
+            )
+    attempted_text = ", ".join(attempted)
+    tail = " | ".join(errors[-3:])
+    raise RuntimeError(
+        f"Binance REST adreslerinin hiçbiri yanıt vermedi; "
+        f"{len(attempted)} adres ayrı ayrı denendi: {attempted_text}. "
+        f"Son uç nokta hataları: {tail}"
+    )
 
 def fetch_binance_usdt_spot() -> dict[str, dict[str, str]]:
     """{BASE: {symbol, base, quote}}; aktif durum ve Spot izni zorunludur."""
