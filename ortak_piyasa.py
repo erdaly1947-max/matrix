@@ -47,6 +47,115 @@ _btcturk_cache_lock = threading.Lock()
 USER_AGENT = "IkiRadarliSpotTrade/1.1 (public-market-data-only; no-account-access)"
 
 
+# Optional cloud relay: this setting is populated inside release ZIPs after a
+# successful Cloudflare deployment. A separate sidecar preserves it when users
+# copy an older ayarlar.json into a newer installation.
+MARKET_DATA_RELAY_SIDECAR = ROOT / "market_data_relay.json"
+BINANCE_RELAY_HOSTS = {
+    "data-api.binance.vision", "api.binance.com", "api-gcp.binance.com",
+    "api1.binance.com", "api2.binance.com", "api3.binance.com", "api4.binance.com",
+}
+BINANCE_RELAY_PATHS = {
+    "/api/v3/exchangeInfo", "/api/v3/klines",
+    "/api/v3/ticker/24hr", "/api/v3/depth",
+}
+BTCTURK_RELAY_PATHS = {
+    "/api/v2/server/exchangeinfo", "/api/v2/ticker/currency", "/api/v2/ticker",
+}
+
+
+def _validated_market_relay_origin(value: Any) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = urlsplit(text)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("Bulut piyasa geçidi adresi geçersiz.") from exc
+    host = (parsed.hostname or "").casefold()
+    if (
+        parsed.scheme.casefold() != "https"
+        or not host
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+        or port not in (None, 443)
+        or host in BINANCE_RELAY_HOSTS
+        or host == "api.btcturk.com"
+        or host.endswith(".binance.com")
+        or host.endswith(".btcturk.com")
+        or "." not in host
+        or any(ch.isspace() for ch in host)
+    ):
+        raise ValueError(
+            "Bulut piyasa geçidi yalnızca kimlik bilgisi/yol içermeyen HTTPS köken adresi olabilir."
+        )
+    return "https://" + host
+
+
+def get_market_data_relay_url(settings: dict[str, Any] | None = None) -> str | None:
+    """Return the configured HTTPS relay origin, or None for direct-source mode.
+
+    Passing an explicit settings mapping makes tests/diagnostics deterministic.
+    Normal application calls also read the sidecar so copied user settings do not
+    accidentally erase a release-managed relay endpoint.
+    """
+    if settings is not None:
+        current = settings if isinstance(settings, dict) else {}
+        return _validated_market_relay_origin(current.get("market_data_relay_url", ""))
+
+    current = load_settings()
+    candidate = current.get("market_data_relay_url", "")
+    if not str(candidate or "").strip():
+        try:
+            sidecar = json.loads(MARKET_DATA_RELAY_SIDECAR.read_text(encoding="utf-8"))
+            if isinstance(sidecar, dict):
+                candidate = sidecar.get("url", "")
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            candidate = ""
+    return _validated_market_relay_origin(candidate)
+
+
+def get_binance_rest_bases(settings: dict[str, Any] | None = None) -> tuple[str, ...]:
+    """Use only the relay when configured; otherwise preserve official REST fallbacks."""
+    relay = get_market_data_relay_url(settings)
+    if relay:
+        return (relay + "/binance",)
+    return BINANCE_REST_BASES
+
+
+def get_binance_ws_bases(settings: dict[str, Any] | None = None) -> tuple[str, ...]:
+    """Use the relay WebSocket when configured; otherwise preserve official endpoints."""
+    relay = get_market_data_relay_url(settings)
+    if relay:
+        return ("wss://" + relay[len("https://"):] + "/ws/binance/stream?streams=",)
+    return (
+        "wss://data-stream.binance.vision:443/stream?streams=",
+        "wss://stream.binance.com:443/stream?streams=",
+        "wss://stream.binance.com:9443/stream?streams=",
+    )
+
+
+def _relay_public_exchange_url(url: str, relay_origin: str) -> str:
+    """Rewrite only known public exchange-data endpoints; never accept arbitrary proxy URLs."""
+    parsed = urlsplit(url)
+    host = (parsed.hostname or "").casefold()
+    if host in BINANCE_RELAY_HOSTS:
+        if parsed.path not in BINANCE_RELAY_PATHS:
+            raise ValueError("Binance endpoint bulut geçidinin izin listesinden çıkarıldı.")
+        prefix = "/binance"
+    elif host == "api.btcturk.com":
+        if parsed.path not in BTCTURK_RELAY_PATHS:
+            raise ValueError("BtcTurk endpoint bulut geçidinin izin listesinden çıkarıldı.")
+        prefix = "/btcturk"
+    else:
+        return url
+    return relay_origin + prefix + parsed.path + (("?" + parsed.query) if parsed.query else "")
+
+
 def load_settings_snapshot(
     path: str | Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -742,10 +851,13 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
 def public_get(url: str, *, params: dict[str, Any] | None = None,
                timeout: float | tuple[float, float] = 12.0,
                headers: dict[str, str] | None = None) -> requests.Response:
-    """Fetch public exchange data directly from the supplied official endpoint."""
+    """Fetch public exchange data directly or via the configured secure cloud relay."""
     request_headers = {"User-Agent": USER_AGENT}
     if headers:
         request_headers.update(headers)
+    relay_origin = get_market_data_relay_url()
+    if relay_origin:
+        url = _relay_public_exchange_url(url, relay_origin)
     return _requests_get(url, params=params, timeout=timeout, headers=request_headers)
 
 
@@ -761,10 +873,11 @@ def _json_get(url: str, timeout: float = 12.0,
 def _binance_json_get(path: str, timeout: float = 8.0) -> dict[str, Any]:
     """Try every configured official REST base and log each endpoint result separately."""
     global _active_binance_rest_base
+    available_bases = get_binance_rest_bases()
     with _binance_base_lock:
         active = _active_binance_rest_base
-    bases = ([active] if active in BINANCE_REST_BASES else []) + [
-        base for base in BINANCE_REST_BASES if base != active
+    bases = ([active] if active in available_bases else []) + [
+        base for base in available_bases if base != active
     ]
     errors: list[str] = []
     logger = logging.getLogger(__name__)

@@ -68,3 +68,7 @@ Raporlar yalnızca uygulamanın çalıştığı bilgisayardaki reports klasörü
 
 RİSK NOTU
 Teknik aday veya güçlü fırsat alarmı işlem önerisinin garanti olduğu anlamına gelmez. Koşullu giriş/zarar durdurma/hedef planı yalnızca gerekli canlı veriler güncelse, parite uygunluk filtrelerinden geçtiyse ve aynı zaman diliminde B/C teyidi ile kapanmış mum kırılımı, destek ve ATR(14) değerleri yeterliyse gösterilir. Plan üretilemiyorsa program fiyat seviyesi uydurmaz. Güçlü fırsat kapısı en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister. Komisyon ve kayma hesaplanmaz ve fırsat/uygunluk/alarmları etkilemez; spread yalnız ayrı likidite filtresinde değerlendirilir. Teknik hedefler fiyat tahmini değildir ve program otomatik emir göndermez.
+
+
+BULUT PİYASA VERİSİ GEÇİDİ
+Paket oluşturulurken Cloudflare geçidi etkinse Binance REST/WebSocket ve BtcTurk açık piyasa verisi istekleri bulut servisi üzerinden yapılır. Bu sayede bilgisayarın borsa API alan adlarına doğrudan erişmesi gerekmez. Geçidin etkin olup olmadığı paket içindeki market_data_relay.json dosyasından anlaşılır. Bu dosya ayrı tutulduğu için eski ayarlar.json dosyasını yeni kuruluma kopyalamak geçit adresini silmez. Geçit adresi boşsa uygulama doğrudan API kipinde çalışır.

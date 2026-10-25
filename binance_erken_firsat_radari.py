@@ -21,6 +21,7 @@ import websocket
 
 from ortak_piyasa import (append_universe_snapshot, collect_network_diagnostics,
                           fetch_binance_usdt_spot, fetch_common_usdt_symbols,
+                          get_binance_rest_bases, get_binance_ws_bases,
                           load_settings, load_settings_snapshot, public_get)
 from tek_motor_evreni import (
     NoActiveCachedIntersectionError, build_single_engine_universe,
@@ -632,10 +633,11 @@ def _get_klines(
     if end_time_ms is not None:
         params["endTime"] = end_time_ms
     global _active_rest_base
+    available_bases = get_binance_rest_bases()
     with _rest_base_lock:
         active = _active_rest_base
-    bases = (([active] if active in REST_BASES else []) +
-             [base for base in REST_BASES if base != active])
+    bases = (([active] if active in available_bases else []) +
+             [base for base in available_bases if base != active])
     errors: list[str] = []
     raw = None
     for base in bases:
@@ -1031,7 +1033,7 @@ class BinanceRadar:
 
     def _get_liquidity_json(self, path: str, *, params: dict[str, Any]) -> Any:
         errors: list[str] = []
-        for base in REST_BASES:
+        for base in get_binance_rest_bases():
             try:
                 response = _rate_limited_public_get(
                     f"{base}{path}", params=params, timeout=(4, 8),
@@ -1768,7 +1770,7 @@ class BinanceRadar:
             app: websocket.WebSocketApp | None = None
             connection_error = ""
             connected_at: float | None = None
-            endpoints = list(WS_BASES)
+            endpoints = list(get_binance_ws_bases())
             endpoint_index %= len(endpoints)
             endpoint = endpoints[endpoint_index]
             try:

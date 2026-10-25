@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,6 +21,11 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.14.8"
+
+      - name: Node.js hazırla
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
 
       - name: Python sürümünü doğrula
         run: |
@@ -74,18 +80,70 @@ jobs:
         shell: bash
         run: python -m unittest discover -s tests -v
 
+      - name: Bulut geçidi JavaScript testleri
+        run: node --test cloudflare_worker/test/index.test.js
+
+      - name: Cloudflare kimlik bilgilerini denetle
+        id: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare bilgileri bulundu; piyasa geçidi dağıtılacak."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare bilgileri henüz eklenmedi; piyasa geçidi dağıtımı atlanıyor."
+          fi
+
+      - name: Piyasa verisi bulut geçidini dağıt
+        id: deploy-relay
+        if: steps.cloudflare.outputs.available == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare_worker
+          command: deploy
+
       - name: Her main gönderiminde Sürüm 00 ZIP ve SHA-256 oluştur
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           python - <<'PY'
           import hashlib
+          import json
+          import os
           from pathlib import Path
+          import requests
           from zipfile import ZipFile, ZIP_DEFLATED
+
+          relay_url = ""
+          cf_token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+          cf_account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+          if cf_token and cf_account:
+              response = requests.get(
+                  f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/workers/subdomain",
+                  headers={"Authorization": f"Bearer {cf_token}", "Accept": "application/json"},
+                  timeout=20,
+              )
+              response.raise_for_status()
+              result = response.json()
+              subdomain = str(result.get("result", {}).get("subdomain", "")).strip()
+              if result.get("success") is not True or not subdomain:
+                  raise SystemExit("Cloudflare workers.dev alt alan adı okunamadı; paket yanlış relay adresiyle oluşturulmayacak.")
+              relay_url = f"https://firsat-kontrol-market-data.{subdomain}.workers.dev"
+              print(f"Bulut geçidi paket için yapılandırıldı: {relay_url}")
+          else:
+              print("Cloudflare kimlik bilgileri olmadığı için paket doğrudan API kipinde oluşturuluyor.")
 
           root = Path(".")
           dist = root / "dist"
           dist.mkdir(exist_ok=True)
           archive_path = dist / "Firsat-Kontrol-Paneli-Surum-00.zip"
-          excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests"}
+          excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests", "cloudflare_worker"}
           with ZipFile(archive_path, "w", compression=ZIP_DEFLATED) as archive:
               for path in sorted(root.rglob("*")):
                   if not path.is_file():
@@ -95,7 +153,15 @@ jobs:
                       continue
                   if path.suffix.lower() in {".zip", ".pyc", ".sha256"}:
                       continue
-                  archive.write(path, relative.as_posix())
+                  if relative.as_posix() == "market_data_relay.json" and relay_url:
+                      relay_config = json.loads(path.read_text(encoding="utf-8"))
+                      relay_config["url"] = relay_url
+                      archive.writestr(
+                          relative.as_posix(),
+                          json.dumps(relay_config, ensure_ascii=False, indent=2) + "\n",
+                      )
+                  else:
+                      archive.write(path, relative.as_posix())
 
           with ZipFile(archive_path) as archive:
               bad_member = archive.testzip()
@@ -104,6 +170,11 @@ jobs:
               names = archive.namelist()
               if "btcturk_usdt_spot.json" not in names:
                   raise SystemExit("btcturk_usdt_spot.json paket içinde bulunamadı.")
+              if "market_data_relay.json" not in names:
+                  raise SystemExit("market_data_relay.json paket içinde bulunamadı.")
+              relay_member = json.loads(archive.read("market_data_relay.json").decode("utf-8"))
+              if relay_url and relay_member.get("url") != relay_url:
+                  raise SystemExit("Bulut geçidi ZIP ayarına yazılamadı.")
               if any(name.endswith(".zip") for name in names):
                   raise SystemExit("ZIP içinde iç içe ZIP dosyası bulundu.")
 
