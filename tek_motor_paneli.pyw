@@ -278,6 +278,25 @@ def _format_candidate_decision_summary(candidate: dict[str, Any]) -> str:
     metrics = metrics if isinstance(metrics, dict) else {}
     channel = metrics.get("confirmed_channel")
     channel_text = f"{channel.get('direction', 'kanal')} / {channel.get('status', 'teyitli')}" if isinstance(channel, dict) and channel.get("available") is True else "teyitli kanal yok"
+    close = _safe_float(metrics.get("close"))
+    zones = metrics.get("support_resistance_zones")
+    zones = zones if isinstance(zones, list) else []
+    valid_zones = [
+        zone for zone in zones
+        if isinstance(zone, dict) and _safe_float(zone.get("center")) is not None
+    ]
+    supports = [
+        zone for zone in valid_zones if zone.get("kind") == "support"
+        and (close is None or float(zone["center"]) <= close)
+    ]
+    resistances = [
+        zone for zone in valid_zones if zone.get("kind") == "resistance"
+        and (close is None or float(zone["center"]) >= close)
+    ]
+    support = max(supports, key=lambda zone: float(zone["center"]), default=None)
+    resistance = min(resistances, key=lambda zone: float(zone["center"]), default=None)
+    support_text = _format_price(support.get("center")) if support else "—"
+    resistance_text = _format_price(resistance.get("center")) if resistance else "—"
     plan = candidate.get("risk_plan")
     plan = plan if isinstance(plan, dict) else {}
     low, high = _safe_float(plan.get("entry_zone_low")), _safe_float(plan.get("entry_zone_high"))
@@ -301,7 +320,7 @@ def _format_candidate_decision_summary(candidate: dict[str, Any]) -> str:
         f"Gerekçe: {reason}",
         f"BTC'ye göre getiri farkı: {rel_text}",
         f"BTC korelasyonu: {corr_text_value}. {assessment_text}",
-        f"Fiyat yapısı: {channel_text}",
+        f"Fiyat yapısı: {channel_text} | Yakın destek: {support_text} | Yakın direnç: {resistance_text}",
         f"Koşullu giriş: {entry_text} | Zarar durdurma: {stop_text} | İlk teknik hedef: {target_text}",
         f"Eksik teyit/engel: {blockers}",
         f"Korelasyon puan etkisi: {adjustment:+d}; riskli BTC bağlamında yüksek pozitif korelasyona ceza uygulanır.",
@@ -510,7 +529,7 @@ class ControlPanel(tk.Tk):
         self.configure(background=background)
         for widget_style in ("TFrame", "TLabel", "TLabelframe", "TLabelframe.Label", "TButton"):
             style.configure(widget_style, background=background, foreground=foreground)
-        style.configure("Treeview", background="#ffffff", fieldbackground=background, foreground=foreground)
+        style.configure("Treeview", background=background, fieldbackground=background, foreground=foreground)
         style.configure("Treeview.Heading", background=background, foreground=foreground)
         for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
             if widget is not None:
@@ -1111,7 +1130,12 @@ class ControlPanel(tk.Tk):
             symbol = row.get("symbol") or row.get("base_asset") or "—"
             phase = row.get("phase") or row.get("last_known_phase") or "—"
             score = row.get("opportunity_score", row.get("score_0_100", "—"))
-            table_rows.append((str(symbol), str(phase), _format_price(row.get("latest_price")), str(row.get("phase_timeframe") or "—"), str(row.get("final_decision") or row.get("state") or "—"), str(score)))
+            table_rows.append((
+                str(symbol), str(phase), _format_price(row.get("latest_price")),
+                str(row.get("phase_timeframe") or "—"),
+                str(row.get("final_decision") or row.get("state") or "—"), str(score),
+                _format_btc_relative(row), _format_btc_correlation(row),
+            ))
         markdown = [
             f"# {APP_TITLE} — Durum Raporu", "",
             f"- Rapor zamanı (UTC): {payload['report_generated_at_utc']}",
@@ -1122,11 +1146,14 @@ class ControlPanel(tk.Tk):
             "## BTC piyasa bağlamı", "",
             _format_btc_context_summary(self.current_state), "",
             "## Aday özeti", "",
-            "| Coin | Aşama | Fiyat (USDT) | Zaman dilimi | Karar | Puan |",
-            "|---|---:|---:|---|---|---:|",
+            "| Coin | Aşama | Fiyat (USDT) | Zaman dilimi | Karar | Puan | BTC göreli 1h | BTC corr 1h |",
+            "|---|---:|---:|---|---|---:|---:|---:|",
         ]
-        for symbol, phase, price, tf, decision, score in table_rows[:100]:
-            markdown.append(f"| {symbol} | {phase} | {price} | {tf} | {decision.replace('|', '/')} | {score} |")
+        for symbol, phase, price, tf, decision, score, btc_relative, btc_correlation in table_rows[:100]:
+            markdown.append(
+                f"| {symbol} | {phase} | {price} | {tf} | {decision.replace('|', '/')} | "
+                f"{score} | {btc_relative} | {btc_correlation} |"
+            )
         if len(table_rows) > 100:
             markdown.append(f"\nİlk 100 satır gösterildi; JSON dosyasında {len(table_rows)} adayın tamamı bulunur.")
         markdown.extend([
