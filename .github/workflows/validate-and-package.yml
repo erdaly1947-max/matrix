@@ -86,7 +86,7 @@ jobs:
           PY
 
       - name: Otomatik birim testleri
-        shell: pwsh
+        shell: bash
         run: python -m unittest discover -s tests -v
 
       - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
