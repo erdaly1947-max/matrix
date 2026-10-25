@@ -83,6 +83,12 @@ jobs:
       - name: Bulut geçidi JavaScript testleri
         run: node --test cloudflare_worker/test/index.test.js
 
+      - name: Render piyasa geçidi bağımlılıkları
+        run: npm install --prefix render_relay --no-package-lock
+
+      - name: Render piyasa geçidi testleri
+        run: npm test --prefix render_relay
+
       - name: Cloudflare kimlik bilgilerini denetle
         id: cloudflare
         env:
@@ -143,7 +149,7 @@ jobs:
           dist = root / "dist"
           dist.mkdir(exist_ok=True)
           archive_path = dist / "Firsat-Kontrol-Paneli-Surum-00.zip"
-          excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests", "cloudflare_worker"}
+          excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests", "cloudflare_worker", "render_relay"}
           with ZipFile(archive_path, "w", compression=ZIP_DEFLATED) as archive:
               for path in sorted(root.rglob("*")):
                   if not path.is_file():
