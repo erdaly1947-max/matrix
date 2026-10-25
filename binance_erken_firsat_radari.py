@@ -2548,7 +2548,7 @@ class BinanceRadar:
                         },
                         "api_warnings": self.api_warnings,
                         "signal_history_database": "data/sinyal_gecmisi.sqlite3",
-                        "important_note": "Fırsat puanı 8 teknik/bağlamsal bileşenden oluşur; nihai sınıf güçlü fırsat kapılarıyla ayrı hesaplanır. A/B/C araştırma aşamalarıdır; otomatik AL/emir değildir.",
+                        "important_note": "Fırsat puanı 8 temel teknik/bağlamsal bileşen ve gerektiğinde BTC korelasyon risk düzeltmesi içerir; nihai sınıf güçlü fırsat kapılarıyla ayrı hesaplanır. A/B/C araştırma aşamalarıdır; otomatik AL/emir değildir.",
                         "audit_symbol_count": len(candidates),
                         # Preserve every detected phase candidate so the panel and
                         # BtcTurk supplement cannot miss a valid strong opportunity due to a UI cap.
