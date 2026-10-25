@@ -844,9 +844,12 @@ class ControlPanel(tk.Tk):
                 target_price = _safe_float(target.get("price"))
                 label = str(target.get("name") or f"Teknik hedef {index}")
                 event_key = f"target:{target_price}"
-                if target_price is not None and previous <= target_price < price and event_key not in self._level_crossed:
-                    events.append(f"{label} geçildi")
-                    self._level_crossed.add(event_key)
+                if target_price is not None:
+                    if price < target_price <= previous:
+                        self._level_crossed.discard(event_key)
+                    if previous <= target_price < price and event_key not in self._level_crossed:
+                        events.append(f"{label} geçildi")
+                        self._level_crossed.add(event_key)
         if events:
             for event in events:
                 self._log_line(f"SEVİYE ALARMI | {key} | {event} | fiyat={_format_price(price)}")
@@ -972,7 +975,15 @@ class ControlPanel(tk.Tk):
                             name = f"reports/{path.name}"
                         archive.writestr(name, raw)
                         manifest["files"].append({"name": name, "size_bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()})
-                    archive.writestr("diagnostics/state_summary.json", json.dumps(self._diagnostic_payload(), ensure_ascii=False, indent=2).encode("utf-8"))
+                    state_summary = json.dumps(
+                        self._diagnostic_payload(), ensure_ascii=False, indent=2
+                    ).encode("utf-8")
+                    archive.writestr("diagnostics/state_summary.json", state_summary)
+                    manifest["files"].append({
+                        "name": "diagnostics/state_summary.json",
+                        "size_bytes": len(state_summary),
+                        "sha256": hashlib.sha256(state_summary).hexdigest(),
+                    })
                     archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8"))
                 with zipfile.ZipFile(temporary, "r") as check:
                     bad = check.testzip()
