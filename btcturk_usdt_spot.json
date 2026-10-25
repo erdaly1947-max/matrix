@@ -1,0 +1,962 @@
+{
+  "generated_at_utc": "2026-10-24T12:30:25.414284+00:00",
+  "source": "BtcTurk exchangeInfo — aktif TRADING USDT Spot pariteleri",
+  "active_status_verified": true,
+  "symbols": {
+    "BTC": {
+      "base": "BTC",
+      "quote": "USDT",
+      "symbol": "BTCUSDT"
+    },
+    "0G": {
+      "base": "0G",
+      "quote": "USDT",
+      "symbol": "0GUSDT"
+    },
+    "2Z": {
+      "base": "2Z",
+      "quote": "USDT",
+      "symbol": "2ZUSDT"
+    },
+    "AAVE": {
+      "base": "AAVE",
+      "quote": "USDT",
+      "symbol": "AAVEUSDT"
+    },
+    "ACM": {
+      "base": "ACM",
+      "quote": "USDT",
+      "symbol": "ACMUSDT"
+    },
+    "ADA": {
+      "base": "ADA",
+      "quote": "USDT",
+      "symbol": "ADAUSDT"
+    },
+    "AERO": {
+      "base": "AERO",
+      "quote": "USDT",
+      "symbol": "AEROUSDT"
+    },
+    "AFC": {
+      "base": "AFC",
+      "quote": "USDT",
+      "symbol": "AFCUSDT"
+    },
+    "AIOZ": {
+      "base": "AIOZ",
+      "quote": "USDT",
+      "symbol": "AIOZUSDT"
+    },
+    "AIXBT": {
+      "base": "AIXBT",
+      "quote": "USDT",
+      "symbol": "AIXBTUSDT"
+    },
+    "ALGO": {
+      "base": "ALGO",
+      "quote": "USDT",
+      "symbol": "ALGOUSDT"
+    },
+    "ALLO": {
+      "base": "ALLO",
+      "quote": "USDT",
+      "symbol": "ALLOUSDT"
+    },
+    "AMP": {
+      "base": "AMP",
+      "quote": "USDT",
+      "symbol": "AMPUSDT"
+    },
+    "ANIME": {
+      "base": "ANIME",
+      "quote": "USDT",
+      "symbol": "ANIMEUSDT"
+    },
+    "ANKR": {
+      "base": "ANKR",
+      "quote": "USDT",
+      "symbol": "ANKRUSDT"
+    },
+    "APE": {
+      "base": "APE",
+      "quote": "USDT",
+      "symbol": "APEUSDT"
+    },
+    "API3": {
+      "base": "API3",
+      "quote": "USDT",
+      "symbol": "API3USDT"
+    },
+    "APT": {
+      "base": "APT",
+      "quote": "USDT",
+      "symbol": "APTUSDT"
+    },
+    "ARB": {
+      "base": "ARB",
+      "quote": "USDT",
+      "symbol": "ARBUSDT"
+    },
+    "ARKM": {
+      "base": "ARKM",
+      "quote": "USDT",
+      "symbol": "ARKMUSDT"
+    },
+    "ARPA": {
+      "base": "ARPA",
+      "quote": "USDT",
+      "symbol": "ARPAUSDT"
+    },
+    "ARX": {
+      "base": "ARX",
+      "quote": "USDT",
+      "symbol": "ARXUSDT"
+    },
+    "ASR": {
+      "base": "ASR",
+      "quote": "USDT",
+      "symbol": "ASRUSDT"
+    },
+    "ATH": {
+      "base": "ATH",
+      "quote": "USDT",
+      "symbol": "ATHUSDT"
+    },
+    "ATM": {
+      "base": "ATM",
+      "quote": "USDT",
+      "symbol": "ATMUSDT"
+    },
+    "ATOM": {
+      "base": "ATOM",
+      "quote": "USDT",
+      "symbol": "ATOMUSDT"
+    },
+    "AUDIO": {
+      "base": "AUDIO",
+      "quote": "USDT",
+      "symbol": "AUDIOUSDT"
+    },
+    "AVAX": {
+      "base": "AVAX",
+      "quote": "USDT",
+      "symbol": "AVAXUSDT"
+    },
+    "AVNT": {
+      "base": "AVNT",
+      "quote": "USDT",
+      "symbol": "AVNTUSDT"
+    },
+    "AXL": {
+      "base": "AXL",
+      "quote": "USDT",
+      "symbol": "AXLUSDT"
+    },
+    "AXS": {
+      "base": "AXS",
+      "quote": "USDT",
+      "symbol": "AXSUSDT"
+    },
+    "BAND": {
+      "base": "BAND",
+      "quote": "USDT",
+      "symbol": "BANDUSDT"
+    },
+    "BARD": {
+      "base": "BARD",
+      "quote": "USDT",
+      "symbol": "BARDUSDT"
+    },
+    "BAR": {
+      "base": "BAR",
+      "quote": "USDT",
+      "symbol": "BARUSDT"
+    },
+    "BAT": {
+      "base": "BAT",
+      "quote": "USDT",
+      "symbol": "BATUSDT"
+    },
+    "BEAM": {
+      "base": "BEAM",
+      "quote": "USDT",
+      "symbol": "BEAMUSDT"
+    },
+    "BILL": {
+      "base": "BILL",
+      "quote": "USDT",
+      "symbol": "BILLUSDT"
+    },
+    "BIO": {
+      "base": "BIO",
+      "quote": "USDT",
+      "symbol": "BIOUSDT"
+    },
+    "BLUR": {
+      "base": "BLUR",
+      "quote": "USDT",
+      "symbol": "BLURUSDT"
+    },
+    "BNT": {
+      "base": "BNT",
+      "quote": "USDT",
+      "symbol": "BNTUSDT"
+    },
+    "BONK": {
+      "base": "BONK",
+      "quote": "USDT",
+      "symbol": "BONKUSDT"
+    },
+    "CFG": {
+      "base": "CFG",
+      "quote": "USDT",
+      "symbol": "CFGUSDT"
+    },
+    "CHZ": {
+      "base": "CHZ",
+      "quote": "USDT",
+      "symbol": "CHZUSDT"
+    },
+    "CITY": {
+      "base": "CITY",
+      "quote": "USDT",
+      "symbol": "CITYUSDT"
+    },
+    "COMP": {
+      "base": "COMP",
+      "quote": "USDT",
+      "symbol": "COMPUSDT"
+    },
+    "CRV": {
+      "base": "CRV",
+      "quote": "USDT",
+      "symbol": "CRVUSDT"
+    },
+    "CTSI": {
+      "base": "CTSI",
+      "quote": "USDT",
+      "symbol": "CTSIUSDT"
+    },
+    "CVC": {
+      "base": "CVC",
+      "quote": "USDT",
+      "symbol": "CVCUSDT"
+    },
+    "DASH": {
+      "base": "DASH",
+      "quote": "USDT",
+      "symbol": "DASHUSDT"
+    },
+    "DOGE": {
+      "base": "DOGE",
+      "quote": "USDT",
+      "symbol": "DOGEUSDT"
+    },
+    "DOT": {
+      "base": "DOT",
+      "quote": "USDT",
+      "symbol": "DOTUSDT"
+    },
+    "EIGEN": {
+      "base": "EIGEN",
+      "quote": "USDT",
+      "symbol": "EIGENUSDT"
+    },
+    "ENA": {
+      "base": "ENA",
+      "quote": "USDT",
+      "symbol": "ENAUSDT"
+    },
+    "ENJ": {
+      "base": "ENJ",
+      "quote": "USDT",
+      "symbol": "ENJUSDT"
+    },
+    "ENS": {
+      "base": "ENS",
+      "quote": "USDT",
+      "symbol": "ENSUSDT"
+    },
+    "EOS": {
+      "base": "EOS",
+      "quote": "USDT",
+      "symbol": "EOSUSDT"
+    },
+    "ERA": {
+      "base": "ERA",
+      "quote": "USDT",
+      "symbol": "ERAUSDT"
+    },
+    "ETC": {
+      "base": "ETC",
+      "quote": "USDT",
+      "symbol": "ETCUSDT"
+    },
+    "ETHFI": {
+      "base": "ETHFI",
+      "quote": "USDT",
+      "symbol": "ETHFIUSDT"
+    },
+    "ETH": {
+      "base": "ETH",
+      "quote": "USDT",
+      "symbol": "ETHUSDT"
+    },
+    "ETHW": {
+      "base": "ETHW",
+      "quote": "USDT",
+      "symbol": "ETHWUSDT"
+    },
+    "FB": {
+      "base": "FB",
+      "quote": "USDT",
+      "symbol": "FBUSDT"
+    },
+    "FET": {
+      "base": "FET",
+      "quote": "USDT",
+      "symbol": "FETUSDT"
+    },
+    "FIDA": {
+      "base": "FIDA",
+      "quote": "USDT",
+      "symbol": "FIDAUSDT"
+    },
+    "FIL": {
+      "base": "FIL",
+      "quote": "USDT",
+      "symbol": "FILUSDT"
+    },
+    "FLOKI": {
+      "base": "FLOKI",
+      "quote": "USDT",
+      "symbol": "FLOKIUSDT"
+    },
+    "FLOW": {
+      "base": "FLOW",
+      "quote": "USDT",
+      "symbol": "FLOWUSDT"
+    },
+    "FLR": {
+      "base": "FLR",
+      "quote": "USDT",
+      "symbol": "FLRUSDT"
+    },
+    "GALA": {
+      "base": "GALA",
+      "quote": "USDT",
+      "symbol": "GALAUSDT"
+    },
+    "GAL": {
+      "base": "GAL",
+      "quote": "USDT",
+      "symbol": "GALUSDT"
+    },
+    "GLMR": {
+      "base": "GLMR",
+      "quote": "USDT",
+      "symbol": "GLMRUSDT"
+    },
+    "GLM": {
+      "base": "GLM",
+      "quote": "USDT",
+      "symbol": "GLMUSDT"
+    },
+    "GMT": {
+      "base": "GMT",
+      "quote": "USDT",
+      "symbol": "GMTUSDT"
+    },
+    "GRAM": {
+      "base": "GRAM",
+      "quote": "USDT",
+      "symbol": "GRAMUSDT"
+    },
+    "GRASS": {
+      "base": "GRASS",
+      "quote": "USDT",
+      "symbol": "GRASSUSDT"
+    },
+    "GRT": {
+      "base": "GRT",
+      "quote": "USDT",
+      "symbol": "GRTUSDT"
+    },
+    "GRVT": {
+      "base": "GRVT",
+      "quote": "USDT",
+      "symbol": "GRVTUSDT"
+    },
+    "HBAR": {
+      "base": "HBAR",
+      "quote": "USDT",
+      "symbol": "HBARUSDT"
+    },
+    "HNT": {
+      "base": "HNT",
+      "quote": "USDT",
+      "symbol": "HNTUSDT"
+    },
+    "HOT": {
+      "base": "HOT",
+      "quote": "USDT",
+      "symbol": "HOTUSDT"
+    },
+    "H": {
+      "base": "H",
+      "quote": "USDT",
+      "symbol": "HUSDT"
+    },
+    "HYPE": {
+      "base": "HYPE",
+      "quote": "USDT",
+      "symbol": "HYPEUSDT"
+    },
+    "IMX": {
+      "base": "IMX",
+      "quote": "USDT",
+      "symbol": "IMXUSDT"
+    },
+    "INJ": {
+      "base": "INJ",
+      "quote": "USDT",
+      "symbol": "INJUSDT"
+    },
+    "INTER": {
+      "base": "INTER",
+      "quote": "USDT",
+      "symbol": "INTERUSDT"
+    },
+    "IO": {
+      "base": "IO",
+      "quote": "USDT",
+      "symbol": "IOUSDT"
+    },
+    "JASMY": {
+      "base": "JASMY",
+      "quote": "USDT",
+      "symbol": "JASMYUSDT"
+    },
+    "JTO": {
+      "base": "JTO",
+      "quote": "USDT",
+      "symbol": "JTOUSDT"
+    },
+    "JUP": {
+      "base": "JUP",
+      "quote": "USDT",
+      "symbol": "JUPUSDT"
+    },
+    "JUV": {
+      "base": "JUV",
+      "quote": "USDT",
+      "symbol": "JUVUSDT"
+    },
+    "KAITO": {
+      "base": "KAITO",
+      "quote": "USDT",
+      "symbol": "KAITOUSDT"
+    },
+    "KAVA": {
+      "base": "KAVA",
+      "quote": "USDT",
+      "symbol": "KAVAUSDT"
+    },
+    "KITE": {
+      "base": "KITE",
+      "quote": "USDT",
+      "symbol": "KITEUSDT"
+    },
+    "KSM": {
+      "base": "KSM",
+      "quote": "USDT",
+      "symbol": "KSMUSDT"
+    },
+    "LAYER": {
+      "base": "LAYER",
+      "quote": "USDT",
+      "symbol": "LAYERUSDT"
+    },
+    "LDO": {
+      "base": "LDO",
+      "quote": "USDT",
+      "symbol": "LDOUSDT"
+    },
+    "LINEA": {
+      "base": "LINEA",
+      "quote": "USDT",
+      "symbol": "LINEAUSDT"
+    },
+    "LINK": {
+      "base": "LINK",
+      "quote": "USDT",
+      "symbol": "LINKUSDT"
+    },
+    "LIT": {
+      "base": "LIT",
+      "quote": "USDT",
+      "symbol": "LITUSDT"
+    },
+    "LPT": {
+      "base": "LPT",
+      "quote": "USDT",
+      "symbol": "LPTUSDT"
+    },
+    "LRC": {
+      "base": "LRC",
+      "quote": "USDT",
+      "symbol": "LRCUSDT"
+    },
+    "LTC": {
+      "base": "LTC",
+      "quote": "USDT",
+      "symbol": "LTCUSDT"
+    },
+    "LUNA": {
+      "base": "LUNA",
+      "quote": "USDT",
+      "symbol": "LUNAUSDT"
+    },
+    "MAGIC": {
+      "base": "MAGIC",
+      "quote": "USDT",
+      "symbol": "MAGICUSDT"
+    },
+    "MANA": {
+      "base": "MANA",
+      "quote": "USDT",
+      "symbol": "MANAUSDT"
+    },
+    "MANTRA": {
+      "base": "MANTRA",
+      "quote": "USDT",
+      "symbol": "MANTRAUSDT"
+    },
+    "MASK": {
+      "base": "MASK",
+      "quote": "USDT",
+      "symbol": "MASKUSDT"
+    },
+    "MELANIA": {
+      "base": "MELANIA",
+      "quote": "USDT",
+      "symbol": "MELANIAUSDT"
+    },
+    "MEME": {
+      "base": "MEME",
+      "quote": "USDT",
+      "symbol": "MEMEUSDT"
+    },
+    "MET": {
+      "base": "MET",
+      "quote": "USDT",
+      "symbol": "METUSDT"
+    },
+    "ME": {
+      "base": "ME",
+      "quote": "USDT",
+      "symbol": "MEUSDT"
+    },
+    "MIRA": {
+      "base": "MIRA",
+      "quote": "USDT",
+      "symbol": "MIRAUSDT"
+    },
+    "MNT": {
+      "base": "MNT",
+      "quote": "USDT",
+      "symbol": "MNTUSDT"
+    },
+    "MON": {
+      "base": "MON",
+      "quote": "USDT",
+      "symbol": "MONUSDT"
+    },
+    "MORPHO": {
+      "base": "MORPHO",
+      "quote": "USDT",
+      "symbol": "MORPHOUSDT"
+    },
+    "MOVE": {
+      "base": "MOVE",
+      "quote": "USDT",
+      "symbol": "MOVEUSDT"
+    },
+    "NAP": {
+      "base": "NAP",
+      "quote": "USDT",
+      "symbol": "NAPUSDT"
+    },
+    "NEAR": {
+      "base": "NEAR",
+      "quote": "USDT",
+      "symbol": "NEARUSDT"
+    },
+    "NEO": {
+      "base": "NEO",
+      "quote": "USDT",
+      "symbol": "NEOUSDT"
+    },
+    "NMR": {
+      "base": "NMR",
+      "quote": "USDT",
+      "symbol": "NMRUSDT"
+    },
+    "OGN": {
+      "base": "OGN",
+      "quote": "USDT",
+      "symbol": "OGNUSDT"
+    },
+    "OMG": {
+      "base": "OMG",
+      "quote": "USDT",
+      "symbol": "OMGUSDT"
+    },
+    "ONDO": {
+      "base": "ONDO",
+      "quote": "USDT",
+      "symbol": "ONDOUSDT"
+    },
+    "OP": {
+      "base": "OP",
+      "quote": "USDT",
+      "symbol": "OPUSDT"
+    },
+    "ORCA": {
+      "base": "ORCA",
+      "quote": "USDT",
+      "symbol": "ORCAUSDT"
+    },
+    "PAXG": {
+      "base": "PAXG",
+      "quote": "USDT",
+      "symbol": "PAXGUSDT"
+    },
+    "PENGU": {
+      "base": "PENGU",
+      "quote": "USDT",
+      "symbol": "PENGUUSDT"
+    },
+    "PEPE": {
+      "base": "PEPE",
+      "quote": "USDT",
+      "symbol": "PEPEUSDT"
+    },
+    "PHA": {
+      "base": "PHA",
+      "quote": "USDT",
+      "symbol": "PHAUSDT"
+    },
+    "PNUT": {
+      "base": "PNUT",
+      "quote": "USDT",
+      "symbol": "PNUTUSDT"
+    },
+    "POL": {
+      "base": "POL",
+      "quote": "USDT",
+      "symbol": "POLUSDT"
+    },
+    "PSG": {
+      "base": "PSG",
+      "quote": "USDT",
+      "symbol": "PSGUSDT"
+    },
+    "PUMP": {
+      "base": "PUMP",
+      "quote": "USDT",
+      "symbol": "PUMPUSDT"
+    },
+    "PYTH": {
+      "base": "PYTH",
+      "quote": "USDT",
+      "symbol": "PYTHUSDT"
+    },
+    "QNT": {
+      "base": "QNT",
+      "quote": "USDT",
+      "symbol": "QNTUSDT"
+    },
+    "RAD": {
+      "base": "RAD",
+      "quote": "USDT",
+      "symbol": "RADUSDT"
+    },
+    "RARE": {
+      "base": "RARE",
+      "quote": "USDT",
+      "symbol": "RAREUSDT"
+    },
+    "RAY": {
+      "base": "RAY",
+      "quote": "USDT",
+      "symbol": "RAYUSDT"
+    },
+    "RED": {
+      "base": "RED",
+      "quote": "USDT",
+      "symbol": "REDUSDT"
+    },
+    "RENDER": {
+      "base": "RENDER",
+      "quote": "USDT",
+      "symbol": "RENDERUSDT"
+    },
+    "RE": {
+      "base": "RE",
+      "quote": "USDT",
+      "symbol": "REUSDT"
+    },
+    "RLC": {
+      "base": "RLC",
+      "quote": "USDT",
+      "symbol": "RLCUSDT"
+    },
+    "RUNE": {
+      "base": "RUNE",
+      "quote": "USDT",
+      "symbol": "RUNEUSDT"
+    },
+    "SAHARA": {
+      "base": "SAHARA",
+      "quote": "USDT",
+      "symbol": "SAHARAUSDT"
+    },
+    "SAND": {
+      "base": "SAND",
+      "quote": "USDT",
+      "symbol": "SANDUSDT"
+    },
+    "SEI": {
+      "base": "SEI",
+      "quote": "USDT",
+      "symbol": "SEIUSDT"
+    },
+    "SENT": {
+      "base": "SENT",
+      "quote": "USDT",
+      "symbol": "SENTUSDT"
+    },
+    "SHIB": {
+      "base": "SHIB",
+      "quote": "USDT",
+      "symbol": "SHIBUSDT"
+    },
+    "SKL": {
+      "base": "SKL",
+      "quote": "USDT",
+      "symbol": "SKLUSDT"
+    },
+    "SKY": {
+      "base": "SKY",
+      "quote": "USDT",
+      "symbol": "SKYUSDT"
+    },
+    "SNX": {
+      "base": "SNX",
+      "quote": "USDT",
+      "symbol": "SNXUSDT"
+    },
+    "SOL": {
+      "base": "SOL",
+      "quote": "USDT",
+      "symbol": "SOLUSDT"
+    },
+    "SPELL": {
+      "base": "SPELL",
+      "quote": "USDT",
+      "symbol": "SPELLUSDT"
+    },
+    "SPK": {
+      "base": "SPK",
+      "quote": "USDT",
+      "symbol": "SPKUSDT"
+    },
+    "STORJ": {
+      "base": "STORJ",
+      "quote": "USDT",
+      "symbol": "STORJUSDT"
+    },
+    "STRK": {
+      "base": "STRK",
+      "quote": "USDT",
+      "symbol": "STRKUSDT"
+    },
+    "STX": {
+      "base": "STX",
+      "quote": "USDT",
+      "symbol": "STXUSDT"
+    },
+    "SUI": {
+      "base": "SUI",
+      "quote": "USDT",
+      "symbol": "SUIUSDT"
+    },
+    "SUPER": {
+      "base": "SUPER",
+      "quote": "USDT",
+      "symbol": "SUPERUSDT"
+    },
+    "S": {
+      "base": "S",
+      "quote": "USDT",
+      "symbol": "SUSDT"
+    },
+    "SUSHI": {
+      "base": "SUSHI",
+      "quote": "USDT",
+      "symbol": "SUSHIUSDT"
+    },
+    "TIA": {
+      "base": "TIA",
+      "quote": "USDT",
+      "symbol": "TIAUSDT"
+    },
+    "TRA": {
+      "base": "TRA",
+      "quote": "USDT",
+      "symbol": "TRAUSDT"
+    },
+    "TRB": {
+      "base": "TRB",
+      "quote": "USDT",
+      "symbol": "TRBUSDT"
+    },
+    "TRUMP": {
+      "base": "TRUMP",
+      "quote": "USDT",
+      "symbol": "TRUMPUSDT"
+    },
+    "TRX": {
+      "base": "TRX",
+      "quote": "USDT",
+      "symbol": "TRXUSDT"
+    },
+    "TURBO": {
+      "base": "TURBO",
+      "quote": "USDT",
+      "symbol": "TURBOUSDT"
+    },
+    "T": {
+      "base": "T",
+      "quote": "USDT",
+      "symbol": "TUSDT"
+    },
+    "UMA": {
+      "base": "UMA",
+      "quote": "USDT",
+      "symbol": "UMAUSDT"
+    },
+    "UNI": {
+      "base": "UNI",
+      "quote": "USDT",
+      "symbol": "UNIUSDT"
+    },
+    "USDC": {
+      "base": "USDC",
+      "quote": "USDT",
+      "symbol": "USDCUSDT"
+    },
+    "VANA": {
+      "base": "VANA",
+      "quote": "USDT",
+      "symbol": "VANAUSDT"
+    },
+    "VIRTUAL": {
+      "base": "VIRTUAL",
+      "quote": "USDT",
+      "symbol": "VIRTUALUSDT"
+    },
+    "VVV": {
+      "base": "VVV",
+      "quote": "USDT",
+      "symbol": "VVVUSDT"
+    },
+    "WAL": {
+      "base": "WAL",
+      "quote": "USDT",
+      "symbol": "WALUSDT"
+    },
+    "WCT": {
+      "base": "WCT",
+      "quote": "USDT",
+      "symbol": "WCTUSDT"
+    },
+    "WIF": {
+      "base": "WIF",
+      "quote": "USDT",
+      "symbol": "WIFUSDT"
+    },
+    "WLD": {
+      "base": "WLD",
+      "quote": "USDT",
+      "symbol": "WLDUSDT"
+    },
+    "WLFI": {
+      "base": "WLFI",
+      "quote": "USDT",
+      "symbol": "WLFIUSDT"
+    },
+    "W": {
+      "base": "W",
+      "quote": "USDT",
+      "symbol": "WUSDT"
+    },
+    "XAUT": {
+      "base": "XAUT",
+      "quote": "USDT",
+      "symbol": "XAUTUSDT"
+    },
+    "XCN": {
+      "base": "XCN",
+      "quote": "USDT",
+      "symbol": "XCNUSDT"
+    },
+    "XLM": {
+      "base": "XLM",
+      "quote": "USDT",
+      "symbol": "XLMUSDT"
+    },
+    "XPL": {
+      "base": "XPL",
+      "quote": "USDT",
+      "symbol": "XPLUSDT"
+    },
+    "XRP": {
+      "base": "XRP",
+      "quote": "USDT",
+      "symbol": "XRPUSDT"
+    },
+    "XTZ": {
+      "base": "XTZ",
+      "quote": "USDT",
+      "symbol": "XTZUSDT"
+    },
+    "ZKC": {
+      "base": "ZKC",
+      "quote": "USDT",
+      "symbol": "ZKCUSDT"
+    },
+    "ZK": {
+      "base": "ZK",
+      "quote": "USDT",
+      "symbol": "ZKUSDT"
+    },
+    "ZORA": {
+      "base": "ZORA",
+      "quote": "USDT",
+      "symbol": "ZORAUSDT"
+    },
+    "ZRO": {
+      "base": "ZRO",
+      "quote": "USDT",
+      "symbol": "ZROUSDT"
+    },
+    "ZRX": {
+      "base": "ZRX",
+      "quote": "USDT",
+      "symbol": "ZRXUSDT"
+    }
+  }
+}

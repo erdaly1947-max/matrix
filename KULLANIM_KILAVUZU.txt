@@ -1,0 +1,70 @@
+FIRSAT-KONTROL PANELİ
+TEK MOTOR SÜRÜMÜ — KISA KULLANIM KILAVUZU
+Güncelleme: 24 Ekim 2026
+Sürüm: 00
+
+
+
+PROGRAMIN AMACI
+Programın tek analiz motoru Binance Spot'tur. BtcTurk yalnızca taranacak USDT paritelerini belirleyen yerel sembol listesinin kaynağıdır. Normal tarama sırasında BtcTurk fiyatı, mum verisi, hacmi veya emir defteri analiz edilmez.
+
+Program hesaplara bağlanmaz, bakiye/pozisyon bilgisi istemez, emir göndermez ve otomatik alım-satım yapmaz. A/B/C aşamaları araştırma durumlarıdır; emir veya kârlılık garantisi değildir.
+
+İLK KULLANIM
+1. İndirdiğiniz ZIP dosyasına sağ tıklayın ve Özellikler'i açın. Genel sekmesinin alt kısmında “Engellemeyi kaldır” seçeneği görünüyorsa işaretleyin; Uygula, ardından Tamam'a basın. Bu seçenek görünmüyorsa bu adımı atlayın.
+2. ZIP dosyasına sağ tıklayın ve “Tümünü ayıkla” seçeneğini kullanın. Yeni sürümü önceki sürüm klasörünün üzerine çıkarmayın; ayrı bir klasöre ayıklayın.
+3. Ayıklanan klasörde BASLAT.bat dosyasını çalıştırın.
+4. Panel açıldığında “Başlat” düğmesine basın. Motor bilgisayarda kayıtlı yerel BtcTurk USDT sembol listesini okur. Normal başlangıç sırasında BtcTurk API'sine otomatik istek göndermez. Güncel Binance USDT Spot sembol evreni ve fiyat/mum verileri ayrı doğrulanır.
+5. Kayıtlı BtcTurk evreni bulunamazsa panel “TARAMA EVRENİ BEKLENİYOR” durumunda kalır; otomatik bağlantı tekrarı yapılmaz. “Parite listesini güncelle” düğmesiyle listeyi elle güncelleyin ve ardından motoru yeniden başlatın. Tarihsel eski ortak evren kaydı güncel BtcTurk aktif işlem kanıtı değildir; fiyat/mum ve WebSocket tazeliği doğrulanmadan güçlü alarm üretilmez.
+6. “Parite listesini güncelle” düğmesi listeyi elle yenilemek içindir. Bu istek başarısız olursa önceki kayıtlı liste korunur.
+7. “Durdur” düğmesi Binance motorunu kontrollü biçimde durdurur.
+8. “Rapor Oluştur” düğmesi JSON ve Markdown raporlarını yerel reports klasörüne kaydeder. Markdown metni otomatik panoya kopyalanır; bu sohbete Ctrl+V ile yapıştırabilirsiniz. Dosya Gezgini açılır ve ayrıntılı JSON dosyası seçilir; dosyayı sohbete sürükleyerek veya ekleme düğmesiyle yükleyebilirsiniz.
+
+GÜNCELLEME VE AYARLARIN KORUNMASI
+1. Yeni bir kurulum yapıyorsanız ZIP'i ayrı bir klasöre ayıklayın; mevcut klasörün üzerine yazmayın.
+2. Önceki ayarlarınızı sürdürmek için yeni sürümü ilk kez açmadan önce eski klasördeki ayarlar.json dosyasını yeni sürüm klasörüne kopyalayın.
+3. Sinyal geçmişini ve yerel kayıtları sürdürmek için eski klasördeki data klasörünü de yeni sürüm klasörüne kopyalayın. Böylece sinyal geçmişi veritabanı, kalıcı Binance mum arşivi (data/binance_ohlcv_history.sqlite3) ve kayıtlı piyasa/listeler korunur. Kopyalama sırasında uygulama kapalı olmalıdır.
+4. Eski klasörü doğrulama tamamlanana kadar saklayın. Paket data, logs, reports ve run klasörlerini içermez; bunlar uygulama çalıştıkça yerel olarak oluşturulur.
+
+ZAMAN DİLİMLERİ
+Motor sekiz zaman dilimini kullanır: 5 dakika, 15 dakika, 30 dakika, 1 saat, 4 saat, 1 gün, 1 hafta ve 1 ay. Haftalık mumlar pazartesi UTC başlangıcına, aylık mumlar takvim ayının ilk gününe göre doğrulanır; aylık aralık 30 günlük sabit bir süre olarak varsayılmaz.
+
+VERİ VE BAĞLANTI DURUMU
+- Binance geçmiş mum verilerini REST (istek-yanıt erişimi) üzerinden alır; WebSocket (canlı veri akışı) fiyat mumlarını günceller.
+- Kapanmış ve doğrulamadan geçen mumlar `data/binance_ohlcv_history.sqlite3` dosyasında kalıcı saklanır. Program başlangıçta bu arşivi yeniden kullanır, eksik zaman aralıklarını Binance'ten tamamlamayı dener. Arşiv geçmişi otomatik silinmez; geçmiş hazırlığı veya kalıcı arşive yazma başarısızsa güçlü fırsat alarmı için veri hazırlığı başarılı sayılmaz.
+- Kayıtlı BtcTurk listesi bulunamazsa motor aynı isteği otomatik tekrarlamaz; paneldeki “Parite listesini güncelle” düğmesiyle elle güncelleyin ve motoru yeniden başlatın.
+- Yerel liste 14 günden eskiyse panel uyarı gösterir. Bu sürenin tek başına alarm engeli olması onaylanmış bir kural değildir.
+- Daha eski yerel listenin aktif işlem durumu doğrulandığına dair kayıt yoksa tarama görüntülenebilir, ancak güçlü fırsat alarmları liste yeniden doğrulanana kadar kapalıdır.
+- Fan token dışlama listesi veya sabit değerli varlık listesi boş/okunamaz/geçersizse aday taraması devam edebilir, ancak güçlü fırsat alarmları kapalı tutulur.
+- Sabit değerli varlıklar tarama tablosunda görünebilir; bunlar için güçlü momentum alarmı üretilmez. Bu sınıflandırma ayarlar.json içindeki ayrı listeden yapılır.
+- Seçilen zaman dilimi ayrıntısında EMA (üstel hareketli ortalama), MACD (hareketli ortalamaların yakınsama-ıraksama göstergesi), RSI (Göreceli Güç Endeksi), ADX (ortalama yönsel endeks), DMI (yönsel hareket göstergeleri) ve ATR (ortalama gerçek aralık) ayrı ayrı gösterilir. Bunlar toplam puana dönüştürülmez ve tek başlarına alım sinyali değildir.
+- B/C aşamasındaki adaylarda yeterli veri varsa, kırılım seviyesi/önceki destek ve ATR'den koşullu giriş bölgesi, zarar durdurma ve 1R/2R/3R senaryoları hesaplanır. Fiyat giriş bölgesini aşmışsa panel “kovalama yok” uyarısı gösterir. Hedefler fiyat tahmini değildir; komisyon, kayma ve gerçek dolum dahil değildir.
+- Bağlantı/veri güncelliği doğrulanmıyorsa eski adaylar güncel veya güçlü fırsat olarak sunulmaz.
+- Bir coin'in listede bulunması, BtcTurk'te o anda işlem yapılabilir fiyatı veya likiditeyi doğrulamaz.
+
+ADAY AŞAMALARI
+A — Kırmızı: erken hazırlık; teyit eksik olabilir.
+B — Sarı: aynı zaman diliminde kapanmış mumda fiyat yapısı ve olağan dışı hacim birlikte doğrulanır.
+C — Yeşil: önceki kırılımın korunmasına ve kırılım hacmine ilişkin devamlılık kanıtı vardır.
+Mavi veri uyarısıdır; A/B/C aşaması değildir. Panelde güncel veri durumu lacivert, güncel olmayan veri turkuaz vurgulanır; tabloda seçili satır füme-gri arka planla belirtilir.
+
+ALARMLAR
+Güçlü fırsat sesi yalnızca motor/WebSocket bağlantısı çalışırken, durum verisi güncelse ve aynı zaman diliminde gerekli B/C koşulları doğrulanmışsa çalar. A aşaması güçlü fırsat alarmı değildir. Aynı coin/zaman dilimindeki fırsat devam ederken her taramada yeniden ses çıkarılmaz. Fırsat koşulu toplam 300 saniye boyunca güncel verilerle doğrulanmıyorsa olay kapanır; veri eski veya eksik olduğunda kapanış sayacı ilerlemez, güncel veriyle doğrulanan yokluk aralıkları biriktirilir. Fırsatın sona ermesi kendi başına ses üretmez.
+
+Panelin sağ tarafındaki küçük kontroller: “Alarm Açık/Kapalı” güçlü fırsat ve seviye seslerini yönetir; gri kaydırıcı ses yüksekliğini %0–100 arasında ayarlar; “Sesi dene” seçilen seviyeyi sınar (ses seviyesi %0 ise sessiz kalır). Ses tercihi ve ses seviyesi ayarlar.json içindeki panel_ui bölümünde saklanır; diğer motor ayarları korunur.
+
+“Seviye Açık” takibi yalnızca seçilmiş coin'in motor ve fiyat verisi güncelken başlatılır. Giriş bölgesi, kırılım, hedefler ve stop seviyeleri takibin başında mevcut plandan sabitlenir. Giriş bölgesine giriş, yukarı yönlü kırılım/hedef geçişi ve aşağı yönlü stop geçişi ayrı seslerle bildirilir; aynı fiyat çevresinde her veri güncellemesinde ses tekrarlanmaz. Fiyat ters yönden seviyeyi tekrar geçerse alarm yeniden kurulabilir. Aday seçimi değişince takip kapatılır. Veri eskiyince takip bekler; veri geri geldiğinde ilk güncel fiyat yalnızca yeni başlangıç noktası olur, bağlantı kesintisinde olmuş gibi görünen bir geçiş için alarm üretilmez. Seviye takibi program yeniden açıldığında kapalı başlar. Hiçbir alarm otomatik emir göndermez.
+
+PANELDEKİ ALANLAR
+- Motor ve piyasa durumu: çalışma durumu, aday kayıt sayısı, WebSocket bağlantıları ve veri yaşı.
+- Aday akışı: coin/parite, öncelik yıldızı, keşif yolu, A/B/C aşaması, Binance fiyatı, zaman dilimi ve veri durumu.
+- Güçlü fırsat bildiriminde motor adı, parite, fiyat, canlı veri doğrulama durumu ve gerçek tetikleyici gerekçesi yer alır.
+- Seçilen coin: bulgular, kanıt grupları, eksik kontroller ve zaman dilimi değerlendirmeleri. Senaryo/zaman dilimi yeşil, olası giriş bölgesi beyaz, kırılım sarı, zarar durdurma kırmızı, hedefler lila/açık morla vurgulanır.
+- Tanılama kayıtları arayüzde gösterilmez; başlatma/durdurma, bağlantı, liste güncellemesi, alarm olayları ve motorun stdout/stderr çıktısı arka planda `logs/tek_motor_paneli.log` dosyasına yazılır.
+- Son başlatma/son durdurma: ilgili düğmelerin altında motorun en son çalışma saatleri.
+
+RAPORLAR VE DOSYALAR
+Raporlar yalnızca uygulamanın çalıştığı bilgisayardaki reports klasörüne kaydedilir; program raporları otomatik olarak ChatGPT'ye veya ChatGPT Kitaplığı'na göndermez. Rapor + Devir ZIP düğmesi tam JSON raporunu, okunabilir Markdown'ı, tanı özetini, en fazla 300 satır/128 KiB günlük ekini ve SHA-256 bütünlük listesini tek sıkıştırılmış dosyada toplar. Panoya yalnızca kısa durum özeti kopyalanır; uzun rapor metnini kopyalayıp yapıştırmanız gerekmez. ZIP Dosya Gezgini'nde seçilir; bu sohbete yalnızca ZIP dosyasını ekleyin. Tanı dosyası ayarlar.json dosyasının tam yolunu, okunabilirlik durumunu, filtre listesi sayımlarını ve SHA-256 özetini kaydeder; özel ayarların tam içeriğini eklemez. Günlük kaydı logs/tek_motor_paneli.log dosyasına, yerel veri ve sinyal kayıtları data klasörüne, çalışma işaretleri run klasörüne yazılır.
+
+RİSK NOTU
+Teknik aday veya güçlü fırsat alarmı işlem önerisinin garanti olduğu anlamına gelmez. Koşullu giriş/zarar durdurma/hedef planı yalnızca bütün gerekli canlı veriler güncelse, parite tarama uygunluk filtrelerinden geçtiyse ve aynı zaman diliminde B/C teyidi ile kapanmış mum kırılımı, destek ve ATR(14) değerleri yeterliyse gösterilir. Plan üretilemiyorsa program fiyat seviyesi uydurmaz. Hedefler 1R/2R/3R senaryolarıdır, fiyat tahmini değildir. Komisyon, kayma, gerçek emir gerçekleşmesi ve BtcTurk'te uygulanabilirlik bu programla doğrulanmaz; uygulama otomatik emir göndermez.
