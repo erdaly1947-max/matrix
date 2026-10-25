@@ -31,7 +31,7 @@ Kaynak koddaki sürüm etiketi `radar_core.py` içinde `APP_VERSION = "00"` olar
 
 ### Windows HTTPS bağlantı tanılaması
 
-TLS hatası oluştuğunda ve standart HTTPS ile proxy ayarları dışında doğrudan erişim başarısızsa, program yalnızca tanımlı resmî Binance/BtcTurk API alan adları için iki DNS-over-HTTPS sağlayıcısından genel IPv4 adresleri çözümlemeyi deneyebilir. Bağlantı, çözümlenen IP'ye kurulur ama asıl API alan adı TLS SNI/Host olarak korunur ve sertifika doğrulaması açık kalır. Özel/yerel IP'ler, beklenmeyen HTTP yönlendirmeleri ve listede olmayan alan adları reddedilir. Bu yol DNS çözümlemesi kaynaklı bozulmayı giderebilir; ağın doğrudan TLS/SNI trafiğini engellemesini aşacağı garanti edilmez.
+TLS hatası oluştuğunda ve standart HTTPS ile proxy ayarları dışında doğrudan erişim başarısızsa, program yalnızca tanımlı resmî Binance/BtcTurk API alan adları için iki DNS-over-HTTPS sağlayıcısından genel IPv4 adresleri çözümlemeyi deneyebilir. Bağlantı, çözümlenen IP'ye kurulur ama asıl API alan adı TLS SNI/Host olarak korunur ve sertifika doğrulaması açık kalır. Özel/yerel IP'ler ve listede olmayan alan adları reddedilir. API normal HTTPS yanıtı olarak yönlendirirse, yalnızca HTTPS/443 üzerinde izin verilen resmî Binance/BtcTurk API alan adına yönlendirmeler sınırlı sayıda takip edilir; HTTP'ye veya bilinmeyen alana yönlendirmeler reddedilir. Bu yol DNS çözümlemesi kaynaklı bozulmayı giderebilir; ağın doğrudan TLS/SNI trafiğini engellemesini aşacağı garanti edilmez.
 
 
 

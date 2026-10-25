@@ -23,7 +23,7 @@ import ssl
 import threading
 import time
 import urllib.request
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 import requests
 from requests.structures import CaseInsensitiveDict
 
@@ -353,6 +353,24 @@ def _trusted_market_api_host(host: str) -> bool:
     return hostname in approved
 
 
+def _validated_market_redirect_url(current_url: str, location: str) -> str:
+    """Follow only standard HTTPS redirects to known public exchange API hosts."""
+    target = urljoin(current_url, str(location or "").strip())
+    current = urlsplit(current_url)
+    parsed = urlsplit(target)
+    if parsed.scheme.casefold() != "https":
+        raise ValueError("Resmî API yönlendirmesi HTTPS dışına çıkıyor; reddedildi.")
+    if not parsed.hostname or not _trusted_market_api_host(parsed.hostname):
+        raise ValueError("Resmî API yönlendirmesi izin verilmeyen alan adına gidiyor; reddedildi.")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("Kimlik bilgisi içeren API yönlendirmesi reddedildi.")
+    if parsed.port not in (None, 443):
+        raise ValueError("Standart dışı bağlantı noktasına API yönlendirmesi reddedildi.")
+    if parsed.fragment:
+        target = target.split("#", 1)[0]
+    return target
+
+
 def _parse_doh_ipv4_response(payload: Any) -> tuple[list[str], int]:
     """Extract globally routable IPv4 answers and their minimum TTL from DNS JSON."""
     if not isinstance(payload, dict) or payload.get("Status") != 0:
@@ -501,34 +519,81 @@ def _doh_market_get(
     timeout: float | tuple[float, float],
     headers: dict[str, str],
 ) -> requests.Response:
-    """Try the official market endpoint using DoH-resolved IPv4s and strict TLS verification."""
-    prepared = requests.Request("GET", url, params=params, headers=headers).prepare()
-    if not prepared.url:
+    """Try official market APIs over strict TLS, following only allowlisted HTTPS redirects."""
+    initial = requests.Request("GET", url, params=params, headers=headers).prepare()
+    if not initial.url:
         raise ValueError("İstek URL'si hazırlanamadı.")
-    parsed = urlsplit(prepared.url)
-    host = parsed.hostname or ""
-    addresses, resolver_name = _resolve_market_host_doh(host)
-    errors: list[str] = []
-    for address in addresses:
-        try:
-            response = _pinned_ip_get(prepared, address, timeout)
-            # Do not follow an unexpected network redirect to another host.
-            if 300 <= response.status_code < 400:
-                raise RuntimeError(
-                    f"DoH-IP HTTPS isteği yönlendirme aldı (HTTP {response.status_code}); güvenlik için reddedildi."
+    current_url = initial.url
+    request_headers = dict(headers)
+    visited_urls: set[str] = set()
+    max_redirects = 4
+    original_host = urlsplit(current_url).hostname or ""
+
+    for hop in range(max_redirects + 1):
+        if current_url in visited_urls:
+            raise RuntimeError("Resmî API yönlendirme döngüsü saptandı; istek durduruldu.")
+        visited_urls.add(current_url)
+        parsed = urlsplit(current_url)
+        host = parsed.hostname or ""
+        if parsed.scheme.casefold() != "https" or not _trusted_market_api_host(host):
+            raise ValueError("DNS-over-HTTPS yedeği izin verilmeyen borsa API adresini reddetti.")
+        addresses, resolver_name = _resolve_market_host_doh(host)
+        redirect_url: str | None = None
+        errors: list[str] = []
+
+        for address in addresses:
+            try:
+                prepared = requests.Request(
+                    "GET", current_url, headers=request_headers
+                ).prepare()
+                response = _pinned_ip_get(prepared, address, timeout)
+                if response.status_code in (301, 302, 303, 307, 308):
+                    location = response.headers.get("Location", "")
+                    if not location:
+                        raise RuntimeError(
+                            f"HTTPS API HTTP {response.status_code} yanıtında Location başlığı yok."
+                        )
+                    candidate = _validated_market_redirect_url(current_url, location)
+                    redirect_url = candidate
+                    logging.getLogger(__name__).info(
+                        "Resmî API HTTPS yönlendirmesi doğrulandı: %s -> %s",
+                        host, urlsplit(candidate).hostname,
+                    )
+                    break
+                if 300 <= response.status_code < 400:
+                    raise RuntimeError(
+                        f"Beklenmeyen API HTTP durumu {response.status_code}; otomatik yönlendirilmedi."
+                    )
+                response.raise_for_status()
+                logging.getLogger(__name__).warning(
+                    "Resmî borsa API bağlantısı sistem DNS yolu yerine doğrulanmış DoH IPv4 yedeğiyle açıldı: "
+                    "host=%s; ip=%s; resolver=%s; TLS sertifika doğrulaması açık.",
+                    host, address, resolver_name,
                 )
-            response.raise_for_status()
-            logging.getLogger(__name__).warning(
-                "Resmî borsa API bağlantısı sistem DNS yolu yerine doğrulanmış DoH IPv4 yedeğiyle açıldı: "
-                "host=%s; ip=%s; resolver=%s; TLS sertifika doğrulaması açık.",
-                host, address, resolver_name,
-            )
-            return response
-        except Exception as exc:
-            errors.append(f"{address}: {type(exc).__name__}: {str(exc)[:180]}")
+                return response
+            except Exception as exc:
+                errors.append(f"{address}: {type(exc).__name__}: {str(exc)[:180]}")
+
+        if redirect_url is not None:
+            new_host = urlsplit(redirect_url).hostname or ""
+            if new_host.casefold() != host.casefold():
+                # This API is public-data-only; nevertheless do not forward sensitive headers cross-host.
+                request_headers = {
+                    key: value for key, value in request_headers.items()
+                    if key.casefold() not in {
+                        "authorization", "proxy-authorization", "cookie", "cookie2"
+                    }
+                }
+            current_url = redirect_url
+            continue
+
+        raise RuntimeError(
+            f"{host} için DNS-over-HTTPS ile bulunan IP'lerden sertifikası doğrulanmış bağlantı kurulamadı. "
+            + " | ".join(errors)
+        )
+
     raise RuntimeError(
-        f"{host} için DNS-over-HTTPS ile bulunan IP'lerden sertifikası doğrulanmış bağlantı kurulamadı. "
-        + " | ".join(errors)
+        f"{original_host} API yanıtı izin verilen maksimum {max_redirects} HTTPS yönlendirme sınırını aştı."
     )
 
 

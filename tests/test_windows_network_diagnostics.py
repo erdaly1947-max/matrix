@@ -5,6 +5,50 @@ from ortak_piyasa import _classify_tls_first_response, _safe_proxy_endpoint
 
 
 class WindowsNetworkDiagnosticsTests(unittest.TestCase):
+    def test_official_https_redirect_is_allowed(self):
+        original = "https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT"
+        result = ortak_piyasa._validated_market_redirect_url(
+            original, "https://data-api.binance.vision/api/v3/exchangeInfo?symbol=BTCUSDT"
+        )
+        self.assertEqual(
+            result,
+            "https://data-api.binance.vision/api/v3/exchangeInfo?symbol=BTCUSDT",
+        )
+
+    def test_relative_https_redirect_to_same_official_host_is_allowed(self):
+        result = ortak_piyasa._validated_market_redirect_url(
+            "https://api.btcturk.com/api/v2/ticker", "/api/v2/server/exchangeinfo"
+        )
+        self.assertEqual(
+            result, "https://api.btcturk.com/api/v2/server/exchangeinfo"
+        )
+
+    def test_market_redirect_to_plain_http_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "HTTPS dışına"):
+            ortak_piyasa._validated_market_redirect_url(
+                "https://api.binance.com/api/v3/exchangeInfo",
+                "http://data-api.binance.vision/api/v3/exchangeInfo",
+            )
+
+    def test_market_redirect_to_unapproved_host_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "izin verilmeyen"):
+            ortak_piyasa._validated_market_redirect_url(
+                "https://api.binance.com/api/v3/exchangeInfo",
+                "https://not-binance.example/api/v3/exchangeInfo",
+            )
+
+    def test_market_redirect_to_credentials_or_unusual_port_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Kimlik bilgisi"):
+            ortak_piyasa._validated_market_redirect_url(
+                "https://api.binance.com/api/v3/exchangeInfo",
+                "https://user:pass@api.binance.com/api/v3/exchangeInfo",
+            )
+        with self.assertRaisesRegex(ValueError, "Standart dışı"):
+            ortak_piyasa._validated_market_redirect_url(
+                "https://api.binance.com/api/v3/exchangeInfo",
+                "https://api.binance.com:8443/api/v3/exchangeInfo",
+            )
+
     def test_doh_parser_accepts_global_ipv4_and_ignores_private_answers(self):
         payload = {
             "Status": 0,
