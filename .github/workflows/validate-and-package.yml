@@ -82,7 +82,7 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
-        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
+        if: (github.event_name == 'workflow_dispatch' && inputs.create_package == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-s00]'))
         run: |
           python - <<'PY'
           import hashlib
@@ -118,7 +118,7 @@ jobs:
           PY
 
       - name: Sürüm 00 artifact'ini yayımla
-        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
+        if: (github.event_name == 'workflow_dispatch' && inputs.create_package == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-s00]'))
         uses: actions/upload-artifact@v7
         with:
           name: Firsat-Kontrol-Paneli-Surum-00
