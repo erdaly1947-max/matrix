@@ -250,11 +250,12 @@ Bu gereksinimlerin README'ye kaydedilmesi tek başına kod değişikliği değil
 - `tek_motor_paneli.pyw` içinde BTC 1h/4h piyasa bağlamı özeti, aday listesinde BTC'ye göre 1h getiri farkı ve BTC 1h korelasyonu; seçilen coin alanında karar gerekçesi, korelasyon düzeltmesi, yakın destek/direnç, koşullu giriş, zarar durdurma, ilk teknik hedef ve eksik teyitlerin özeti eklenmiştir. Ayrıntılı mevcut metrikler, risk planı ve kontrol alanları korunmuştur.
 - Pencere boyutu ekran ölçülerine göre hesaplanıp ortalanır. Ses kontrollerine yakın, ayarları kaydedilen açık-gri aralıkta aydınlık kontrolü eklenmiştir.
 - Durum raporunun aday tablosuna BTC göreceli güç/korelasyon sütunları eklenmiştir. Motorun `important_note` açıklaması korelasyon düzeltmesini yansıtacak şekilde güncellenmiştir.
+- Aday tablosunda karar sınıflarını yeşil/kırmızı/sarı/mavi/lila/turkuaz ve A/B/C aşamalarını ayırt eden renk etiketleri eklenmiştir; eski/eksik veri gri uyarı olarak kalır.
 - `tests/test_btc_correlation_adjustment.py` içine eşik, riskli/sağlıklı BTC, eski veri, yetersiz örnek, negatif korelasyon ve puan bileşeni için otomatik testler eklendi. `.github/workflows/validate-and-package.yml` kaynak derleme, birim test ve ZIP/SHA-256 üretimini tarif eder.
 
 ### Doğrulama durumu — dikkat
 
-- Otomatik doğrulama iş akışı başlatılmaya çalışıldı. GitHub Actions iki denemede de çalışma adımlarına ulaşmadan başarısız oldu; iş kayıtlarında çalıştırıcı atanmamış ve adım listesi boştu. Bu nedenle Python derlemesi, otomatik testler ve iş akışıyla ZIP üretimi **çalıştırılmış veya başarılı sayılmaz**.
+- Bu oturum boyunca GitHub Actions doğrulama iş akışı birden fazla kez tetiklendi; denemeler çalışma adımlarına ulaşmadan başarısız oldu. İş kayıtlarında çalıştırıcı atanmadı (`runner_id=0`, `runner_name` boş) ve adım listesi boş döndü. Bu nedenle Python derlemesi, otomatik testler ve iş akışıyla ZIP üretimi **çalıştırılmış veya başarılı sayılmaz**.
 - Bu oturumda yerel Python çalıştırıcısıyla derleme, birim/regresyon testleri, canlı Binance/BtcTurk bağlantısı veya Windows/Tkinter ekran testi yapılamadı. Kod değişiklikleri kaynakta okunarak doğrulandı; bu, çalışan uygulama testi değildir.
 - Komisyon ve kayma sonrası net getiri hesabı eklenmedi ve bilerek eklenmeyecektir. Teknik risk/getiri brüt kalır; emir gönderimi veya otomatik alım-satım bulunmaz.
 - Sürüm 00 kaynak arşivini indirmek için GitHub'ın `main` dalı ZIP bağlantısı kullanılabilir: https://github.com/erdaly1947-max/matrix/archive/refs/heads/main.zip . Bu, GitHub'ın ürettiği kaynak arşividir; çalıştırıcı başarısızlığı nedeniyle bu oturumda bağımsız bir derleme/artifact ZIP'i oluşturulmuş gibi raporlanmaz.
