@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   test-and-package:
-    runs-on: windows-2022
+    runs-on: ubuntu-slim
     timeout-minutes: 20
     steps:
       - name: Kaynak kodu al
@@ -32,9 +32,8 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Python kaynaklarını derle
-        shell: pwsh
         run: |
-          @'
+          python - <<'PY'
           from pathlib import Path
           import py_compile
 
@@ -51,24 +50,22 @@ jobs:
               py_compile.compile(str(source), doraise=True)
               print(f"OK: {source}")
           print(f"Derlenen dosya sayısı: {len(sources)}")
-          '@ | python -
+          PY
 
       - name: Ayar JSON dosyalarını doğrula
-        shell: pwsh
         run: |
-          @'
+          python - <<'PY'
           import json
           from pathlib import Path
 
           for name in ("ayarlar.json", "btcturk_usdt_spot.json"):
               value = json.loads(Path(name).read_text(encoding="utf-8-sig"))
               print(f"OK: {name} ({type(value).__name__})")
-          '@ | python -
+          PY
 
       - name: Örnek ZIP bütünlüğünü doğrula
-        shell: pwsh
         run: |
-          @'
+          python - <<'PY'
           from pathlib import PurePosixPath
           from zipfile import ZipFile
           from pathlib import Path
@@ -86,7 +83,7 @@ jobs:
           if missing:
               raise SystemExit(f"Örnek ZIP'te eksik gerekli dosyalar: {missing}")
           print(f"Örnek ZIP sağlam; {len(names)} dosya adı kontrol edildi.")
-          '@ | python -
+          PY
 
       - name: Otomatik birim testleri
         shell: pwsh
@@ -94,9 +91,8 @@ jobs:
 
       - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
         if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
-        shell: pwsh
         run: |
-          @'
+          python - <<'PY'
           import hashlib
           from pathlib import Path
           from zipfile import ZipFile, ZIP_DEFLATED
@@ -129,7 +125,7 @@ jobs:
           checksum_path.write_text(f"{digest}  {archive_path.name}\n", encoding="ascii")
           print(f"ZIP: {archive_path}")
           print(f"SHA-256: {digest}")
-          '@ | python -
+          PY
 
       - name: Sürüm 00 artifact'ini yayımla
         if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
