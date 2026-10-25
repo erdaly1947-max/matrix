@@ -167,6 +167,7 @@ def load_settings_snapshot(
         "settings_file_size_bytes": None,
         "settings_modified_at_utc": None,
         "settings_sha256": None,
+        "settings_runtime_sha256": None,
         "settings_parse_status": "MISSING",
         "settings_parse_error": None,
     }
@@ -187,6 +188,14 @@ def load_settings_snapshot(
             metadata["settings_parse_error"] = "JSON kökü bir nesne/sözlük değil."
             return {}, metadata
         metadata["settings_parse_status"] = "OK"
+        # Panel-only settings are persisted to the same JSON file but do not affect
+        # the already-running analysis engine. Keep the full-file hash for diagnostics
+        # and compare this canonical engine hash for restart-required changes.
+        engine_settings = {key: item for key, item in value.items() if key != "panel_ui"}
+        runtime_bytes = json.dumps(
+            engine_settings, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        metadata["settings_runtime_sha256"] = hashlib.sha256(runtime_bytes).hexdigest()
         return value, metadata
     except FileNotFoundError:
         metadata["settings_file_exists"] = False

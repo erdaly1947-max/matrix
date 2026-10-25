@@ -1,7 +1,9 @@
 """Focused regression checks for the current Sürüm 00 motor/panel defects."""
 import importlib.machinery
 import importlib.util
+import json
 from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 
 import unittest
@@ -75,6 +77,58 @@ class RuntimeStatusSeparationTests(unittest.TestCase):
             ws_healthy=True, settings_changed_since_load=True,
         ) == "AYARLAR DEĞİŞTİ — MOTORU YENİDEN BAŞLATIN"
 
+
+    def test_panel_ui_only_settings_changes_do_not_require_engine_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ayarlar.json"
+            initial = {
+                "scan_refresh_seconds": 15,
+                "websocket_stale_seconds_binance": 45,
+                "panel_ui": {"alarm_sound_enabled": True, "alarm_volume": 55},
+            }
+            path.write_text(json.dumps(initial), encoding="utf-8")
+            _loaded_settings, loaded = engine.load_settings_snapshot(path)
+
+            changed = {
+                **initial,
+                "panel_ui": {"alarm_sound_enabled": False, "alarm_volume": 80, "panel_brightness": 75},
+            }
+            path.write_text(json.dumps(changed), encoding="utf-8")
+            _current_settings, current = engine.load_settings_snapshot(path)
+
+            assert loaded["settings_sha256"] != current["settings_sha256"]
+            assert loaded["settings_runtime_sha256"] == current["settings_runtime_sha256"]
+            assert not engine._settings_snapshot_changed(loaded, current)
+
+    def test_engine_setting_changes_still_require_engine_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ayarlar.json"
+            initial = {
+                "scan_refresh_seconds": 15,
+                "panel_ui": {"alarm_volume": 55},
+            }
+            path.write_text(json.dumps(initial), encoding="utf-8")
+            _loaded_settings, loaded = engine.load_settings_snapshot(path)
+
+            changed = {
+                **initial,
+                "scan_refresh_seconds": 30,
+                "panel_ui": {"alarm_volume": 80},
+            }
+            path.write_text(json.dumps(changed), encoding="utf-8")
+            _current_settings, current = engine.load_settings_snapshot(path)
+
+            assert loaded["settings_runtime_sha256"] != current["settings_runtime_sha256"]
+            assert engine._settings_snapshot_changed(loaded, current)
+
+    def test_invalid_settings_snapshot_fails_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ayarlar.json"
+            path.write_text('{"scan_refresh_seconds": 15}', encoding="utf-8")
+            _loaded_settings, loaded = engine.load_settings_snapshot(path)
+            path.write_text('{"scan_refresh_seconds": ', encoding="utf-8")
+            _current_settings, current = engine.load_settings_snapshot(path)
+            assert engine._settings_snapshot_changed(loaded, current)
 
     def test_strong_alert_can_run_when_global_history_status_is_warning(self):
         played = []

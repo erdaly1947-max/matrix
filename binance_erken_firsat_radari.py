@@ -127,12 +127,21 @@ def _websocket_age_seconds_by_shard(
 def _settings_snapshot_changed(
     loaded: dict[str, Any], current: dict[str, Any]
 ) -> bool:
-    """Detect settings file changes or availability/parse changes since engine start."""
+    """Detect engine-setting changes while ignoring panel-only preference writes."""
     if not isinstance(loaded, dict) or not isinstance(current, dict):
         return True
+    # Missing or unreadable configuration is never treated as a valid unchanged state.
+    if loaded.get("settings_parse_status") != "OK" or current.get("settings_parse_status") != "OK":
+        return True
+    loaded_runtime_hash = loaded.get("settings_runtime_sha256")
+    current_runtime_hash = current.get("settings_runtime_sha256")
+    if isinstance(loaded_runtime_hash, str) and isinstance(current_runtime_hash, str):
+        settings_hash_changed = loaded_runtime_hash != current_runtime_hash
+    else:
+        # Conservative compatibility for snapshots produced by older engine versions.
+        settings_hash_changed = loaded.get("settings_sha256") != current.get("settings_sha256")
     return (
-        loaded.get("settings_sha256") != current.get("settings_sha256")
-        or loaded.get("settings_parse_status") != current.get("settings_parse_status")
+        settings_hash_changed
         or loaded.get("settings_file_exists") != current.get("settings_file_exists")
     )
 
@@ -2604,9 +2613,11 @@ class BinanceRadar:
                         "settings_file_size_bytes": current_settings_snapshot.get("settings_file_size_bytes"),
                         "settings_modified_at_utc": current_settings_snapshot.get("settings_modified_at_utc"),
                         "settings_sha256": current_settings_snapshot.get("settings_sha256"),
+                        "settings_runtime_sha256": current_settings_snapshot.get("settings_runtime_sha256"),
                         "settings_parse_status": current_settings_snapshot.get("settings_parse_status"),
                         "settings_parse_error": current_settings_snapshot.get("settings_parse_error"),
                         "settings_loaded_sha256": loaded_settings_snapshot.get("settings_sha256"),
+                        "settings_loaded_runtime_sha256": loaded_settings_snapshot.get("settings_runtime_sha256"),
                         "settings_loaded_modified_at_utc": loaded_settings_snapshot.get("settings_modified_at_utc"),
                         "settings_loaded_parse_status": loaded_settings_snapshot.get("settings_parse_status"),
                         "settings_changed_since_load": settings_changed_since_load,
