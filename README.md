@@ -274,8 +274,62 @@ Bu gereksinimlerin README'ye kaydedilmesi tek başına kod değişikliği değil
 - Kullanıcının yerel canlı test sonucu gelene kadar Sürüm 1 çalışmasına geçilmez. Dal açılması gerekirse kullanıcıdan önceden açık onay alınır; Sürüm 1 dalı adı ancak onaydan sonra `1.surum-readme-gereksinimler` olur.
 
 
-## Ağ bağımsız piyasa verisi geçidi
 
-Program, ZIP paketine otomatik yerleştirilen `market_data_relay.json` içindeki HTTPS adresi doluysa Binance REST/WebSocket ve BtcTurk herkese açık piyasa verisi çağrılarını bu geçide yönlendirir. Yerel `ayarlar.json` eski sürümden kopyalansa da ayrı geçit dosyası korunur. Geçit, yalnızca sabit ve izinli kamuya açık piyasa endpoint'lerini kabul eder; hesap bilgileri, API anahtarları veya emir işlemleri sunmaz.
+## Ağ bağımsız piyasa verisi geçidi — kalıcı teknik kayıt
 
-Bulut geçidi Cloudflare Workers üzerinde tutulur. GitHub Actions'ta `CLOUDFLARE_API_TOKEN` ve `CLOUDFLARE_ACCOUNT_ID` depo sırları tanımlandığında paket iş akışı geçidi dağıtır ve yeni ZIP'e hesap alt alan adını yerleştirir. Bu bilgiler yoksa otomatik paketleme yine sürer ve mevcut geçit adresi korunur; yalnızca Worker'ın sonraki kod güncellemeleri GitHub Actions tarafından otomatik dağıtılmaz.
+### Sorunun kaynağı ve tanılama bulgusu
+
+- 25 Ekim 2026 tarihli Windows tanılamasında, bilgisayar evdeki TurkTelekom_ZWR3J ağına bağlıyken data-api.binance.vision:443 için TLS ClientHello sonrasında TLS yanıtı yerine düz HTTP 307 Temporary Redirect alındı. Yönlendirme guvenliinternet.turktelekom.com.tr alan adına gidiyordu ve yanıtta Via başlığı vardı. Bu, söz konusu ağ bağlantısında Türk Telekom Güvenli İnternet filtre/yönlendirmesiyle uyumludur.
+- Aynı ev Wi-Fi bağlantısında telefondan borsa siteleri açılırken, bilgisayar telefonun mobil erişim noktasına bağlandığında programın ve tarayıcının çalışması; sorunun masaüstü programının temel veri işleme kodundan ziyade bilgisayarın ev interneti üzerindeki HTTPS/TLS yolunda olduğunu gösteren karşılaştırmalı kanıttır.
+- Windows ortam değişkenleri, Windows Internet Settings ve WinHTTP kontrollerinde yapılandırılmış proxy bulunmadı. Bu nedenle bu sorun için proxy kurulması veya proxy ayarlarının değiştirilmesi çözüm olarak kaydedilmemelidir.
+- Doğrudan ağ yolundaki yönlendirme yerel program tarafından güvenli biçimde düzeltilemeyeceğinden, halka açık piyasa verisinin ayrı bir bulut sunucusundan alınması ve uygulamaya HTTPS/WebSocket üzerinden iletilmesi yaklaşımı seçildi.
+
+### Cloudflare Workers denemesi — sonuç ve korunacak bilgi
+
+- Ücretsiz Cloudflare Worker oluşturulup dağıtıldı. Worker sağlık uç noktası ve BtcTurk halka açık USDT ticker isteği çalıştı.
+- Aynı Worker üzerinden Binance REST istekleri denendi; Cloudflare çıkışından yapılan istekler Binance tarafında HTTP 403/451 ile engellendi. Birden fazla resmî Binance API ana makinesini denemek de sorunu çözmedi. Bu nedenle Cloudflare Worker, Binance piyasa verisi için uygun aktif geçit olarak doğrulanmadı.
+- Sonuç: Cloudflare denemesi boşa gitmiş bir kod değişikliği değildir; sorunun kaynağını ayıran ve hangi ücretsiz altyapının bu kullanımda çalışmadığını kanıtlayan bir deneydir. Cloudflare Worker kaynakları cloudflare_worker/ içinde tarihsel/teknik kayıt olarak tutulur; güncel masaüstü ZIP'i artık Cloudflare adresine bağımlı değildir.
+- Cloudflare hesabındaki Worker'ı silmek gerekmez. Güncel uygulama için geçerli adres, ZIP'e yazılan market_data_relay.json dosyasındaki Render adresidir. Eski Cloudflare dağıtımını yeniden etkinleştirmek, Binance veri akışının çalıştığı anlamına gelmez.
+
+### Aktif geçit — Render Frankfurt
+
+- Aktif hizmet adı: firsat-kontrol-market-relay.
+- Bölge ve plan: Frankfurt, Render Free Web Service.
+- Genel adres: https://firsat-kontrol-market-relay.onrender.com
+- Sağlık kontrolü: https://firsat-kontrol-market-relay.onrender.com/healthz
+- Render yönetim ekranı: https://dashboard.render.com/web/srv-dbf3n80n74is73beeeog
+- Kaynak kod: render_relay/server.js, render_relay/package.json, render_relay/test/server.test.js ve render_relay/smoke-check.mjs.
+- Hizmet yalnızca izin listesine alınmış halka açık piyasa verisi uç noktalarını ve Binance genel mum WebSocket akışlarını iletir. Borsa hesabı girişi, API anahtarı, bakiye/pozisyon erişimi, emir oluşturma veya işlem yürütme özelliği yoktur. Rastgele URL'lere vekil isteği göndermeye izin verilmez.
+- GitHub deposunun main dalına bağlı otomatik dağıtım açıktır. Yeni commit geldiğinde Render hizmeti kaynak koddan tekrar oluşturulup dağıtılır.
+
+### Canlı bağlantı doğrulaması — 25 Ekim 2026
+
+GitHub Actions çalıştırması [40216714717 — canlı Render piyasa verisi testi](https://github.com/erdaly1947-max/matrix/actions/runs/40216714717) aşağıdaki kontrolleri başarıyla tamamladı:
+
+1. Render /healthz uç noktası HTTP 200 döndürdü.
+2. Binance exchangeInfo yanıtı alındı; 3.736 sembol listelendi ve BTCUSDT etkin Spot paritesi doğrulandı.
+3. Binance BTCUSDT 5 dakikalık mum uç noktasından mum verisi alındı.
+4. BtcTurk halka açık USDT ticker yanıtı alındı.
+5. Binance WebSocket bağlantı el sıkışması tamamlandı ve gerçek bir kline/mum mesajı alındı.
+6. Python kaynak derleme, Python otomatik testleri, Cloudflare geçidi JavaScript testleri, Render geçidi testleri, canlı piyasa verisi kontrolleri, ZIP bütünlüğü, SHA-256 üretimi ve Release dosyalarının güncellenmesi başarılı oldu.
+
+Bu sonuç, bulut sunucusunun ilgili uç noktalara test anında erişebildiğini kanıtlar; gelecekteki kesintisiz erişim garantisi değildir. Ücretsiz Render hizmeti 15 dakika boyunca gelen HTTP isteği veya açık WebSocket bağlantısından gelen mesaj almazsa uykuya geçebilir. Sonraki istek/bağlantı hizmeti uyandırır ve ilk yanıt gecikebilir. Bu ücretsiz plan sınırı nedeniyle program ilk bağlantıda bekleme veya yeniden bağlanma yaşayabilir. Güncel davranış için [Render ücretsiz hizmet sınırları](https://render.com/docs/free) incelenebilir.
+
+### ZIP indirme, paketleme ve bütünlük kontrolü
+
+- Güncel ve sabit indirme adresi: [Fırsat-Kontrol-Paneli-Surum-00.zip](https://github.com/erdaly1947-max/matrix/releases/download/surum-00/Firsat-Kontrol-Paneli-Surum-00.zip)
+- SHA-256 dosyası: [Firsat-Kontrol-Paneli-Surum-00.zip.sha256](https://github.com/erdaly1947-max/matrix/releases/download/surum-00/Firsat-Kontrol-Paneli-Surum-00.zip.sha256)
+- Release sayfası: https://github.com/erdaly1947-max/matrix/releases/tag/surum-00
+- Otomatik doğrulama geçmişi: https://github.com/erdaly1947-max/matrix/actions/workflows/validate-and-package.yml?query=branch%3Amain
+
+Her başarılı main gönderiminde GitHub Actions Python 3.14.8 ortamında kaynak derlemesini ve otomatik testleri, Node.js 22 ortamında geçit testlerini ve canlı Render/Binance/BtcTurk REST + WebSocket kontrollerini çalıştırır. Ardından Sürüm 00 ZIP dosyasını oluşturur, ZIP bütünlüğünü denetler, SHA-256 dosyası üretir, surum-00 Release'indeki ZIP ve SHA-256 varlıklarını günceller ve ayrıca 14 gün saklanan Actions artifact'ini yayımlar. Normal kullanımda ZIP'i elle oluşturmak veya SHA-256'yı elle hesaplamak gerekmez. Sabit indirme bağlantısı aynı kalır; yeni başarılı çalıştırmada içeriği ve SHA-256 özeti yenilenir.
+
+ZIP'e dağıtım için gerekli masaüstü dosyaları ve market_data_relay.json eklenir. Sunucunun Node.js kaynakları (render_relay/) masaüstü ZIP'ine konmaz; Render bunları GitHub deposundan kendisi oluşturur. Paket içindeki market_data_relay.json aktif Render adresini göstermelidir. Paket indirildikten sonra SHA-256 dosyasındaki değerle ZIP'in SHA-256 özeti karşılaştırılarak indirme bütünlüğü doğrulanabilir.
+
+### Tekrarlanabilir çözüm / gelecekteki bakım
+
+1. Bilgisayarın doğrudan HTTPS erişimi tekrar bozulursa önce mevcut tanılama sonuçları ve ağdaki yönlendirme hedefi incelenir; doğrulanmış Türk Telekom filtre bulgusu unutulup yeniden proxy ayarı aranmamalıdır.
+2. Bulut geçidi değiştirilecekse önce sunucu sağlık kontrolü, gerçek Binance REST mum verisi, BtcTurk USDT ticker'ı ve gerçek Binance WebSocket mum mesajı ayrı ayrı doğrulanır. Sadece sunucunun live olması yeterli değildir.
+3. Yeni geçidin adresi kaynak market_data_relay.json dosyasına yazılır; GitHub Actions içinde güncel paket adresi ve canlı smoke-test adresi aynı tutulur. Bu iki adresin tutarsız kalmasına izin verilmez.
+4. Kod veya yapılandırma main dalına kaydedildiğinde otomatik test ve paketleme çalıştırmasının sonucu kontrol edilir. ZIP bağlantısı ancak başarılı paketleme ve Release güncellemesi doğrulandıktan sonra güncel kabul edilir.
+5. Render ücretsiz hizmeti kullanım dışı kaldığında uykuya geçebileceği için, taramaya yeniden başlanırken ilk bağlantı gecikmesi ve WebSocket yeniden bağlanma durumu normalleştirilmeden canlı piyasa verisi güncel kabul edilmez.
