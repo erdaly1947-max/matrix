@@ -188,6 +188,63 @@ jobs:
               raise SystemExit("All BtcTurk public REST endpoints failed from the GitHub runner.")
           PY
 
+      - name: Binance canlı WebSocket uç noktalarını dene (yalnızca WS tanı tetiklemesinde)
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[netcheck-ws-s00]')
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          import websocket
+
+          endpoints = [
+              ("Binance WebSocket stream :443", "wss://stream.binance.com:443/stream?streams=btcusdt@trade"),
+              ("Binance market-data stream", "wss://data-stream.binance.vision:443/stream?streams=btcusdt@trade"),
+              ("Binance WebSocket stream :9443", "wss://stream.binance.com:9443/stream?streams=btcusdt@trade"),
+          ]
+          results = []
+          for label, url in endpoints:
+              started = time.monotonic()
+              sock = None
+              try:
+                  sock = websocket.create_connection(
+                      url, timeout=8,
+                      origin="https://www.binance.com",
+                      enable_multithread=False,
+                  )
+                  raw = sock.recv()
+                  if isinstance(raw, bytes):
+                      raw = raw.decode("utf-8", errors="replace")
+                  payload = json.loads(raw)
+                  data = payload.get("data") if isinstance(payload, dict) else None
+                  valid = (
+                      isinstance(payload, dict)
+                      and payload.get("stream") == "btcusdt@trade"
+                      and isinstance(data, dict)
+                      and data.get("e") == "trade"
+                  )
+                  if valid:
+                      print(f"PASS | {label} | handshake + live BTCUSDT trade message | "
+                            f"{time.monotonic()-started:.2f}s", flush=True)
+                      results.append(True)
+                  else:
+                      print(f"FAIL | {label} | handshake succeeded but unexpected message: "
+                            f"{str(payload)[:500]}", flush=True)
+                      results.append(False)
+              except Exception as exc:
+                  print(f"FAIL | {label} | {type(exc).__name__}: {str(exc)[:700]} | "
+                        f"{time.monotonic()-started:.2f}s", flush=True)
+                  results.append(False)
+              finally:
+                  if sock is not None:
+                      try:
+                          sock.close()
+                      except Exception:
+                          pass
+          print(f"WebSocket success: {sum(results)}/{len(results)} endpoints", flush=True)
+          if not any(results):
+              raise SystemExit("All Binance public WebSocket endpoints failed from the GitHub runner.")
+          PY
+
       - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
         if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
         run: |
