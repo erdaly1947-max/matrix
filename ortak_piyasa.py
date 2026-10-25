@@ -243,11 +243,27 @@ def _classify_tls_first_response(response: bytes) -> str:
     return f"non_tls_or_unknown_response:first8_hex={response[:8].hex()}"
 
 
-def _probe_direct_tls_first_response(host: str, timeout: float = 3.0) -> str:
-    """Send a TLS ClientHello directly to TCP/443 and summarize the first response."""
+def _resolve_host_addresses(host: str) -> list[str]:
+    """Return unique system-resolved IP addresses for a host; never return resolver configuration."""
+    try:
+        records = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except Exception as exc:
+        return [f"resolution_failed:{type(exc).__name__}"]
+    result: list[str] = []
+    for record in records:
+        address = str(record[4][0])
+        if address not in result:
+            result.append(address)
+    return result[:16]
+
+
+def _probe_direct_tls_first_response(host: str, timeout: float = 2.5) -> str:
+    """Send TLS ClientHello to TCP/443 and summarize peer IP plus safe response headers."""
+    resolved = _resolve_host_addresses(host)
     try:
         with socket.create_connection((host, 443), timeout=timeout) as connection:
             connection.settimeout(timeout)
+            peer_ip = str(connection.getpeername()[0])
             incoming = ssl.MemoryBIO()
             outgoing = ssl.MemoryBIO()
             client = ssl.create_default_context().wrap_bio(
@@ -258,17 +274,20 @@ def _probe_direct_tls_first_response(host: str, timeout: float = 3.0) -> str:
             except (ssl.SSLWantReadError, ssl.SSLWantWriteError):
                 pass
             except ssl.SSLError as exc:
-                return f"client_hello_creation_failed:{type(exc).__name__}"
+                return f"resolved_ips={','.join(resolved)};peer_ip={peer_ip};client_hello_failed:{type(exc).__name__}"
             client_hello = outgoing.read()
             if not client_hello:
-                return "client_hello_not_generated"
+                return f"resolved_ips={','.join(resolved)};peer_ip={peer_ip};client_hello_not_generated"
             connection.sendall(client_hello)
-            response = connection.recv(512)
-            return _classify_tls_first_response(response)
+            response = connection.recv(4096)
+            return (
+                f"resolved_ips={','.join(resolved)};peer_ip={peer_ip};"
+                + _classify_tls_first_response(response)
+            )
     except socket.timeout:
-        return "direct_tcp_443_probe_timeout"
+        return f"resolved_ips={','.join(resolved)};direct_tcp_443_probe_timeout"
     except Exception as exc:
-        return f"direct_tls_probe_failed:{type(exc).__name__}"
+        return f"resolved_ips={','.join(resolved)};direct_tls_probe_failed:{type(exc).__name__}"
 
 
 def collect_network_diagnostics(*, tls_probe_host: str | None = None) -> dict[str, Any]:
@@ -305,6 +324,13 @@ def collect_network_diagnostics(*, tls_probe_host: str | None = None) -> dict[st
             _network_diagnostics_cache["direct_tls_first_response"] = (
                 _probe_direct_tls_first_response(tls_probe_host)
             )
+            # Compare one currently usable web host with a second independent HTTPS domain.
+            # The app does not use these services as a market-data source.
+            comparison_hosts = ("www.tradingview.com", "www.microsoft.com")
+            _network_diagnostics_cache["comparison_tls_first_responses"] = {
+                host: _probe_direct_tls_first_response(host)
+                for host in comparison_hosts
+            }
         return json.loads(json.dumps(_network_diagnostics_cache, ensure_ascii=False))
 
 
