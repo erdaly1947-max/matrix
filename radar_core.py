@@ -1990,6 +1990,95 @@ def evaluate_binance_candidate(symbol: str, bars_by_interval: dict[str, list[dic
     return result
 
 
+def btc_correlation_risk_adjustment(
+    correlation_data: dict[str, Any] | None,
+    btc_context: dict[str, Any] | None,
+    *,
+    stale: bool = False,
+) -> dict[str, Any]:
+    """Penalize strongly BTC-correlated candidates only when BTC context is risky.
+
+    Correlation is not a directional strength signal by itself. It changes ranking
+    only when there is enough synchronized data and BTC is weak, losing key levels,
+    or experiencing elevated volatility. No fee/slippage estimate is involved.
+    """
+    result: dict[str, Any] = {
+        "score_adjustment": 0,
+        "mean_correlation": None,
+        "timeframes_used": [],
+        "risk_condition": False,
+        "summary": "Korelasyon ölçümü karar düzeltmesi için yeterli değil.",
+    }
+    if stale:
+        result["summary"] = "BTC verisi eski/eksik; korelasyon puan düzeltmesinde kullanılmadı."
+        return result
+
+    values: list[tuple[str, float]] = []
+    if isinstance(correlation_data, dict):
+        for timeframe in ("1h", "4h"):
+            row = correlation_data.get(timeframe)
+            if not isinstance(row, dict):
+                continue
+            value = _finite_numeric_metric(row.get("value"))
+            observations = row.get("observations")
+            minimum = row.get("minimum_required")
+            if (
+                value is None or not -1.0 <= value <= 1.0
+                or not isinstance(observations, int) or isinstance(observations, bool)
+                or not isinstance(minimum, int) or isinstance(minimum, bool)
+                or minimum < 2 or observations < minimum
+            ):
+                continue
+            values.append((timeframe, float(value)))
+    if not values:
+        return result
+
+    context = btc_context if isinstance(btc_context, dict) else {}
+    direction = _finite_numeric_metric(context.get("direction_score"))
+    levels = _finite_numeric_metric(context.get("critical_level_score"))
+    volatility = _positive_finite(context.get("relative_volatility_ratio"))
+    raw_losses = context.get("critical_level_loss_timeframes")
+    has_level_loss = isinstance(raw_losses, list) and any(
+        isinstance(item, str) and item.strip() for item in raw_losses
+    )
+    data_complete = context.get("data_completeness") == "TAM"
+    btc_weak = (
+        (direction is not None and levels is not None and direction <= 2.0 and levels <= 1.5)
+        or has_level_loss
+        or (volatility is not None and volatility > 1.5)
+    )
+    mean_correlation = sum(value for _, value in values) / len(values)
+    result.update({
+        "mean_correlation": round(mean_correlation, 4),
+        "timeframes_used": [timeframe for timeframe, _ in values],
+        "risk_condition": bool(btc_weak),
+    })
+    if not data_complete:
+        result["summary"] = "BTC bağlamı tam değil; ek korelasyon cezası uygulanmadı."
+        return result
+    if not btc_weak:
+        result["summary"] = (
+            f"BTC bağlamı riskli değil; korelasyon ortalaması {mean_correlation:.2f}, "
+            "ek ceza yok."
+        )
+        return result
+
+    # Use only positive correlation: strong positive coupling raises exposure to a
+    # weak/risky BTC regime. Low or negative correlation is not assumed to be safe.
+    if mean_correlation >= 0.80:
+        adjustment = -6
+    elif mean_correlation >= 0.60:
+        adjustment = -3
+    else:
+        adjustment = 0
+    result["score_adjustment"] = adjustment
+    result["summary"] = (
+        f"BTC bağlamı riskli ve korelasyon ortalaması {mean_correlation:.2f}; "
+        + (f"{adjustment} puan risk düzeltmesi uygulandı." if adjustment else "ek ceza eşiği aşılmadı.")
+    )
+    return result
+
+
 def score_opportunity(
     candidate: dict[str, Any],
     *,
@@ -2199,6 +2288,11 @@ def score_opportunity(
         min(3, max(0, btc_volatility_value)) if btc_volatility_value is not None else 0,
     ]
     btc_score = 0.0 if btc_context_explicitly_stale else round(sum(btc_scores), 2)
+    correlation_adjustment = btc_correlation_risk_adjustment(
+        candidate.get("btc_return_correlation"),
+        btc_context,
+        stale=btc_context_explicitly_stale,
+    )
 
     liquidity = candidate.get("liquidity_assessment")
     liquidity = liquidity if isinstance(liquidity, dict) else {}
@@ -2217,6 +2311,7 @@ def score_opportunity(
         "multi_timeframe_structure": multi_timeframe_score,
         "relative_strength_group_leadership": relative_strength_score,
         "btc_market_context": btc_score,
+        "btc_correlation_risk_adjustment": int(correlation_adjustment["score_adjustment"]),
         "liquidity_tradability": liquidity_score,
     }
     total_score = min(100, max(0, int(round(sum(components.values())))))
@@ -2362,6 +2457,7 @@ def score_opportunity(
         "opportunity_score": total_score,
         "score_0_100": total_score,
         "score_components": components,
+        "btc_correlation_assessment": correlation_adjustment,
         "final_decision": decision,
         "decision_class": decision,
         "decision_reason": decision_reason,
