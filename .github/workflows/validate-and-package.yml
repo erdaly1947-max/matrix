@@ -2,12 +2,62 @@ name: Validate and package Sürüm 00
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  runner-check:
+  test-and-package:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Check runner
-        run: echo "GitHub Actions runner started."
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Python hazırla
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bağımlılıkları doğrula
+        run: python -m pip install -r requirements.txt
+
+      - name: Python kaynaklarını derle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+
+          sources = sorted(Path(".").glob("*.py")) + sorted(Path(".").glob("*.pyw"))
+          if not sources:
+              raise SystemExit("Kaynak dosyası bulunamadı.")
+          for source in sources:
+              py_compile.compile(str(source), doraise=True)
+              print(f"OK: {source}")
+          PY
+
+      - name: Otomatik birim testleri
+        run: python -m unittest discover -s tests -v
+
+      - name: Sürüm 00 ZIP ve SHA-256 oluştur
+        run: |
+          mkdir -p dist
+          zip -r dist/Firsat-Kontrol-Paneli-Surum-00.zip . \
+            -x ".git/*" ".github/*" "dist/*" "data/*" "logs/*" "reports/*" "run/*" \
+               ".venv/*" "venv/*" "__pycache__/*" "*/__pycache__/*" "*.pyc" "tests/*"
+          sha256sum dist/Firsat-Kontrol-Paneli-Surum-00.zip > dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
+          unzip -t dist/Firsat-Kontrol-Paneli-Surum-00.zip
+          cat dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
+
+      - name: Sürüm 00 paketini yayımla
+        uses: actions/upload-artifact@v4
+        with:
+          name: Firsat-Kontrol-Paneli-Surum-00
+          path: |
+            dist/Firsat-Kontrol-Paneli-Surum-00.zip
+            dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
