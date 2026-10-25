@@ -4,16 +4,9 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      create_package:
-        description: "Create the Sürüm 00 ZIP artifact only after explicit approval"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test-and-package:
@@ -81,8 +74,7 @@ jobs:
         shell: bash
         run: python -m unittest discover -s tests -v
 
-      - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
-        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
+      - name: Her main gönderiminde Sürüm 00 ZIP ve SHA-256 oluştur
         run: |
           python - <<'PY'
           import hashlib
@@ -109,16 +101,120 @@ jobs:
               bad_member = archive.testzip()
               if bad_member is not None:
                   raise SystemExit(f"ZIP bütünlük kontrolü başarısız: {bad_member}")
+              names = archive.namelist()
+              if "btcturk_usdt_spot.json" not in names:
+                  raise SystemExit("btcturk_usdt_spot.json paket içinde bulunamadı.")
+              if any(name.endswith(".zip") for name in names):
+                  raise SystemExit("ZIP içinde iç içe ZIP dosyası bulundu.")
 
           digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
           checksum_path = archive_path.with_suffix(archive_path.suffix + ".sha256")
           checksum_path.write_text(f"{digest}  {archive_path.name}\n", encoding="ascii")
           print(f"ZIP: {archive_path}")
           print(f"SHA-256: {digest}")
+          print(f"Dosya sayısı: {len(names)}")
           PY
 
-      - name: Sürüm 00 artifact'ini yayımla
-        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
+      - name: Kalıcı GitHub Release indirme dosyalarını otomatik güncelle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from urllib.parse import quote
+          import requests
+
+          owner, repo = "erdaly1947-max", "matrix"
+          tag = "surum-00"
+          api = f"https://api.github.com/repos/{owner}/{repo}"
+          headers = {
+              "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+          session = requests.Session()
+          session.headers.update(headers)
+
+          response = session.get(f"{api}/releases/tags/{tag}", timeout=20)
+          if response.status_code == 404:
+              response = session.post(
+                  f"{api}/releases",
+                  json={
+                      "tag_name": tag,
+                      "target_commitish": os.environ["GITHUB_SHA"],
+                      "name": "Fırsat Kontrol Paneli — Sürüm 00",
+                      "body": (
+                          "Otomatik dağıtım paketi. Her başarılı main doğrulamasında "
+                          "ZIP ve SHA-256 dosyaları güncellenir. Python 3.14.8 ve "
+                          "halka açık piyasa verisi uç noktası önceliğini içerir. "
+                          "Program hesap bağlantısı kurmaz ve alım-satım emri göndermez."
+                      ),
+                      "draft": False,
+                      "prerelease": False,
+                      "generate_release_notes": False,
+                  },
+                  timeout=30,
+              )
+              if response.status_code not in (200, 201):
+                  raise SystemExit(
+                      f"GitHub Release oluşturulamadı: HTTP {response.status_code} "
+                      f"{response.text[:1200]}"
+                  )
+              release = response.json()
+          elif response.status_code == 200:
+              release = response.json()
+          else:
+              raise SystemExit(
+                  f"GitHub Release sorgulanamadı: HTTP {response.status_code} "
+                  f"{response.text[:1200]}"
+              )
+
+          release_id = release["id"]
+          assets_url = f"{api}/releases/{release_id}/assets"
+          asset_response = session.get(assets_url, timeout=20)
+          asset_response.raise_for_status()
+          replace_names = {
+              "Firsat-Kontrol-Paneli-Surum-00.zip",
+              "Firsat-Kontrol-Paneli-Surum-00.zip.sha256",
+          }
+          for asset in asset_response.json():
+              if asset.get("name") in replace_names:
+                  deletion = session.delete(
+                      f"{api}/releases/assets/{asset['id']}", timeout=20
+                  )
+                  if deletion.status_code not in (200, 204):
+                      raise SystemExit(
+                          f"Eski release varlığı silinemedi: {asset['name']} "
+                          f"HTTP {deletion.status_code} {deletion.text[:500]}"
+                      )
+
+          files = [
+              (Path("dist/Firsat-Kontrol-Paneli-Surum-00.zip"), "application/zip"),
+              (Path("dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256"), "text/plain"),
+          ]
+          upload_base = release["upload_url"].split("{", 1)[0]
+          for path, content_type in files:
+              upload_url = f"{upload_base}?name={quote(path.name)}"
+              upload_headers = dict(headers)
+              upload_headers["Content-Type"] = content_type
+              with path.open("rb") as stream:
+                  uploaded = requests.post(
+                      upload_url, headers=upload_headers, data=stream, timeout=90
+                  )
+              if uploaded.status_code not in (200, 201):
+                  raise SystemExit(
+                      f"Release dosyası yüklenemedi: {path.name} "
+                      f"HTTP {uploaded.status_code} {uploaded.text[:1200]}"
+                  )
+              print(f"RELEASE_ASSET_OK={path.name}", flush=True)
+              print(f"RELEASE_ASSET_URL={uploaded.json().get('browser_download_url')}", flush=True)
+
+          print(f"RELEASE_PAGE={release['html_url']}", flush=True)
+          PY
+
+      - name: GitHub Actions artifact'i de yayımla
         uses: actions/upload-artifact@v7
         with:
           name: Firsat-Kontrol-Paneli-Surum-00
