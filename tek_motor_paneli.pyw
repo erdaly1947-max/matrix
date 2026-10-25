@@ -180,6 +180,134 @@ def _tail_text(paths: list[Path], *, max_lines: int = 300, max_bytes: int = 128 
     return "\n".join(reversed(lines)) + ("\n" if lines else "")
 
 
+def _format_btc_context_summary(state: dict[str, Any]) -> str:
+    """Build a concise BTC context line from the engine's existing state."""
+    context = state.get("btc_market_context")
+    context = context if isinstance(context, dict) else {}
+    gate = state.get("btc_strong_alert_gate")
+    gate = gate if isinstance(gate, dict) else {}
+    if state.get("btc_market_context_freshness") != "CANLI AKIŞ GÜNCEL" or context.get("data_completeness") != "TAM":
+        warning = str(state.get("btc_market_context_warning") or "BTC canlı bağlamı eksik/eski.")
+        return f"BTC RİSK ÖZETİ: VERİ ESKİ/EKSİK — güçlü fırsat kapısı kapalı. {warning}"
+    timeframe_rows = context.get("timeframes")
+    timeframe_rows = timeframe_rows if isinstance(timeframe_rows, dict) else {}
+    def zone_text(zone: Any) -> str:
+        if not isinstance(zone, dict):
+            return "teyitli bölge yok"
+        lower, upper, center = (_safe_float(zone.get(key)) for key in ("lower", "upper", "center"))
+        if lower is not None and upper is not None:
+            return f"{_format_price(lower)}–{_format_price(upper)}"
+        return _format_price(center) if center is not None else "teyitli bölge yok"
+    details = []
+    for timeframe in ("1h", "4h"):
+        row = timeframe_rows.get(timeframe)
+        if not isinstance(row, dict) or row.get("available") is not True:
+            details.append(f"{timeframe}: veri yetersiz")
+            continue
+        direction = "pozitif" if row.get("bullish") is True else "zayıf" if row.get("price_above_slow_ema") is False else "karışık"
+        support = zone_text(row.get("latest_confirmed_support_zone"))
+        resistance = zone_text(row.get("nearest_relevant_resistance_zone"))
+        channel = str(row.get("channel_status") or "kanal teyidi yok")
+        details.append(f"{timeframe} {direction}; destek {support}; direnç {resistance}; {channel}")
+    volatility = _safe_float(context.get("relative_volatility_ratio"))
+    vol_text = f"BTC 1h oynaklık {volatility:.2f}x" if volatility is not None else "BTC oynaklık ölçümü yok"
+    gate_text = "güçlü fırsat kapısı açık" if gate.get("eligible") is True else "güçlü fırsat kapısı kapalı"
+    warnings = context.get("risk_warnings")
+    warning_text = "; ".join(str(item) for item in warnings[:2] if item) if isinstance(warnings, list) else ""
+    summary = "BTC: " + " | ".join([*details, vol_text, gate_text])
+    if warning_text:
+        summary += " | Risk: " + warning_text
+    return summary
+
+
+def _format_btc_relative(row: dict[str, Any]) -> str:
+    if row.get("btc_market_context_freshness") not in (None, "CANLI AKIŞ GÜNCEL"):
+        return "veri eski"
+    relative = row.get("relative_strength_vs_btc_pct_points")
+    relative = relative if isinstance(relative, dict) else {}
+    value = _safe_float(relative.get("1h"))
+    return f"{value:+.2f} yp" if value is not None else "—"
+
+
+def _format_btc_correlation(row: dict[str, Any]) -> str:
+    if row.get("btc_market_context_freshness") not in (None, "CANLI AKIŞ GÜNCEL"):
+        return "veri eski"
+    correlation = row.get("btc_return_correlation")
+    correlation = correlation if isinstance(correlation, dict) else {}
+    hourly = correlation.get("1h")
+    if not isinstance(hourly, dict):
+        return "—"
+    value = _safe_float(hourly.get("value"))
+    observations, minimum = hourly.get("observations"), hourly.get("minimum_required")
+    if value is None or not isinstance(observations, int) or not isinstance(minimum, int) or observations < minimum:
+        return "yetersiz veri"
+    return f"{value:+.2f}"
+
+
+def _format_candidate_decision_summary(candidate: dict[str, Any]) -> str:
+    """Prioritize decision, BTC relationship, technical levels, and blockers."""
+    decision = candidate.get("final_decision") or candidate.get("decision_class") or "—"
+    phase = candidate.get("phase") or candidate.get("last_known_phase") or "—"
+    reason = str(candidate.get("decision_reason") or "Karar gerekçesi henüz yok.")
+    relative = candidate.get("relative_strength_vs_btc_pct_points")
+    relative = relative if isinstance(relative, dict) else {}
+    rel_text = ", ".join(
+        f"{tf}: {_safe_float(relative.get(tf)):+.2f} yp"
+        for tf in ("15m", "1h", "4h") if _safe_float(relative.get(tf)) is not None
+    ) or "göreceli güç hesaplanamadı"
+    correlations = candidate.get("btc_return_correlation")
+    correlations = correlations if isinstance(correlations, dict) else {}
+    corr_text = []
+    for tf in ("1h", "4h"):
+        item = correlations.get(tf)
+        if not isinstance(item, dict):
+            continue
+        value = _safe_float(item.get("value"))
+        count, minimum = item.get("observations"), item.get("minimum_required")
+        if value is not None and isinstance(count, int) and isinstance(minimum, int) and count >= minimum:
+            corr_text.append(f"{tf}: {value:+.2f}")
+    corr_text_value = ", ".join(corr_text) or "yeterli eşzamanlı mum yok"
+    assessment = candidate.get("btc_correlation_assessment")
+    assessment = assessment if isinstance(assessment, dict) else {}
+    assessment_text = str(assessment.get("summary") or "Korelasyon risk yorumu yok.")
+    timeframe = str(candidate.get("phase_timeframe") or candidate.get("timeframe") or "")
+    timeframes = candidate.get("timeframes")
+    timeframes = timeframes if isinstance(timeframes, dict) else {}
+    selected = timeframes.get(timeframe)
+    metrics = selected.get("metrics") if isinstance(selected, dict) else {}
+    metrics = metrics if isinstance(metrics, dict) else {}
+    channel = metrics.get("confirmed_channel")
+    channel_text = f"{channel.get('direction', 'kanal')} / {channel.get('status', 'teyitli')}" if isinstance(channel, dict) and channel.get("available") is True else "teyitli kanal yok"
+    plan = candidate.get("risk_plan")
+    plan = plan if isinstance(plan, dict) else {}
+    low, high = _safe_float(plan.get("entry_zone_low")), _safe_float(plan.get("entry_zone_high"))
+    stop = _safe_float(plan.get("stop_loss"))
+    targets = plan.get("targets")
+    target = _safe_float(targets[0].get("price")) if isinstance(targets, list) and targets and isinstance(targets[0], dict) else None
+    entry_text = f"{_format_price(low)}–{_format_price(high)} USDT" if low is not None and high is not None else "mevcut değil"
+    stop_text = f"{_format_price(stop)} USDT" if stop is not None else "mevcut değil"
+    target_text = f"{_format_price(target)} USDT" if target is not None else "teknik hedef yok"
+    components = candidate.get("score_components")
+    components = components if isinstance(components, dict) else {}
+    try:
+        adjustment = int(components.get("btc_correlation_risk_adjustment", 0))
+    except (TypeError, ValueError, OverflowError):
+        adjustment = 0
+    missing = candidate.get("missing_checks")
+    missing = [str(item) for item in missing if item] if isinstance(missing, list) else []
+    blockers = "; ".join(missing[:2]) if missing else "kayıtlı eksik kontrol yok"
+    return "\n".join([
+        f"{decision} | Aşama {phase} | Puan {candidate.get('opportunity_score', '—')}",
+        f"Gerekçe: {reason}",
+        f"BTC'ye göre getiri farkı: {rel_text}",
+        f"BTC korelasyonu: {corr_text_value}. {assessment_text}",
+        f"Fiyat yapısı: {channel_text}",
+        f"Koşullu giriş: {entry_text} | Zarar durdurma: {stop_text} | İlk teknik hedef: {target_text}",
+        f"Eksik teyit/engel: {blockers}",
+        f"Korelasyon puan etkisi: {adjustment:+d}; riskli BTC bağlamında yüksek pozitif korelasyona ceza uygulanır.",
+    ])
+
+
 class ControlPanel(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
