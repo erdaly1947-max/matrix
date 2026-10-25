@@ -7,6 +7,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
+import shutil
+import subprocess
+import sys
 from typing import Any
 import json
 import hashlib
@@ -93,10 +97,75 @@ def load_settings() -> dict[str, Any]:
 
 
 
+def _curl_get_fallback(
+    url: str, *, params: dict[str, Any] | None,
+    timeout: float | tuple[float, float], headers: dict[str, str],
+) -> requests.Response:
+    """Use Windows' verified curl TLS stack after Python/OpenSSL reports WRONG_VERSION_NUMBER."""
+    if not sys.platform.startswith("win"):
+        raise RuntimeError("curl.exe TLS yedeği yalnızca Windows üzerinde etkinleştirilir.")
+    if not url.lower().startswith("https://"):
+        raise ValueError("TLS yedeği yalnızca HTTPS adreslerini kabul eder.")
+
+    executable = shutil.which("curl.exe") or shutil.which("curl")
+    if not executable:
+        raise RuntimeError("Windows curl.exe bulunamadı; güvenli TLS yedeği kullanılamıyor.")
+
+    prepared = requests.Request("GET", url, params=params, headers=headers).prepare()
+    if isinstance(timeout, tuple):
+        timeout_seconds = sum(float(value) for value in timeout if value is not None)
+    else:
+        timeout_seconds = float(timeout)
+    timeout_seconds = max(1.0, min(timeout_seconds, 30.0))
+    connect_seconds = min(5.0, timeout_seconds)
+
+    # --disable prevents a local curl config from silently changing TLS behavior.
+    # Certificate validation remains enabled; never add --insecure/-k here.
+    command = [
+        executable,
+        "--disable",
+        "--silent",
+        "--show-error",
+        "--fail",
+        "--location",
+        "--connect-timeout", str(connect_seconds),
+        "--max-time", str(timeout_seconds),
+        "--user-agent", str(headers.get("User-Agent") or USER_AGENT),
+        prepared.url,
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            timeout=timeout_seconds + 2.0,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"curl.exe HTTPS yedeği çalıştırılamadı: {type(exc).__name__}: {exc}") from exc
+
+    if completed.returncode != 0:
+        detail = (completed.stderr or b"").decode("utf-8", errors="replace").strip()
+        if not detail:
+            detail = f"curl.exe çıkış kodu {completed.returncode}"
+        raise RuntimeError(f"curl.exe HTTPS yedeği başarısız: {detail[:500]}")
+
+    response = requests.Response()
+    response.status_code = 200  # curl --fail returns success only for HTTP success responses.
+    response._content = completed.stdout
+    response._content_consumed = True
+    response.url = prepared.url
+    response.encoding = "utf-8"
+    response.reason = "OK"
+    response.request = prepared
+    response.headers["X-Transport-Fallback"] = "curl.exe"
+    return response
+
+
 def _requests_get(url: str, *, params: dict[str, Any] | None,
                   timeout: float | tuple[float, float],
                   headers: dict[str, str]) -> requests.Response:
-    """Retry the same target without environment proxy/settings after TLS wrong-version errors."""
+    """Retry specific TLS wrong-version failures, then use verified Windows curl as a fallback."""
     try:
         response = requests.get(url, params=params, timeout=timeout, headers=headers)
         response.raise_for_status()
@@ -109,9 +178,6 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
             configured_proxies = requests.utils.get_environ_proxies(url)
         except Exception:
             configured_proxies = {}
-        # WRONG_VERSION_NUMBER can come from a broken environment proxy, but the
-        # proxy map may not reveal every part of the network path. Make one bounded
-        # retry with trust_env=False after this specific TLS failure.
         proxy_note = "ortam proxy'si devre dışı bırakılarak" if configured_proxies else "ortam ayarları devre dışı bırakılarak"
         with requests.Session() as direct_session:
             direct_session.trust_env = False
@@ -121,14 +187,34 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                 return response
             except Exception as direct_error:
                 host = url.split("://", 1)[-1].split("/", 1)[0]
+                if sys.platform.startswith("win"):
+                    try:
+                        response = _curl_get_fallback(
+                            url, params=params, timeout=timeout, headers=headers
+                        )
+                    except Exception as curl_error:
+                        raise RuntimeError(
+                            "TLS WRONG_VERSION_NUMBER: {} için Python HTTPS bağlantısı ve "
+                            "ortam ayarları kapalı yeniden deneme başarısız oldu; curl.exe yedeği "
+                            "de başarısız ({}). Windows proxy/VPN, güvenlik yazılımının HTTPS "
+                            "incelemesi veya ağ filtresi kontrol edilmeli. TLS sertifika doğrulaması "
+                            "hiçbir aşamada kapatılmadı. Ayrıntılar: ilk hata: {}; doğrudan yeniden "
+                            "deneme: {}.".format(
+                                host, str(curl_error)[:500], first_error, direct_error
+                            )
+                        ) from curl_error
+                    logging.getLogger(__name__).warning(
+                        "Python TLS bağlantısı başarısız oldu; %s için sertifika doğrulaması açık "
+                        "Windows curl.exe yedeği kullanıldı.", host
+                    )
+                    return response
                 raise RuntimeError(
                     "TLS WRONG_VERSION_NUMBER: {} için varsayılan bağlantı yolu başarısız oldu "
-                    "({}). {} yeniden deneme de başarısız ({}). "
-                    "Proxy adresi/parola günlük kaydına yazılmadı; yalnızca hata türleri ve hedef ana makine raporlanır.".format(
+                    "({}). {} yeniden deneme de başarısız ({}). SSL sertifika doğrulaması "
+                    "kapatılmadı; proxy/ağ filtresi veya HTTPS incelemesi kontrol edilmeli.".format(
                         host, first_error, proxy_note, direct_error
                     )
                 ) from direct_error
-
 
 def public_get(url: str, *, params: dict[str, Any] | None = None,
                timeout: float | tuple[float, float] = 12.0,
