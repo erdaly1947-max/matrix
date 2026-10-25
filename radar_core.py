@@ -25,7 +25,7 @@ RUN_DIR = ROOT / "run"
 for _folder in (DATA_DIR, LOG_DIR, REPORT_DIR, RUN_DIR):
     _folder.mkdir(parents=True, exist_ok=True)
 
-APP_VERSION = "1A"
+APP_VERSION = "00"
 
 PHASE_ORDER = {"C": 3, "B": 2, "A": 1, None: 0}
 TIMEFRAME_MS = {
