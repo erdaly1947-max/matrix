@@ -61,5 +61,5 @@ Her yeni çalışma başlangıcında şu bilgiler netleştirilir: mevcut sürüm
 
 - Her aşamanın sonunda, yeni sohbet odasında kesintisiz devam edilebilmesi için kesinleşmiş kararlar, tamamlanan işler, doğrulanmış eksikler ve sıradaki aşamanın amacı birlikte aktarılır.
 - Bağlam aktarımı tamamlanmış sayılmadan önce güncel README kontrol edilir; aktarım README'deki gerçek durumla tutarlı olmalıdır.
-- ZIP paketi hazırlanırken aktarılan dosyalar arasındaki BtcTurk evreninin en son alınmış sürümü belirlenir ve ZIP içindeki gerekli konuma yerleştirilir. Paket oluşturulmadan önce bu dosyanın güncelliği ve doğru konumda bulunduğu doğrulanır; eski bir kopya fark edilmeden kullanılmaz.
+- ZIP paketi hazırlanırken aktarılan dosyalar arasındaki BtcTurk evreninin en son alınmış sürümü belirlenir ve ZIP içindeki gerekli konuma yerleştirilir. Paket oluşturulmadan önce bu dosyanın güncelliği ve doğru konumda bulunduğu doğrulanır.
 - Nihai ZIP paketi oluşturulmadan önce ilgili son aşamanın yapılacağı kullanıcıya bildirilir ve açık onayı alınır. Bu bildirim ve onay olmadan son ZIP paketi oluşturulmaz.
