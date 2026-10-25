@@ -52,7 +52,7 @@
     "Fan token dışlama listesi ve sabit değerli varlık listesi doğrulanamazsa tarama göstergeleri devam edebilir ancak güçlü fırsat alarmları kapalı tutulur.",
     "Sabit değerli varlık listesi manuel güncellenmelidir; liste güçlü alarm uygunluğu içindir ve tarama evreninden çıkarma anlamına gelmez.",
     "Likidite kapısı Binance 24 saatlik USDT hacmi, spread ve %1 fiyat aralığındaki alış/satış derinliğini üç ayrı ölçümde denetler; üç ölçüm en az 30 saniyeye yayılmalı.",
-    "Gerçek komisyon oranı ve beklenen kayma kullanıcı tarafından bilinip ayarlara yazılana kadar masraf sonrası net risk/getiri doğrulanmış sayılmaz; güçlü fırsat kararı üretilmez.",
+    "Komisyon ve kayma hesaplanmaz ve güçlü fırsat kararını etkilemez. Güçlü fırsat kapısında en yakın teknik hedefin brüt teknik risk/getiri oranı en az 1,5 olmalıdır; spread ayrı likidite filtresinde değerlendirilir.",
     "Grup liderliği puanı yalnızca coin_group_categories eşlemesi operatör tarafından doğrulanıp coin_group_categories_verified=true ve kaynak açıklaması girildiğinde hesaplanır; varsayılan olarak grup puanı kapalıdır.",
     "coin_group_categories sözlüğünde anahtarlar tam parite değil temel varlık kodudur (ör. ETH; ETHUSDT değil); yalnızca güvenilir bir kaynağa göre operatörün doğruladığı eşlemeler yazılmalıdır."
   ],
@@ -84,8 +84,6 @@
   "liquidity_min_sample_span_seconds": 30,
   "liquidity_depth_refresh_seconds": 15,
   "liquidity_depth_candidate_limit": 5,
-  "commission_rate_per_side_pct": null,
-  "slippage_pct_per_side": null,
   "coin_group_categories": {},
   "coin_group_categories_verified": false,
   "coin_group_categories_source": "",
