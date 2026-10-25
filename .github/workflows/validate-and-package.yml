@@ -47,7 +47,7 @@ jobs:
           mkdir -p dist
           zip -r dist/Firsat-Kontrol-Paneli-Surum-00.zip . \
             -x ".git/*" ".github/*" "dist/*" "data/*" "logs/*" "reports/*" "run/*" \
-               ".venv/*" "venv/*" "__pycache__/*" "*/__pycache__/*" "*.pyc" "tests/*"
+               ".venv/*" "venv/*" "__pycache__/*" "*/__pycache__/*" "*.pyc" "tests/*" "FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip"
           sha256sum dist/Firsat-Kontrol-Paneli-Surum-00.zip > dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
           unzip -t dist/Firsat-Kontrol-Paneli-Surum-00.zip
           cat dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256

@@ -12,6 +12,7 @@ Bu depo, İki Radarlı Spot Trade / Fırsat-Kontrol Paneli projesinin başlangı
 - `veri_yasam_dongusu.py`: eski aday geçmişi CSV'lerini aylık ZIP arşivine doğrulayarak taşıyan ve yalnızca eski, PID etiketli geçici dosyaları temizleyen bakım modülü.
 - `btcturk_usdt_spot.json`: yüklenen yerel başlangıç parite listesi. Motor, `data/` altında henüz liste yoksa bu kök dizindeki kopyayı da arar.
 - `BASLAT.bat`, `ayarlar.json`, `requirements.txt`, `KULLANIM_KILAVUZU.txt` ve `firsat_kontrol.ico`: başlatma, yapılandırma, bağımlılıklar, kullanım ve görsel kaynakları.
+- `FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip`: karşılaştırma amacıyla saklanan örnek arşivdir; doğrulanmış Sürüm 00 dağıtım paketi değildir ve paketleme çıktısına dahil edilmez.
 
 ## Çalışma sınırları
 
@@ -19,11 +20,13 @@ Program halka açık piyasa verilerini okur; borsa hesabına bağlanmaz, bakiye/
 
 ## Başlatma
 
-Windows'ta depoyu indirip tüm dosyaları aynı klasörde tutun ve `BASLAT.bat` dosyasını çalıştırın. Başlatıcı Python, Tkinter ve `requirements.txt` paketlerini kontrol eder.
+Windows'ta kaynak arşivini ayrı bir klasöre ayıklayın, gerekli kaynak dosyaları aynı klasörde tutun ve `BASLAT.bat` dosyasını çalıştırın. Başlatıcı Python, Tkinter ve `requirements.txt` paketlerini kontrol eder.
+
+GitHub'ın `main` dalı ZIP'i kaynak arşividir; doğrulanmış bağımsız dağıtım paketi veya test artifact'i ile aynı şey değildir. Bağımsız paket ancak derleme, otomatik testler, ZIP bütünlüğü ve SHA-256 adımları başarıyla tamamlanıp artifact yayımlandığında doğrulanmış sayılır.
 
 ## Doğrulama notu
 
-Başlangıç kodunda Python sözdizimi ve depolama bakımının arşivleme/SHA-256 akışı daha önce kontrol edilmiştir. Komisyon/kayma hesabının kaldırılması kaynak kod üzerinden statik olarak gözden geçirilmiştir. Sürüm 00 hazırlığında README kuralları ve APP_VERSION etiketi tutarlılaştırılır; bu işlemler sonrasında yerel Python derleyicisiyle yeniden derleme ve Windows üzerinde canlı Binance/BtcTurk uçtan uca çalışma testi yapılmış sayılmaz. **Bu kaynak durumu bitmiş/dağıtıma hazır ZIP olarak değerlendirilmemelidir.**
+Kaynak koddaki sürüm etiketi `radar_core.py` içinde `APP_VERSION = "00"` olarak tutulur. Depoda `tests/test_btc_correlation_adjustment.py` adlı bir otomatik test dosyası ve `.github/workflows/validate-and-package.yml` iş akışı bulunur. Ancak 25 Ekim 2026 tarihli en son görünen GitHub Actions koşusu [40196443173 numaralı kayıt](https://github.com/erdaly1947-max/matrix/actions/runs/40196443173) ile ilk adıma başlamadan başarısız olmuştur: çalıştırıcı atanmamış (`runner_id=0`, `runner_name` boş, `steps=[]`). Bu nedenle o koşuda Python derlemesi, otomatik testler, ZIP üretimi ve SHA-256 doğrulaması çalışmamıştır. Windows üzerinde canlı Binance/BtcTurk bağlantısı ve Tkinter panel testi de yapılmış değildir. **Kaynak arşivi, test edilmiş veya dağıtıma hazır bağımsız ZIP olarak değerlendirilmemelidir.**
 
 `ayarlar.json` komisyon/kayma ayarlarını içermez. Program bu oranları hesaplamaz ve karar/alarmlarda kullanmaz. Güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir.
 
@@ -31,7 +34,7 @@ Başlangıç kodunda Python sözdizimi ve depolama bakımının arşivleme/SHA-2
 
 - **Sürüm 00, geliştirmelerin başlangıç tabanıdır.** Bu aşamada amaç, mevcut tek motorlu programı ve işlevlerini inceleyip başlangıç noktasını tutarlı ve doğrulanabilir hâle getirmektir; programı baştan yazmak değildir.
 - Kaynak koddaki program sürüm etiketi, radar_core.py içinde APP_VERSION = "00" olarak tutulur.
-- Bu başlangıç hazırlığında README çalışma kuralları ve sürüm etiketi düzeltilir. Bu değişiklik, aşağıda tasarlanan yeni özelliklerin uygulanmış olduğu veya programın son ZIP paketinin dağıtıma hazır olduğu anlamına gelmez.
+- Sürüm 00 başlangıç hazırlığında README çalışma kuralları ile kaynak koddaki sürüm etiketi tutarlılaştırılmıştır. Bu kayıt, aşağıda tasarlanan yeni özelliklerin uygulanmış olduğu veya programın son ZIP paketinin dağıtıma hazır olduğu anlamına gelmez.
 - main, sürüm 00'ın temel kodunu korur. Bu başlangıç hazırlığı tamamlandıktan sonra yeni özelliklerin kod değişiklikleri ayrı, sürüm/iş kapsamı açık yan dallarda yürütülür.
 - **Dal açma yetkisi kullanıcı onayına bağlıdır:** Kullanıcı önceden açıkça onay vermeden hiçbir nedenle yeni dal açılmaz. Sürüm 00 düzeltmeleri `main` üzerinde yapılır. Sürüm 1 için kullanıcı onay verirse kullanılacak dal adı `1.surum-readme-gereksinimler` olacaktır.
 - Geliştirme dalındaki değişiklikler, gerekli testler ve bütünlük kontrolleri tamamlanmadan ve kullanıcı onayı alınmadan main dalına aktarılmaz. Sürüm 1, sürüm 00'ın başlangıç hazırlığıyla karıştırılmaz ve yalnızca belirlenmiş son doğrulama kapısı geçildikten sonra oluşturulur.
@@ -120,9 +123,9 @@ Matris en az şu sütunları içerir:
 | Panel ölçüleri, tema, renkler ve kontroller — tek_motor_paneli.pyw:_build_ui | Başlat/durdur, liste güncelleme, rapor/devir ZIP, alarm, ses seviyesi/ses denemesi, aday seçimi ve seviye takibi korunur. Pencere ekran boyutuna göre ortalanır; aydınlık ayarı gri/açık aralığı düzenler. | Gerçek 1920×1080 ve %125 Windows ortamında yarım-ekran hedefi/azami yaklaşık %80 genişlik ve ekran yüksekliğinden en az %7 kısa olma kuralı henüz görsel olarak doğrulanmadı. | Mevcut Tkinter paneli ve kontrolleri korunur; koyu tema kullanılmaz, açık gri zemin ve durum renkleri korunur. | Mevcut Tkinter paneli, aday durumu, risk planı, alarm ve seviye takibi. | Windows'ta %125 ölçek, pencere boyut sınırları, kontrol etkileşimleri, renk/etiket açıklığı ve taşma regresyonu. | Kodda uygulandı; Windows testi bekliyor |
 | Rapor, devir ZIP'i ve depolama bakımı — tek_motor_paneli.pyw:create_report/create_handoff_zip, veri_yasam_dongusu.py, binance_mum_arsivi.py | Rapor ve devir arşivi oluşturma, ZIP bütünlük/SHA-256 kontrolü, mum arşivi ve geçmiş kayıtların saklanması için kod bulunur. | Güncel Windows ortamında uçtan uca ZIP, yeniden açılma, arşiv ve uzun çalışma senaryoları bu turda çalıştırılarak test edilmedi. | Mevcut rapor/arsiv işlevleri korunur; yeni raporlama mekanizması ancak net bir boşluk varsa tasarlanır. | Mevcut JSON/Markdown raporu, tanı çıktısı, SHA-256 manifesti, mum arşivi ve sinyal geçmişi. | ZIP açma ve SHA-256 doğrulaması; bozuk/eksik dosya; arşiv sınırları; devir paketinde gerekli BtcTurk evreni ve raporların bulunması. | Uygulanmış; çalıştırılmadı |
 
-**İnceleme sınırı:** Bu matris main üzerindeki mevcut kaynak kodun statik okunmasına dayanır. Bu çalışmada Python derlemesi, birim/regresyon testi, canlı Binance/BtcTurk bağlantısı, tarihsel backtest veya Windows panel testi çalıştırılmadı. Depoda bu incelemede görülen ağaçta ayrı bir test dizini/suite'i de bulunmuyor. Bu nedenle “uygulanmış” kodun testten geçtiği anlamına gelmez; tüm satırlarda doğrulama işi açık kalır.
+**İnceleme sınırı:** Bu matris, `main` üzerindeki mevcut kaynak kodun statik incelenmesine dayanır. Depoda şu anda `tests/test_btc_correlation_adjustment.py` adlı otomatik test dosyası ve `.github/workflows/validate-and-package.yml` iş akışı bulunur. Ancak en son görünen iş akışı çalıştırıcı tahsis edilmeden başarısız olmuş ve derleme/test/paketleme adımlarına geçmemiştir. Test dosyasının depoda bulunması, testlerin çalıştığı veya geçtiği anlamına gelmez. Canlı Binance/BtcTurk bağlantısı, tarihsel backtest ve Windows panel testi de doğrulanmamıştır; matrisin doğrulama işleri açık kalır.
 
-Bu matris, Sürüm 00 için ilk düzeltme grubunu
+Bu matris, Sürüm 00'ın başlangıç davranışını, doğrulanmış eksiklerini ve sonraki geliştirme/test işlerini birbirinden ayıran temel kayıt olarak kullanılır.
 
 ### 8. Hesaplamaların korunması ve karar gereksinimleri
 
@@ -252,10 +255,11 @@ Bu gereksinimlerin README'ye kaydedilmesi tek başına kod değişikliği değil
 - Durum raporunun aday tablosuna BTC göreceli güç/korelasyon sütunları eklenmiştir. Motorun `important_note` açıklaması korelasyon düzeltmesini yansıtacak şekilde güncellenmiştir.
 - Aday tablosunda karar sınıflarını yeşil/kırmızı/sarı/mavi/lila/turkuaz ve A/B/C aşamalarını ayırt eden renk etiketleri eklenmiştir; eski/eksik veri gri uyarı olarak kalır.
 - `tests/test_btc_correlation_adjustment.py` içine eşik, riskli/sağlıklı BTC, eski veri, yetersiz örnek, negatif korelasyon ve puan bileşeni için otomatik testler eklendi. `.github/workflows/validate-and-package.yml` kaynak derleme, birim test ve ZIP/SHA-256 üretimini tarif eder.
+- Paketleme dışlama listesi, depodaki örnek ZIP'in yeni Sürüm 00 ZIP dosyasının içine tekrar eklenmesini engelleyecek şekilde düzeltildi. Bu, iş akışının başarılı çalıştığını veya paket artifact'inin oluştuğunu göstermez.
 
 ### Doğrulama durumu — dikkat
 
-- Bu oturum boyunca GitHub Actions doğrulama iş akışı birden fazla kez tetiklendi; denemeler çalışma adımlarına ulaşmadan başarısız oldu. İş kayıtlarında çalıştırıcı atanmadı (`runner_id=0`, `runner_name` boş) ve adım listesi boş döndü. Bu nedenle Python derlemesi, otomatik testler ve iş akışıyla ZIP üretimi **çalıştırılmış veya başarılı sayılmaz**.
+- En son görünen GitHub Actions koşusu, 25 Ekim 2026 tarihinde [40196443173 numaralı kayıt](https://github.com/erdaly1947-max/matrix/actions/runs/40196443173) olarak başarısız tamamlandı. İş kaydında `runner_id=0`, `runner_name` boş ve `steps=[]` görülüyor; koşu ilk adıma geçmedi. Bu nedenle Python derlemesi, otomatik testler, ZIP üretimi ve SHA-256 doğrulaması **çalıştırılmış veya başarılı sayılmaz**; bu koşudan bağımsız paket artifact'i oluşmadı.
 - Bu oturumda yerel Python çalıştırıcısıyla derleme, birim/regresyon testleri, canlı Binance/BtcTurk bağlantısı veya Windows/Tkinter ekran testi yapılamadı. Kod değişiklikleri kaynakta okunarak doğrulandı; bu, çalışan uygulama testi değildir.
 - Komisyon ve kayma sonrası net getiri hesabı eklenmedi ve bilerek eklenmeyecektir. Teknik risk/getiri brüt kalır; emir gönderimi veya otomatik alım-satım bulunmaz.
 - Sürüm 00 kaynak arşivini indirmek için GitHub'ın `main` dalı ZIP bağlantısı kullanılabilir: https://github.com/erdaly1947-max/matrix/archive/refs/heads/main.zip . Bu, GitHub'ın ürettiği kaynak arşividir; çalıştırıcı başarısızlığı nedeniyle bu oturumda bağımsız bir derleme/artifact ZIP'i oluşturulmuş gibi raporlanmaz.
