@@ -158,6 +158,38 @@ def _history_bootstrap_is_ready(
     return bool(done and total > 0 and completed >= total and errors == 0 and successful >= total)
 
 
+def _live_stream_status_label(
+    *, ws_healthy: bool, settings_changed_since_load: bool, waiting_for_universe: bool = False,
+) -> str:
+    """Report live-feed health independently of historical bootstrap completeness."""
+    if waiting_for_universe:
+        return "TARAMA EVRENİ BEKLENİYOR"
+    if settings_changed_since_load:
+        return "AYARLAR DEĞİŞTİ — MOTORU YENİDEN BAŞLATIN"
+    return "CANLI AKIŞ GÜNCEL" if ws_healthy else "CANLI AKIŞ ESKİ/EKSİK"
+
+
+def _history_status_label(*, history_ready: bool, bootstrap_in_progress: bool) -> str:
+    """Report historical-data preparation separately from the live WebSocket feed."""
+    if history_ready:
+        return "GEÇMİŞ MUM HAZIR"
+    if bootstrap_in_progress:
+        return "GEÇMİŞ MUM VERİLERİ HAZIRLANIYOR"
+    return "GEÇMİŞ MUM HAZIRLIĞI EKSİK"
+
+
+def _history_retry_delay_seconds(
+    errors: list[str], *, scheduled_delay: int,
+) -> int:
+    """Back off known, non-filling candle gaps without delaying transient-failure retries."""
+    known_gap_marker = "binance'ten tamamlanamayan mum aralığı var"
+    if errors and all(known_gap_marker in str(error).casefold() for error in errors):
+        # If the upstream REST request succeeded but no candles fill an old range,
+        # retrying every five minutes cannot fix the timeframe and floods the log.
+        return max(int(scheduled_delay), 24 * 60 * 60)
+    return max(0, int(scheduled_delay))
+
+
 def _is_rest_transport_failure(error: BaseException | str) -> bool:
     """Recognize shared transport failures without treating bad symbols/HTTP 4xx as outages."""
     message = str(error).lower()
@@ -168,6 +200,25 @@ def _is_rest_transport_failure(error: BaseException | str) -> bool:
         "connection reset", "connecttimeout", "readtimeout",
         "max retries exceeded with url",
     ))
+
+
+def _snapshot_websocket_runtime_state(
+    lock: Any,
+    statuses_source: dict[int, str],
+    last_message_source: dict[int, float],
+    connected_at_source: dict[int, float],
+    apps_source: dict[int, Any],
+    *,
+    wall_clock: Any = time.time,
+) -> tuple[dict[int, str], dict[int, float], dict[int, float], dict[int, Any], float]:
+    """Take a coherent WebSocket snapshot and timestamp while writers are locked out."""
+    with lock:
+        statuses = dict(statuses_source)
+        messages = dict(last_message_source)
+        connected_at = dict(connected_at_source)
+        apps_by_shard = dict(apps_source)
+        now = float(wall_clock())
+    return statuses, messages, connected_at, apps_by_shard, now
 
 
 def _websocket_streams_have_fresh_data(
@@ -1687,6 +1738,18 @@ class BinanceRadar:
                 self.logger.info("Geçmiş mum hazırlığı tamamlandı.")
             else:
                 delay = self._schedule_bootstrap_retry(success=False) if not aborted else 0
+                if delay and errors:
+                    adjusted_delay = _history_retry_delay_seconds(
+                        errors, scheduled_delay=delay,
+                    )
+                    if adjusted_delay != delay:
+                        self.bootstrap_retry_seconds = adjusted_delay
+                        self.bootstrap_retry_at = time.monotonic() + adjusted_delay
+                        delay = adjusted_delay
+                        self.logger.info(
+                            "Yalnızca doldurulamayan tarihsel mum aralıkları kaldı; "
+                            "aynı aralıklar için yeniden deneme 24 saate ertelendi."
+                        )
                 if errors:
                     self.logger.warning(
                         "Geçmiş mum hazırlığı eksik (%s/%s tamamlandı; %s hata; %s atlandı). "
@@ -2341,12 +2404,15 @@ class BinanceRadar:
                                 else:
                                     self.logger.warning("Geçmiş mum hazırlığı tamamlanmadı; eşzamanlı ikinci hazırlık açılmadı.")
                     candidates = self._candidate_rows()
-                    now = time.time()
-                    with self.lock:
-                        statuses = dict(self.ws_status)
-                        messages = dict(self.last_message)
-                        connected_at = dict(self.connected_at_by_shard)
-                        apps_by_shard = dict(self.ws_apps_by_shard)
+                    # Snapshot timestamps and wall-clock together under the same lock.
+                    # This prevents a newly received kline from appearing to be in the
+                    # future and causing a false live-stream warning (logged as "-0s").
+                    (statuses, messages, connected_at, apps_by_shard, now) = (
+                        _snapshot_websocket_runtime_state(
+                            self.lock, self.ws_status, self.last_message,
+                            self.connected_at_by_shard, self.ws_apps_by_shard,
+                        )
+                    )
                     connected = sum(v == "BAĞLI" for v in statuses.values())
                     socket_count = len(statuses)
                     message_ages = {sid: (now - messages[sid] if sid in messages else None)
@@ -2421,12 +2487,30 @@ class BinanceRadar:
                         "Binance motorunu durdurup yeniden başlatın."
                         if settings_changed_since_load else None
                     )
+                    # Keep transport health, historical bootstrap completeness and the
+                    # overall engine status separate. An unavailable monthly candle range
+                    # must invalidate the affected symbol/timeframe, not globally silence
+                    # alarms for candidates whose own data and strict gates are valid.
+                    live_stream_status = _live_stream_status_label(
+                        ws_healthy=ws_healthy,
+                        settings_changed_since_load=settings_changed_since_load,
+                        waiting_for_universe=(
+                            self.single_engine and not self.universe.get("pairs")
+                        ),
+                    )
+                    history_status = _history_status_label(
+                        history_ready=history_ready,
+                        bootstrap_in_progress=bootstrap_in_progress,
+                    )
                     state = {
                         "application_version": APP_VERSION,
                         "radar": "Tek Motor — Binance Spot" if self.single_engine else "Binance Erken Fırsat Radarı",
                         "source": ("Binance Spot public market data; yerel BtcTurk listesi yalnızca sembol evreni için kullanılır"
                                    if self.single_engine else "Binance Spot public market data"),
                         "generated_at_utc": utc_now(), "generated_at_local": time.strftime("%Y-%m-%d %H:%M:%S %z"),
+                        "live_stream_status": live_stream_status,
+                        "history_status": history_status,
+                        "live_stream_healthy": live_stream_status == "CANLI AKIŞ GÜNCEL",
                         "status": (
                             "TARAMA EVRENİ BEKLENİYOR" if self.single_engine and not self.universe.get("pairs") else
                             "BAĞLANTI/VERİ UYARISI" if settings_changed_since_load else

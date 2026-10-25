@@ -796,6 +796,15 @@ class ControlPanel(tk.Tk):
             status = f"MOTOR KAPALI — son kayıt: {status}"
         elif self.engine is None and self.engine_started_epoch is not None:
             status = status if status in ("BAŞLATMA HATASI", "TARAMA EVRENİ BEKLENİYOR") else "Motor durduruldu"
+        live_status = state.get("live_stream_status")
+        history_status = state.get("history_status")
+        engine_running = self.engine is not None and self.engine.poll() is None
+        if engine_running and isinstance(live_status, str):
+            if live_status == "CANLI AKIŞ GÜNCEL" and isinstance(history_status, str):
+                if history_status != "GEÇMİŞ MUM HAZIR":
+                    status = f"{live_status} | {history_status}"
+            else:
+                status = live_status
         self.status_var.set(status)
         count = state.get("scan_symbol_count", state.get("common_pair_count", "—"))
         mode = state.get("universe_mode") or "—"
@@ -894,8 +903,10 @@ class ControlPanel(tk.Tk):
             self._previous_strong_keys.clear()
             self._alarm_primed = False
             return
-        if state.get("status") != "CANLI AKIŞ GÜNCEL":
-            # Do not sound while the overall engine/history/WebSocket state is stale.
+        if state.get("live_stream_status", state.get("status")) != "CANLI AKIŞ GÜNCEL":
+            # Gate the alarm on live transport health. Historical completeness remains
+            # strict per candidate; one unrelated unresolved archive gap must not
+            # silence a different candidate whose own data and opportunity gates pass.
             self._previous_strong_keys.clear()
             self._alarm_primed = False
             return
@@ -1054,8 +1065,11 @@ class ControlPanel(tk.Tk):
         if not key:
             return
         candidate = self.current_candidates.get(key)
-        if not candidate or candidate.get("data_freshness") != "CANLI AKIŞ GÜNCEL" or state.get("status") != "CANLI AKIŞ GÜNCEL":
-            # On stale data, wait and re-baseline when live data resumes; never infer crossings during a gap.
+        if (not candidate
+                or candidate.get("data_freshness") != "CANLI AKIŞ GÜNCEL"
+                or state.get("live_stream_status", state.get("status")) != "CANLI AKIŞ GÜNCEL"):
+            # On stale candidate/stream data, wait and re-baseline; historical bootstrap
+            # warnings elsewhere in the universe do not fabricate or suppress crossings.
             self._level_previous_price = None
             return
         plan = candidate.get("risk_plan")
@@ -1120,6 +1134,8 @@ class ControlPanel(tk.Tk):
                 "stablecoin_exclusion_count": len(stable) if isinstance(stable, list) else None,
             },
             "engine_status": self.current_state.get("status"),
+            "live_stream_status": self.current_state.get("live_stream_status"),
+            "history_status": self.current_state.get("history_status"),
             "state_generated_at_utc": self.current_state.get("generated_at_utc"),
             "universe_mode": self.current_state.get("universe_mode"),
             "scan_symbol_count": self.current_state.get("scan_symbol_count"),
@@ -1161,6 +1177,8 @@ class ControlPanel(tk.Tk):
             f"# {APP_TITLE} — Durum Raporu", "",
             f"- Rapor zamanı (UTC): {payload['report_generated_at_utc']}",
             f"- Motor durumu: {self.current_state.get('status', 'bilinmiyor')}",
+            f"- Canlı akış durumu: {self.current_state.get('live_stream_status', 'bilinmiyor')}",
+            f"- Geçmiş mum durumu: {self.current_state.get('history_status', 'bilinmiyor')}",
             f"- Tarama evreni: {self.current_state.get('scan_symbol_count', '—')}",
             f"- WebSocket bağlantıları: {self.current_state.get('websocket_connected_shards', '—')}/{self.current_state.get('websocket_total_shards', '—')}",
             f"- Aday sayısı: {len(table_rows)}", "",
