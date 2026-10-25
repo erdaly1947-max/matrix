@@ -1,6 +1,7 @@
 """Tests for privacy-conscious network diagnostics."""
 import unittest
 
+import ortak_piyasa
 from ortak_piyasa import _classify_tls_first_response, _safe_proxy_endpoint
 
 
