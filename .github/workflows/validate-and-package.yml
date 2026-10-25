@@ -5,14 +5,20 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      create_package:
+        description: "Create the Sürüm 00 ZIP artifact only after explicit approval"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   test-and-package:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - name: Kaynak kodu al
         uses: actions/checkout@v4
@@ -26,33 +32,107 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Python kaynaklarını derle
+        shell: pwsh
         run: |
-          python - <<'PY'
+          @'
           from pathlib import Path
           import py_compile
 
-          sources = sorted(Path(".").glob("*.py")) + sorted(Path(".").glob("*.pyw"))
+          excluded = {".git", ".github", ".venv", "venv", "__pycache__", "dist"}
+          sources = [
+              path for path in Path(".").rglob("*")
+              if path.is_file()
+              and path.suffix.lower() in {".py", ".pyw"}
+              and not any(part in excluded for part in path.parts)
+          ]
           if not sources:
               raise SystemExit("Kaynak dosyası bulunamadı.")
-          for source in sources:
+          for source in sorted(sources):
               py_compile.compile(str(source), doraise=True)
               print(f"OK: {source}")
-          PY
+          print(f"Derlenen dosya sayısı: {len(sources)}")
+          '@ | python -
+
+      - name: Ayar JSON dosyalarını doğrula
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          for name in ("ayarlar.json", "btcturk_usdt_spot.json"):
+              value = json.loads(Path(name).read_text(encoding="utf-8-sig"))
+              print(f"OK: {name} ({type(value).__name__})")
+          '@ | python -
+
+      - name: Örnek ZIP bütünlüğünü doğrula
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import PurePosixPath
+          from zipfile import ZipFile
+          from pathlib import Path
+
+          sample = Path("FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip")
+          if not sample.is_file():
+              raise SystemExit(f"Örnek ZIP bulunamadı: {sample}")
+          with ZipFile(sample) as archive:
+              bad_member = archive.testzip()
+              if bad_member is not None:
+                  raise SystemExit(f"Bozuk ZIP girdisi: {bad_member}")
+              names = {PurePosixPath(name.replace("\\", "/")).name for name in archive.namelist()}
+          required = {"BASLAT.bat", "radar_core.py", "tek_motor_paneli.pyw", "KULLANIM_KILAVUZU.txt", "requirements.txt"}
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit(f"Örnek ZIP'te eksik gerekli dosyalar: {missing}")
+          print(f"Örnek ZIP sağlam; {len(names)} dosya adı kontrol edildi.")
+          '@ | python -
 
       - name: Otomatik birim testleri
+        shell: pwsh
         run: python -m unittest discover -s tests -v
 
-      - name: Sürüm 00 ZIP ve SHA-256 oluştur
+      - name: Sürüm 00 ZIP ve SHA-256 oluştur (yalnızca açık seçimle)
+        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
+        shell: pwsh
         run: |
-          mkdir -p dist
-          zip -r dist/Firsat-Kontrol-Paneli-Surum-00.zip . \
-            -x ".git/*" ".github/*" "dist/*" "data/*" "logs/*" "reports/*" "run/*" \
-               ".venv/*" "venv/*" "__pycache__/*" "*/__pycache__/*" "*.pyc" "tests/*" "FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip"
-          sha256sum dist/Firsat-Kontrol-Paneli-Surum-00.zip > dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
-          unzip -t dist/Firsat-Kontrol-Paneli-Surum-00.zip
-          cat dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
+          @'
+          import hashlib
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
 
-      - name: Sürüm 00 paketini yayımla
+          root = Path(".")
+          dist = root / "dist"
+          dist.mkdir(exist_ok=True)
+          archive_path = dist / "Firsat-Kontrol-Paneli-Surum-00.zip"
+          excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests"}
+          sample_name = "FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip"
+
+          with ZipFile(archive_path, "w", compression=ZIP_DEFLATED) as archive:
+              for path in sorted(root.rglob("*")):
+                  if not path.is_file():
+                      continue
+                  relative = path.relative_to(root)
+                  if any(part in excluded_dirs for part in relative.parts):
+                      continue
+                  if path.name == sample_name or path.suffix.lower() in {".zip", ".pyc", ".sha256"}:
+                      continue
+                  archive.write(path, relative.as_posix())
+
+          with ZipFile(archive_path) as archive:
+              bad_member = archive.testzip()
+              if bad_member is not None:
+                  raise SystemExit(f"ZIP bütünlük kontrolü başarısız: {bad_member}")
+
+          digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+          checksum_path = archive_path.with_suffix(archive_path.suffix + ".sha256")
+          checksum_path.write_text(f"{digest}  {archive_path.name}\n", encoding="ascii")
+          print(f"ZIP: {archive_path}")
+          print(f"SHA-256: {digest}")
+          '@ | python -
+
+      - name: Sürüm 00 artifact'ini yayımla
+        if: github.event_name == 'workflow_dispatch' && inputs.create_package == true
         uses: actions/upload-artifact@v4
         with:
           name: Firsat-Kontrol-Paneli-Surum-00
