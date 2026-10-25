@@ -162,17 +162,19 @@ def _winhttp_proxy_status() -> str:
     """Return a privacy-safe summary of Windows WinHTTP proxy settings."""
     if not sys.platform.startswith("win"):
         return "not_applicable"
-    executable = shutil.which("netsh")
-    if not executable:
-        return "netsh_not_found"
     try:
+        executable = shutil.which("netsh")
+        if not executable:
+            return "netsh_not_found"
         completed = subprocess.run(
             [executable, "winhttp", "show", "proxy"],
             capture_output=True,
             timeout=2.0,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
+    except Exception as exc:
+        # Some unit tests emulate win32 while running on a non-Windows host;
+        # diagnostics must never prevent the verified curl fallback from running.
         return f"query_failed:{type(exc).__name__}"
     if completed.returncode != 0:
         return f"query_failed:exit_{completed.returncode}"

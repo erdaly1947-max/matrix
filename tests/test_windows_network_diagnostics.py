@@ -27,6 +27,17 @@ class WindowsNetworkDiagnosticsTests(unittest.TestCase):
         self.assertNotIn("secret", summary)
         self.assertNotIn("private", summary)
 
+    def test_winhttp_diagnostic_failure_does_not_abort(self):
+        from unittest.mock import patch
+        import ortak_piyasa
+
+        with patch.object(ortak_piyasa.sys, "platform", "win32"):
+            with patch.object(ortak_piyasa.shutil, "which", side_effect=AttributeError):
+                self.assertEqual(
+                    ortak_piyasa._winhttp_proxy_status(),
+                    "query_failed:AttributeError",
+                )
+
     def test_tls_record_header_is_recognized(self):
         summary = _classify_tls_first_response(b"\x16\x03\x03\x00\x05hello")
         self.assertEqual(
