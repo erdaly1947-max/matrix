@@ -48,8 +48,9 @@ REST_BASES = (
     "https://api4.binance.com",
 )
 WS_BASES = (
-    "wss://stream.binance.com:443/stream?streams=",
+    # This scanner consumes public market data only; use Binance's dedicated market-data stream first.
     "wss://data-stream.binance.vision:443/stream?streams=",
+    "wss://stream.binance.com:443/stream?streams=",
     "wss://stream.binance.com:9443/stream?streams=",
 )
 TIMEFRAMES = {
