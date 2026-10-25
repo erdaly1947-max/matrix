@@ -31,6 +31,10 @@ Kaynak koddaki sürüm etiketi `radar_core.py` içinde `APP_VERSION = "00"` olar
 
 ### Windows HTTPS bağlantı tanılaması
 
+TLS hatası oluştuğunda ve standart HTTPS ile proxy ayarları dışında doğrudan erişim başarısızsa, program yalnızca tanımlı resmî Binance/BtcTurk API alan adları için iki DNS-over-HTTPS sağlayıcısından genel IPv4 adresleri çözümlemeyi deneyebilir. Bağlantı, çözümlenen IP'ye kurulur ama asıl API alan adı TLS SNI/Host olarak korunur ve sertifika doğrulaması açık kalır. Özel/yerel IP'ler, beklenmeyen HTTP yönlendirmeleri ve listede olmayan alan adları reddedilir. Bu yol DNS çözümlemesi kaynaklı bozulmayı giderebilir; ağın doğrudan TLS/SNI trafiğini engellemesini aşacağı garanti edilmez.
+
+
+
 `TLS WRONG_VERSION_NUMBER` hatası birden fazla bağımsız API alanında görülürse, bu durum tek başına ilgili borsanın API arızasını göstermez. Programın yerel tanılaması artık yalnızca ortam değişkenlerini değil, Python'ın algıladığı proxy uç noktalarını (kimlik bilgileri ve URL yolları gizlenerek), Windows Internet Settings içindeki proxy/PAC/otomatik algılama bayraklarını ve WinHTTP proxy durumunu da kaydeder. İlk TLS hatasında doğrudan TCP/443 bağlantısının ilk yanıtının TLS kaydı mı, açık HTTP mi, yoksa tanınmayan veri mi olduğu sınırlı bir tanılamayla sınanır. Yönlendirme yanıtlarında hedef alan adı ve sunucu başlığı güvenli biçimde özetlenir; yanıt gövdesi ve URL yolu kaydedilmez. Ayrıca TradingView ve Microsoft ana sayfalarına doğrudan TLS karşılaştırması yapılır; bu adresler piyasa verisi kaynağı olarak kullanılmaz. HTTP yönlendirmesi varsa yalnızca hedef sunucu/alan adı ile sınırlı sunucu bilgisi kaydedilir; URL yolu, sorgu değerleri ve yanıt gövdesi kaydedilmez, sertifika doğrulaması kapatılmaz. Bu kayıtlar yerel log ve durum raporuna eklenir. Tanılama, bilgisayarın veya ağın proxy/VPN/güvenlik yazılımı ayarlarını kendiliğinden değiştirmez.
 
 ## Sürüm 00 — başlangıç noktası ve geçerli durum

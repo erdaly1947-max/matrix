@@ -5,6 +5,30 @@ from ortak_piyasa import _classify_tls_first_response, _safe_proxy_endpoint
 
 
 class WindowsNetworkDiagnosticsTests(unittest.TestCase):
+    def test_doh_parser_accepts_global_ipv4_and_ignores_private_answers(self):
+        payload = {
+            "Status": 0,
+            "Answer": [
+                {"name": "api.binance.com.", "type": 5, "TTL": 300, "data": "edge.example."},
+                {"name": "api.binance.com.", "type": 1, "TTL": 30, "data": "192.168.1.1"},
+                {"name": "api.binance.com.", "type": 1, "TTL": 120, "data": "1.1.1.1"},
+            ],
+        }
+        addresses, ttl = ortak_piyasa._parse_doh_ipv4_response(payload)
+        self.assertEqual(addresses, ["1.1.1.1"])
+        self.assertEqual(ttl, 120)
+
+    def test_doh_parser_rejects_empty_or_non_global_address_set(self):
+        with self.assertRaisesRegex(ValueError, "genel kullanıma açık IPv4"):
+            ortak_piyasa._parse_doh_ipv4_response({
+                "Status": 0,
+                "Answer": [{"type": 1, "TTL": 60, "data": "192.168.0.1"}],
+            })
+
+    def test_doh_fallback_is_limited_to_approved_market_hosts(self):
+        with self.assertRaisesRegex(ValueError, "yalnızca"):
+            ortak_piyasa._resolve_market_host_doh("example.com")
+
     def test_proxy_summary_redacts_credentials_path_and_query(self):
         value = "http://user:secret@proxy.example:8080/private/path?token=hidden"
         summary = _safe_proxy_endpoint(value)

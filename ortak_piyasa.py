@@ -5,7 +5,9 @@ Bir API başarısız olursa eski evren güncelmiş gibi kullanılmaz.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import http.client
+import ipaddress
 from pathlib import Path
 import logging
 import shutil
@@ -23,6 +25,7 @@ import time
 import urllib.request
 from urllib.parse import urlsplit
 import requests
+from requests.structures import CaseInsensitiveDict
 
 from radar_core import ROOT
 SETTINGS_PATH = ROOT / "ayarlar.json"
@@ -334,6 +337,201 @@ def collect_network_diagnostics(*, tls_probe_host: str | None = None) -> dict[st
         return json.loads(json.dumps(_network_diagnostics_cache, ensure_ascii=False))
 
 
+_doh_cache_lock = threading.Lock()
+_doh_ipv4_cache: dict[str, tuple[float, list[str]]] = {}
+_DOH_RESOLVERS = (
+    ("Google DNS-over-HTTPS", "https://dns.google/resolve"),
+    ("Cloudflare DNS-over-HTTPS", "https://cloudflare-dns.com/dns-query"),
+)
+
+
+def _trusted_market_api_host(host: str) -> bool:
+    """Limit direct-IP DNS fallback to the app's known public exchange API hosts."""
+    hostname = (host or "").strip().rstrip(".").casefold()
+    approved = {urlsplit(base).hostname.casefold() for base in BINANCE_REST_BASES}
+    approved.add("api.btcturk.com")
+    return hostname in approved
+
+
+def _parse_doh_ipv4_response(payload: Any) -> tuple[list[str], int]:
+    """Extract globally routable IPv4 answers and their minimum TTL from DNS JSON."""
+    if not isinstance(payload, dict) or payload.get("Status") != 0:
+        status = payload.get("Status") if isinstance(payload, dict) else "invalid_payload"
+        raise ValueError(f"DNS-over-HTTPS yanıtı başarılı değil: status={status}")
+    answers = payload.get("Answer", [])
+    if not isinstance(answers, list):
+        raise ValueError("DNS-over-HTTPS yanıtında Answer listesi yok.")
+    addresses: list[str] = []
+    ttls: list[int] = []
+    for answer in answers:
+        if not isinstance(answer, dict) or answer.get("type") != 1:
+            continue
+        try:
+            address = ipaddress.ip_address(str(answer.get("data", "")).strip())
+            ttl = max(0, int(answer.get("TTL", 60)))
+        except (ValueError, TypeError, OverflowError):
+            continue
+        if address.version != 4 or not address.is_global:
+            continue
+        value = str(address)
+        if value not in addresses:
+            addresses.append(value)
+            ttls.append(ttl)
+    if not addresses:
+        raise ValueError("DNS-over-HTTPS yanıtında genel kullanıma açık IPv4 adresi bulunamadı.")
+    return addresses[:8], min(ttls or [60])
+
+
+def _resolve_market_host_doh(host: str, timeout: float = 3.5) -> tuple[list[str], str]:
+    """Resolve an approved exchange hostname through HTTPS resolvers, bypassing local DNS."""
+    hostname = (host or "").strip().rstrip(".").casefold()
+    if not _trusted_market_api_host(hostname):
+        raise ValueError("DNS-over-HTTPS yedeği yalnızca yapılandırılmış resmî borsa API adreslerinde kullanılabilir.")
+    now = time.monotonic()
+    with _doh_cache_lock:
+        cached = _doh_ipv4_cache.get(hostname)
+        if cached and cached[0] > now and cached[1]:
+            return list(cached[1]), "cached DoH response"
+
+    errors: list[str] = []
+    for resolver_name, resolver_url in _DOH_RESOLVERS:
+        try:
+            with requests.Session() as session:
+                session.trust_env = False
+                response = session.get(
+                    resolver_url,
+                    params={"name": hostname, "type": "A"},
+                    headers={"Accept": "application/dns-json", "User-Agent": USER_AGENT},
+                    timeout=timeout,
+                    allow_redirects=False,
+                )
+                if 300 <= response.status_code < 400:
+                    raise RuntimeError(
+                        f"DNS-over-HTTPS sunucusu yönlendirme döndürdü: HTTP {response.status_code}"
+                    )
+                response.raise_for_status()
+                addresses, ttl = _parse_doh_ipv4_response(response.json())
+            cache_seconds = max(15, min(int(ttl), 600))
+            with _doh_cache_lock:
+                _doh_ipv4_cache[hostname] = (time.monotonic() + cache_seconds, list(addresses))
+            return addresses, resolver_name
+        except Exception as exc:
+            errors.append(f"{resolver_name}: {type(exc).__name__}: {str(exc)[:180]}")
+    raise RuntimeError("DNS-over-HTTPS ile alan adı çözülemedi. " + " | ".join(errors))
+
+
+class _PinnedIPv4HTTPSConnection(http.client.HTTPSConnection):
+    """Connect to a selected IP while retaining the original hostname for SNI and cert checks."""
+
+    def __init__(self, host: str, address: str, port: int, timeout: float):
+        self._pinned_address = address
+        context = ssl.create_default_context()
+        super().__init__(host=host, port=port, timeout=timeout, context=context)
+
+    def connect(self) -> None:
+        raw_socket = socket.create_connection(
+            (self._pinned_address, self.port), timeout=self.timeout
+        )
+        if self._tunnel_host:
+            self.sock = raw_socket
+            self._tunnel()
+            raw_socket = self.sock
+        self.sock = self._context.wrap_socket(
+            raw_socket, server_hostname=self._tunnel_host or self.host
+        )
+
+
+def _pinned_ip_get(
+    prepared: requests.PreparedRequest,
+    address: str,
+    timeout: float | tuple[float, float],
+) -> requests.Response:
+    """Perform a single verified HTTPS GET to an IP while preserving URL host/SNI."""
+    if not prepared.url or not prepared.method or prepared.method.upper() != "GET":
+        raise ValueError("IP yedeği yalnızca hazırlanmış GET isteklerini kabul eder.")
+    parsed = urlsplit(prepared.url)
+    if parsed.scheme.casefold() != "https" or not parsed.hostname:
+        raise ValueError("IP yedeği yalnızca HTTPS URL'leri kabul eder.")
+    ip = ipaddress.ip_address(address)
+    if ip.version != 4 or not ip.is_global:
+        raise ValueError("IP yedeği yalnızca genel kullanıma açık IPv4 adreslerini kabul eder.")
+    port = parsed.port or 443
+    if isinstance(timeout, tuple):
+        timeout_seconds = max(1.0, min(sum(float(x) for x in timeout if x is not None), 30.0))
+    else:
+        timeout_seconds = max(1.0, min(float(timeout), 30.0))
+    target = parsed.path or "/"
+    if parsed.query:
+        target += "?" + parsed.query
+    headers = dict(prepared.headers)
+    headers["Host"] = parsed.netloc
+    headers["Connection"] = "close"
+    started = time.monotonic()
+    connection = _PinnedIPv4HTTPSConnection(
+        parsed.hostname, str(ip), port, timeout_seconds
+    )
+    try:
+        connection.request("GET", target, headers=headers)
+        raw_response = connection.getresponse()
+        body = raw_response.read()
+        response_headers = CaseInsensitiveDict(dict(raw_response.getheaders()))
+        status_code = int(raw_response.status)
+        reason = str(raw_response.reason or "")
+    finally:
+        connection.close()
+
+    response = requests.Response()
+    response.status_code = status_code
+    response.reason = reason
+    response.headers = response_headers
+    response._content = body
+    response._content_consumed = True
+    response.url = prepared.url
+    response.encoding = requests.utils.get_encoding_from_headers(response.headers)
+    response.request = prepared
+    response.elapsed = timedelta(seconds=max(0.0, time.monotonic() - started))
+    response.history = []
+    return response
+
+
+def _doh_market_get(
+    url: str,
+    *,
+    params: dict[str, Any] | None,
+    timeout: float | tuple[float, float],
+    headers: dict[str, str],
+) -> requests.Response:
+    """Try the official market endpoint using DoH-resolved IPv4s and strict TLS verification."""
+    prepared = requests.Request("GET", url, params=params, headers=headers).prepare()
+    if not prepared.url:
+        raise ValueError("İstek URL'si hazırlanamadı.")
+    parsed = urlsplit(prepared.url)
+    host = parsed.hostname or ""
+    addresses, resolver_name = _resolve_market_host_doh(host)
+    errors: list[str] = []
+    for address in addresses:
+        try:
+            response = _pinned_ip_get(prepared, address, timeout)
+            # Do not follow an unexpected network redirect to another host.
+            if 300 <= response.status_code < 400:
+                raise RuntimeError(
+                    f"DoH-IP HTTPS isteği yönlendirme aldı (HTTP {response.status_code}); güvenlik için reddedildi."
+                )
+            response.raise_for_status()
+            logging.getLogger(__name__).warning(
+                "Resmî borsa API bağlantısı sistem DNS yolu yerine doğrulanmış DoH IPv4 yedeğiyle açıldı: "
+                "host=%s; ip=%s; resolver=%s; TLS sertifika doğrulaması açık.",
+                host, address, resolver_name,
+            )
+            return response
+        except Exception as exc:
+            errors.append(f"{address}: {type(exc).__name__}: {str(exc)[:180]}")
+    raise RuntimeError(
+        f"{host} için DNS-over-HTTPS ile bulunan IP'lerden sertifikası doğrulanmış bağlantı kurulamadı. "
+        + " | ".join(errors)
+    )
+
+
 def _curl_get_fallback(
     url: str, *, params: dict[str, Any] | None,
     timeout: float | tuple[float, float], headers: dict[str, str],
@@ -402,7 +600,7 @@ def _curl_get_fallback(
 def _requests_get(url: str, *, params: dict[str, Any] | None,
                   timeout: float | tuple[float, float],
                   headers: dict[str, str]) -> requests.Response:
-    """Retry TLS wrong-version failures and diagnose the effective network path."""
+    """Try normal HTTPS, direct environment-free HTTPS, then a verified DNS-over-HTTPS route."""
     try:
         response = requests.get(url, params=params, timeout=timeout, headers=headers)
         response.raise_for_status()
@@ -427,6 +625,18 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                 return response
             except Exception as direct_error:
                 host = urlsplit(url).hostname or "unknown-host"
+                doh_error: Exception | None = None
+                try:
+                    response = _doh_market_get(
+                        url, params=params, timeout=timeout, headers=headers
+                    )
+                    return response
+                except Exception as exc:
+                    doh_error = exc
+                    logging.getLogger(__name__).warning(
+                        "DNS-over-HTTPS ile güvenli doğrudan borsa API yedeği başarısız: host=%s; hata=%s",
+                        host, str(exc)[:500],
+                    )
                 diagnostics = collect_network_diagnostics(tls_probe_host=host)
                 logging.getLogger(__name__).warning(
                     "TLS bağlantı tanılaması: %s",
@@ -440,15 +650,15 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                         )
                     except Exception as curl_error:
                         raise RuntimeError(
-                            "TLS WRONG_VERSION_NUMBER: {} için varsayılan Python HTTPS, "
-                            "{} doğrudan Python HTTPS ve curl.exe yedeği başarısız. "
-                            "Doğrudan TCP/443 ilk yanıt tanısı: {}. Windows otomatik proxy/PAC, "
-                            "WinHTTP, VPN, güvenlik yazılımı veya ağ filtresi olasılığı araştırılmalı. "
+                            "TLS WRONG_VERSION_NUMBER: {} için normal Python HTTPS, "
+                            "{} doğrudan Python HTTPS, sertifikası doğrulanan DNS-over-HTTPS/IP yedeği "
+                            "ve curl.exe yedeği başarısız. Doğrudan TCP/443 tanısı: {}. "
+                            "DNS/cihaz bazlı modem filtresi veya ağ yönlendirmesi incelenmeli. "
                             "TLS sertifika doğrulaması hiçbir aşamada kapatılmadı. "
-                            "Ayrıntılar: ilk hata: {}; doğrudan yeniden deneme: {}; curl.exe: {}."
+                            "Ayrıntılar: ilk={}; doğrudan={}; DoH/IP={}; curl.exe={}."
                             .format(
                                 host, proxy_note, direct_reply,
-                                first_error, direct_error, str(curl_error)[:500]
+                                first_error, direct_error, doh_error, str(curl_error)[:500]
                             )
                         ) from curl_error
                     logging.getLogger(__name__).warning(
@@ -457,11 +667,11 @@ def _requests_get(url: str, *, params: dict[str, Any] | None,
                     )
                     return response
                 raise RuntimeError(
-                    "TLS WRONG_VERSION_NUMBER: {} için varsayılan Python HTTPS ve {} "
-                    "yeniden deneme başarısız. Doğrudan TCP/443 ilk yanıt tanısı: {}. "
-                    "Proxy/PAC, VPN, güvenlik yazılımı veya ağ filtresi olasılığı araştırılmalı; "
-                    "SSL sertifika doğrulaması kapatılmadı. Hatalar: ilk={}; doğrudan={}."
-                    .format(host, proxy_note, direct_reply, first_error, direct_error)
+                    "TLS WRONG_VERSION_NUMBER: {} için normal Python HTTPS, {} doğrudan Python HTTPS "
+                    "ve DoH/IP yedeği başarısız. TCP/443 tanısı: {}. "
+                    "DNS/cihaz bazlı modem filtresi veya ağ yönlendirmesi incelenmeli; "
+                    "TLS sertifika doğrulaması kapatılmadı. Hatalar: ilk={}; doğrudan={}; DoH/IP={}."
+                    .format(host, proxy_note, direct_reply, first_error, direct_error, doh_error)
                 ) from direct_error
 
 def public_get(url: str, *, params: dict[str, Any] | None = None,

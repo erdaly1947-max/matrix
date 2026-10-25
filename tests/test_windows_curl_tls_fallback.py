@@ -50,12 +50,13 @@ class WindowsCurlTlsFallbackTests(unittest.TestCase):
             )
 
     @patch("ortak_piyasa.sys.platform", "win32")
+    @patch("ortak_piyasa._doh_market_get", side_effect=RuntimeError("DoH not available in unit test"))
     @patch("ortak_piyasa.requests.get", side_effect=requests.exceptions.SSLError("TLS WRONG_VERSION_NUMBER"))
     @patch("ortak_piyasa.requests.utils.get_environ_proxies", return_value={})
     @patch("ortak_piyasa.requests.Session")
     @patch("ortak_piyasa._curl_get_fallback", return_value=successful_response())
     def test_windows_tls_error_uses_secure_curl_fallback(
-        self, curl_fallback, session_factory, _proxies, _requests_get
+        self, curl_fallback, session_factory, _proxies, _requests_get, _doh_fallback
     ):
         session = MagicMock()
         session.__enter__.return_value = session
