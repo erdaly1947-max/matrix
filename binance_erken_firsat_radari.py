@@ -1221,10 +1221,10 @@ class BinanceRadar:
                         self.logger.warning("%s", fallback_warning)
                     else:
                         details = (
-                            "Kayıtlı BtcTurk USDT evreni hazırlanamadı ve kullanılabilir önceki "
-                            "tarama evreni yok. Başlangıçta BtcTurk API'sine otomatik istek "
-                            "gönderilmedi. Panelde 'Parite listesini güncelle' düğmesiyle listeyi "
-                            "el ile güncelleyip motoru yeniden başlatın. "
+                            "Tarama evreni hazırlanamadı; tek motor, yerel BtcTurk USDT "
+                            "listesi ile güncel Binance Spot USDT listesinin ortak paritelerini "
+                            "gerektirir. Aşağıdaki ayrıntı, hangi kaynağın başarısız olduğunu "
+                            "belirtir. Başlangıçta BtcTurk API'sine otomatik istek gönderilmedi. "
                             f"Evren kurulum hatası: {build_error}."
                         )
                         raise RuntimeError(details) from build_error
