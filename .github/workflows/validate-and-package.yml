@@ -120,8 +120,8 @@ jobs:
       - name: Publish stable direct-download release asset
         if: (github.event_name == 'workflow_dispatch' && inputs.create_package == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-s00]'))
         env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: \${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           python - <<'PY'
           import os
