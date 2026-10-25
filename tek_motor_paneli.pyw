@@ -549,6 +549,8 @@ class ControlPanel(tk.Tk):
             f"Zaman dilimi: {candidate.get('phase_timeframe') or candidate.get('timeframe') or '—'}",
             f"Güncel fiyat: {_format_price(candidate.get('latest_price', candidate.get('price')))} USDT",
             f"Veri güncelliği: {candidate.get('data_freshness') or '—'}",
+            "", "--- HIZLI KARAR ÖZETİ ---", _format_candidate_decision_summary(candidate),
+            "", "--- MEVCUT KARAR ALANLARI ---",
             f"Karar: {candidate.get('final_decision') or candidate.get('decision_class') or '—'}",
             f"Fırsat puanı: {candidate.get('opportunity_score', candidate.get('score_0_100', '—'))}",
             f"Güçlü fırsat uygunluğu: {candidate.get('strong_opportunity_qualified', '—')}",
@@ -778,6 +780,7 @@ class ControlPanel(tk.Tk):
         ws_age = state.get("websocket_last_message_age_seconds")
         self.ws_var.set(f"WebSocket: {connected}/{total} parça | son veri: {_format_age(ws_age)}")
         self.alert_var.set("Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
+        self.btc_context_var.set(_format_btc_context_summary(state))
 
         rows = state.get("candidates")
         if not isinstance(rows, list):
@@ -816,6 +819,7 @@ class ControlPanel(tk.Tk):
             self.tree.insert("", "end", iid=key, values=(
                 "★" if strong else "", symbol, route, phase,
                 _format_price(row.get("latest_price", row.get("price"))),
+                _format_btc_relative(row), _format_btc_correlation(row),
                 row.get("phase_timeframe") or row.get("timeframe") or "—",
                 freshness, decision,
             ), tags=tags)
@@ -895,6 +899,18 @@ class ControlPanel(tk.Tk):
         self.panel_settings["alarm_volume"] = self.alarm_volume
         self._save_panel_settings()
 
+    def _brightness_moved(self, _value: str | None = None) -> None:
+        try:
+            self.panel_brightness = max(60, min(100, int(float(self.brightness_var.get()))))
+        except (ValueError, tk.TclError):
+            self.panel_brightness = 85
+        self._apply_brightness()
+
+    def _save_brightness(self, _event: Any = None) -> None:
+        self._brightness_moved()
+        self.panel_settings["panel_brightness"] = self.panel_brightness
+        self._save_panel_settings()
+
     def _save_panel_settings(self) -> None:
         # Update only panel_ui fields; preserve every engine/risk setting.
         try:
@@ -907,6 +923,7 @@ class ControlPanel(tk.Tk):
             ui.update({
                 "alarm_sound_enabled": bool(self.alarm_enabled),
                 "alarm_volume": int(self.alarm_volume),
+                "panel_brightness": int(self.panel_brightness),
             })
             current["panel_ui"] = ui
             _write_json_atomic(SETTINGS_PATH, current)
@@ -1102,6 +1119,8 @@ class ControlPanel(tk.Tk):
             f"- Tarama evreni: {self.current_state.get('scan_symbol_count', '—')}",
             f"- WebSocket bağlantıları: {self.current_state.get('websocket_connected_shards', '—')}/{self.current_state.get('websocket_total_shards', '—')}",
             f"- Aday sayısı: {len(table_rows)}", "",
+            "## BTC piyasa bağlamı", "",
+            _format_btc_context_summary(self.current_state), "",
             "## Aday özeti", "",
             "| Coin | Aşama | Fiyat (USDT) | Zaman dilimi | Karar | Puan |",
             "|---|---:|---:|---|---|---:|",
