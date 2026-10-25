@@ -190,14 +190,47 @@ def _winhttp_proxy_status() -> str:
 
 
 def _classify_tls_first_response(response: bytes) -> str:
-    """Classify initial TCP response bytes without logging content or headers."""
+    """Classify initial TCP response bytes and expose only a redirect's host, not its path."""
     if not response:
         return "no_data_after_client_hello"
     if response.startswith(b"HTTP/"):
-        first_line = response.split(b"\r\n", 1)[0].decode("ascii", errors="replace")
+        header_block = response.split(b"\r\n\r\n", 1)[0]
+        header_lines = header_block.split(b"\r\n")
+        first_line = header_lines[0].decode("ascii", errors="replace")
         parts = first_line.split()
         status = " ".join(parts[:2]) if len(parts) >= 2 else "HTTP response"
-        return f"plain_http_response_instead_of_tls:{status}"
+        safe_details: list[str] = []
+        for line in header_lines[1:]:
+            name, separator, value = line.partition(b":")
+            if not separator:
+                continue
+            header_name = name.decode("ascii", errors="ignore").strip().casefold()
+            header_value = value.decode("latin-1", errors="replace").strip()
+            if header_name == "location":
+                candidate = header_value if "://" in header_value else ""
+                try:
+                    parsed = urlsplit(candidate)
+                    hostname = parsed.hostname
+                    port = parsed.port
+                except ValueError:
+                    hostname, port, parsed = None, None, None
+                if hostname:
+                    if ":" in hostname and not hostname.startswith("["):
+                        hostname = f"[{hostname}]"
+                    scheme = (parsed.scheme or "unknown").lower()
+                    authority = f"{scheme}://{hostname}" + (f":{port}" if port is not None else "")
+                    safe_details.append(f"redirect_target={authority}")
+                else:
+                    safe_details.append("redirect_target_host=unavailable")
+            elif header_name == "server":
+                # Product/version header can identify a gateway; strip control chars and cap length.
+                server = "".join(ch for ch in header_value if ch.isalnum() or ch in " ._-/")[:80]
+                if server:
+                    safe_details.append(f"server_header={server.replace(' ', '_')}")
+            elif header_name == "via":
+                safe_details.append("via_header=present")
+        suffix = (":" + ":".join(safe_details)) if safe_details else ""
+        return f"plain_http_response_instead_of_tls:{status}{suffix}"
     if (
         len(response) >= 5
         and response[0] in (0x14, 0x15, 0x16, 0x17)

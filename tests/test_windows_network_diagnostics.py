@@ -27,6 +27,22 @@ class WindowsNetworkDiagnosticsTests(unittest.TestCase):
         self.assertNotIn("secret", summary)
         self.assertNotIn("private", summary)
 
+    def test_redirect_diagnostics_expose_host_but_hide_sensitive_url_parts(self):
+        raw = (
+            b"HTTP/1.1 307 Temporary Redirect\r\n"
+            b"Location: http://filter.example.invalid:8080/blocked?device=private\r\n"
+            b"Server: Home Gateway/1.2\r\n"
+            b"Via: 1.1 local-filter\r\n"
+            b"\r\n"
+        )
+        summary = _classify_tls_first_response(raw)
+        self.assertIn("plain_http_response_instead_of_tls:HTTP/1.1 307", summary)
+        self.assertIn("redirect_target=http://filter.example.invalid:8080", summary)
+        self.assertIn("server_header=Home_Gateway/1.2", summary)
+        self.assertIn("via_header=present", summary)
+        self.assertNotIn("/blocked", summary)
+        self.assertNotIn("device=private", summary)
+
     def test_winhttp_diagnostic_failure_does_not_abort(self):
         from unittest.mock import patch
         import ortak_piyasa
