@@ -312,8 +312,18 @@ class ControlPanel(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(APP_TITLE)
-        self.geometry("1450x900")
-        self.minsize(1100, 700)
+        screen_width = max(800, self.winfo_screenwidth())
+        screen_height = max(600, self.winfo_screenheight())
+        window_width = min(int(screen_width * 0.76), int(screen_width * 0.80))
+        window_height = min(int(screen_height * 0.88), int(screen_height * 0.93))
+        window_width = max(min(1100, int(screen_width * 0.80)), window_width)
+        window_height = max(min(650, int(screen_height * 0.93)), window_height)
+        self.geometry(
+            f"{window_width}x{window_height}+"
+            f"{max(0, (screen_width - window_width) // 2)}+"
+            f"{max(0, (screen_height - window_height) // 2)}"
+        )
+        self.minsize(min(1100, window_width), min(650, window_height))
         icon_path = ROOT / "firsat_kontrol.ico"
         if icon_path.is_file():
             try:
@@ -332,6 +342,8 @@ class ControlPanel(tk.Tk):
         self.alarm_enabled = panel.get("alarm_sound_enabled", True) is True
         volume = _safe_float(panel.get("alarm_volume", 55))
         self.alarm_volume = int(max(0, min(100, volume if volume is not None else 55)))
+        brightness = _safe_float(panel.get("panel_brightness", 85))
+        self.panel_brightness = int(max(60, min(100, brightness if brightness is not None else 85)))
 
         self.engine: subprocess.Popen[str] | None = None
         self.engine_started_epoch: float | None = None
@@ -357,6 +369,8 @@ class ControlPanel(tk.Tk):
         self.alert_var = tk.StringVar(value="Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
         self.level_var = tk.StringVar(value="Seviye takibi: kapalı")
         self.volume_var = tk.IntVar(value=self.alarm_volume)
+        self.brightness_var = tk.IntVar(value=self.panel_brightness)
+        self.btc_context_var = tk.StringVar(value="BTC piyasa bağlamı: canlı veri bekleniyor")
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(250, self._poll)
@@ -370,6 +384,7 @@ class ControlPanel(tk.Tk):
             pass
         style.configure("Header.TLabel", font=("Segoe UI", 15, "bold"))
         style.configure("Status.TLabel", font=("Segoe UI", 10, "bold"))
+        style.configure("BTC.TLabel", font=("Segoe UI", 9, "bold"))
         style.configure("Treeview", rowheight=25, font=("Segoe UI", 9))
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
 
