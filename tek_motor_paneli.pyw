@@ -502,8 +502,14 @@ class ControlPanel(tk.Tk):
         self.tree.tag_configure("strong", background="#e5f3e8")
         self.tree.tag_configure("stale", foreground="#777777")
         self.tree.tag_configure("phase_a", foreground="#9a5b00")
-        self.tree.tag_configure("phase_b", foreground="#8b6b00")
+        self.tree.tag_configure("phase_b", foreground="#243b6b")
         self.tree.tag_configure("phase_c", foreground="#176b37")
+        self.tree.tag_configure("decision_strong", foreground="#176b37")
+        self.tree.tag_configure("decision_no_trade", foreground="#c62828")
+        self.tree.tag_configure("decision_wait", foreground="#ad7d00")
+        self.tree.tag_configure("decision_watch", foreground="#2463a6")
+        self.tree.tag_configure("decision_early", foreground="#8b5fbf")
+        self.tree.tag_configure("decision_breakout", foreground="#008b8b")
 
         ttk.Label(right, text="Seçilen coin ve kanıtlar", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
         self.details = tk.Text(right, wrap="word", font=("Consolas", 9), state="disabled", height=22)
@@ -835,7 +841,21 @@ class ControlPanel(tk.Tk):
             freshness = row.get("data_freshness") or "—"
             decision = row.get("final_decision") or row.get("decision_class") or row.get("state") or "—"
             strong = row.get("strong_opportunity_qualified") is True and row.get("strong_alarm_eligible") is True
-            tags = ("strong",) if strong else (("stale",) if freshness != "CANLI AKIŞ GÜNCEL" else (f"phase_{str(phase).lower()}",) if phase in ("A", "B", "C") else ())
+            if strong:
+                tags = ("strong", "decision_strong")
+            elif freshness != "CANLI AKIŞ GÜNCEL":
+                tags = ("stale",)
+            else:
+                decision_tag = {
+                    "GÜÇLÜ FIRSAT": "decision_strong",
+                    "İŞLEM YOK": "decision_no_trade",
+                    "FIRSAT GEÇERSİZ": "decision_no_trade",
+                    "KIRILIM BEKLENİYOR": "decision_wait",
+                    "İZLEMEDE": "decision_watch",
+                    "ERKEN ADAY": "decision_early",
+                }.get(str(decision).upper())
+                phase_tag = f"phase_{str(phase).lower()}" if phase in ("A", "B", "C") else None
+                tags = tuple(tag for tag in (phase_tag, decision_tag) if tag)
             self.tree.insert("", "end", iid=key, values=(
                 "★" if strong else "", symbol, route, phase,
                 _format_price(row.get("latest_price", row.get("price"))),
