@@ -63,28 +63,6 @@ jobs:
               print(f"OK: {name} ({type(value).__name__})")
           PY
 
-      - name: Örnek ZIP bütünlüğünü doğrula
-        run: |
-          python - <<'PY'
-          from pathlib import PurePosixPath
-          from zipfile import ZipFile
-          from pathlib import Path
-
-          sample = Path("FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip")
-          if not sample.is_file():
-              raise SystemExit(f"Örnek ZIP bulunamadı: {sample}")
-          with ZipFile(sample) as archive:
-              bad_member = archive.testzip()
-              if bad_member is not None:
-                  raise SystemExit(f"Bozuk ZIP girdisi: {bad_member}")
-              names = {PurePosixPath(name.replace("\\", "/")).name for name in archive.namelist()}
-          required = {"BASLAT.bat", "radar_core.py", "tek_motor_paneli.pyw", "KULLANIM_KILAVUZU.txt", "requirements.txt"}
-          missing = sorted(required - names)
-          if missing:
-              raise SystemExit(f"Örnek ZIP'te eksik gerekli dosyalar: {missing}")
-          print(f"Örnek ZIP sağlam; {len(names)} dosya adı kontrol edildi.")
-          PY
-
       - name: Otomatik birim testleri
         shell: bash
         run: python -m unittest discover -s tests -v
@@ -102,8 +80,6 @@ jobs:
           dist.mkdir(exist_ok=True)
           archive_path = dist / "Firsat-Kontrol-Paneli-Surum-00.zip"
           excluded_dirs = {".git", ".github", ".venv", "venv", "__pycache__", "dist", "data", "logs", "reports", "run", "tests"}
-          sample_name = "FIRSAT-KONTROL-PANELI-TEK-MOTOR-örnek içindir.zip"
-
           with ZipFile(archive_path, "w", compression=ZIP_DEFLATED) as archive:
               for path in sorted(root.rglob("*")):
                   if not path.is_file():
@@ -111,7 +87,7 @@ jobs:
                   relative = path.relative_to(root)
                   if any(part in excluded_dirs for part in relative.parts):
                       continue
-                  if path.name == sample_name or path.suffix.lower() in {".zip", ".pyc", ".sha256"}:
+                  if path.suffix.lower() in {".zip", ".pyc", ".sha256"}:
                       continue
                   archive.write(path, relative.as_posix())
 
