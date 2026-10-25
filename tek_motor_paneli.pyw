@@ -337,6 +337,7 @@ class ControlPanel(tk.Tk):
         window_height = min(int(screen_height * 0.88), int(screen_height * 0.93))
         window_width = max(min(1100, int(screen_width * 0.80)), window_width)
         window_height = max(min(650, int(screen_height * 0.93)), window_height)
+        self.window_width = window_width
         self.geometry(
             f"{window_width}x{window_height}+"
             f"{max(0, (screen_width - window_width) // 2)}+"
@@ -425,7 +426,7 @@ class ControlPanel(tk.Tk):
         ttk.Label(btc_row, text="BTC bağlamı:", style="BTC.TLabel").pack(side="left", anchor="n")
         ttk.Label(
             btc_row, textvariable=self.btc_context_var, justify="left",
-            wraplength=max(500, window_width - 180), anchor="w",
+            wraplength=max(500, self.window_width - 180), anchor="w",
         ).pack(side="left", fill="x", expand=True, padx=(8, 0))
 
         controls = ttk.Frame(self, padding=(12, 0, 12, 8))
