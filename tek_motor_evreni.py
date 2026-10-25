@@ -109,6 +109,8 @@ def _candidate_local_list_paths(cache_path: str | Path | None = None) -> list[Pa
     root = primary.parent.parent
     candidates = [
         primary,
+        # Accept the checked-in starter list at the project root when data/ is new.
+        root / primary.name,
         primary.parent / "common_universe.json",
         root.parent / "data" / primary.name,
         root.parent / "data" / "common_universe.json",
