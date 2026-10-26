@@ -8,13 +8,13 @@ Binance Spot'un halka açık piyasa verilerini tarar; yükseliş ihtimali taşı
 1. ZIP dosyasını yeni bir klasöre ayıklayın.
 2. Klasördeki BASLAT.bat dosyasını çalıştırın.
 3. Panelde “Motoru Başlat” düğmesine basın.
-4. Parite listesi yoksa veya eskiyse “Haritayı Güncelle” düğmesine basın; işlem tamamlanınca motoru yeniden başlatın.
+4. Parite listesi yoksa veya eskiyse “Pariteleri Güncelle” düğmesine basın; işlem tamamlanınca motoru yeniden başlatın.
 5. Eski ayarlarınızı korumak istiyorsanız önceki klasördeki ayarlar.json ve data klasörünü uygulama kapalıyken yeni klasöre kopyalayın.
 
 DÜĞMELER VE KONTROLLER
 • Motoru Başlat — Binance piyasa taramasını başlatır. Altındaki saat son başlatma zamanıdır.
 • Motoru Durdur — motoru kontrollü durdurur. Altındaki saat son durdurma zamanıdır.
-• Haritayı Güncelle — taranacak yerel USDT parite listesini yeniler. Başarısız olursa önceki liste korunur.
+• Pariteleri Güncelle — taranacak yerel USDT parite listesini yeniler. Başarısız olursa önceki liste korunur.
 • Kayıtlar — programın çalışma ve hata kayıtlarının bulunduğu klasörü açar.
 • Seviye Takibi: Açık/Kapalı — seçili coin için giriş bölgesi, kırılım, hedef ve zarar durdurma seviyelerinin izlenmesini açar/kapatır. Motor çalışmalı; coin verisi güncel ve teknik planı geçerli olmalıdır. Coin seçimi değişince takip kapanır.
 • Günlük Rapor — programın çalışma durumunu ve tanılama bilgilerini raporlar klasörüne kaydeder; okunabilir özet panoya kopyalanır.
