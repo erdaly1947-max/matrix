@@ -34,6 +34,8 @@ from analysis_report import (
     gzip_compress_bytes,
     load_connection_config,
     upload_analysis_report,
+    upload_json_report,
+    upload_troubleshooting_zip,
 )
 
 from ortak_piyasa import fetch_btcturk_usdt_last_prices
@@ -482,13 +484,13 @@ class ControlPanel(tk.Tk):
         report_controls = ttk.Frame(self, padding=(12, 0, 12, 8))
         report_controls.pack(fill="x")
         ttk.Button(
-            report_controls, text="Günlük Rapor Oluştur", command=self.create_report,
+            report_controls, text="Günlük Rapor Oluştur ve Gönder", command=self.create_report,
         ).pack(side="left", padx=(0, 6))
         ttk.Button(
             report_controls, text="Analiz Raporu Gönder", command=self.create_analysis_report,
         ).pack(side="left", padx=6)
         ttk.Button(
-            report_controls, text="Sorun Giderme ve Devir Paketi (ZIP)", command=self.create_handoff_zip,
+            report_controls, text="Sorun Giderme Paketini Gönder (ZIP)", command=self.create_handoff_zip,
         ).pack(side="left", padx=6)
 
         sound = ttk.Frame(controls)
@@ -1301,15 +1303,80 @@ class ControlPanel(tk.Tk):
 
     def create_report(self) -> None:
         try:
-            json_path, md_path, _diagnostic, markdown = self._make_report()
+            json_path, md_path, diagnostic_path, markdown = self._make_report()
             self.clipboard_clear()
             self.clipboard_append(markdown)
             self.update_idletasks()
             self._open_select(json_path)
-            messagebox.showinfo("Rapor hazır", f"Sıkıştırılmış rapor dosyaları oluşturuldu:\n{json_path}\n{md_path}\n{_diagnostic}\n\nMarkdown metni panoya kopyalandı.")
+
+            config = load_connection_config(ROOT)
+            if not config:
+                messagebox.showinfo(
+                    "Günlük rapor hazır",
+                    f"Rapor dosyaları yerelde oluşturuldu:\n{json_path}\n{md_path}\n{diagnostic_path}\n\n"
+                    "Buluta gönderim için kök klasörde chatgpt_baglanti.local.json yapılandırılmalıdır. "
+                    "Markdown özeti panoya kopyalandı.",
+                )
+                self._log_line(f"Günlük rapor yerelde oluşturuldu; bulut bağlantısı yapılandırılmamış: {json_path.name}")
+                return
+
+            raw_payload = json.loads(gzip.decompress(json_path.read_bytes()).decode("utf-8"))
+            daily_payload = {
+                "report_type": "daily",
+                "schema_version": 1,
+                "report_generated_at_utc": raw_payload.get("report_generated_at_utc"),
+                "payload": raw_payload,
+                "markdown": markdown,
+            }
+            compressed = compress_analysis_report(daily_payload)
+            self.status_var.set("Günlük rapor oluşturuldu; buluta gönderiliyor…")
+            self._log_line(f"Günlük rapor gzip olarak buluta gönderiliyor: {json_path.name}")
+            messagebox.showinfo(
+                "Günlük rapor hazır",
+                f"Rapor dosyaları yerelde oluşturuldu:\n{json_path}\n{md_path}\n{diagnostic_path}\n\n"
+                "Buluta gönderim arka planda başlatıldı. Tamamlanınca okunabilir bağlantı gösterilecek. "
+                "Markdown özeti panoya kopyalandı.",
+            )
+
+            def _upload() -> None:
+                try:
+                    result = upload_json_report(config, compressed, "daily")
+                    error = None
+                except Exception as exc:
+                    result = None
+                    error = f"{type(exc).__name__}: {exc}"
+                try:
+                    self.after(0, lambda: self._cloud_report_upload_finished(
+                        "Günlük rapor", json_path, result, error
+                    ))
+                except tk.TclError:
+                    pass
+
+            threading.Thread(target=_upload, name="daily-report-upload", daemon=True).start()
         except Exception as exc:
-            LOGGER.exception("Rapor oluşturulamadı")
+            LOGGER.exception("Rapor oluşturulamadı veya bulut gönderimi hazırlanamadı")
             messagebox.showerror("Rapor oluşturulamadı", f"{type(exc).__name__}: {exc}")
+
+    def _cloud_report_upload_finished(
+        self, report_label: str, report_path: Path,
+        result: dict[str, Any] | None, error: str | None,
+    ) -> None:
+        if error:
+            self.status_var.set(f"{report_label} yerelde kaydedildi; bulut aktarımı başarısız")
+            self._log_line(f"{report_label} buluta gönderilemedi: {error}")
+            messagebox.showwarning(
+                f"{report_label} yerelde kaydedildi",
+                f"Buluta gönderim başarısız oldu; yerel dosya korunuyor.\n\n"
+                f"Dosya: {report_path}\nHata: {error}",
+            )
+            return
+        read_url = (result or {}).get("read_url") or "Sunucu yanıtında okuma bağlantısı yok."
+        self.status_var.set(f"{report_label} buluta yüklendi")
+        self._log_line(f"{report_label} buluta gönderildi: {report_path.name}")
+        messagebox.showinfo(
+            f"{report_label} gönderildi",
+            f"Rapor buluta yüklendi.\n\nChatGPT'nin okuyabileceği bağlantı:\n{read_url}",
+        )
 
     def create_analysis_report(self) -> None:
         """Create a compact TA-only report and upload it asynchronously when configured."""
@@ -1440,11 +1507,107 @@ class ControlPanel(tk.Tk):
             ]))
             self.update_idletasks()
             self._open_select(zip_path)
-            self._log_line(f"Sorun Giderme ve Devir Paketi (ZIP) oluşturuldu: {zip_path.name}")
-            messagebox.showinfo("Devir paketi hazır", f"ZIP oluşturuldu ve bütünlük denetimi geçti:\n{zip_path}\n\nPanoya kısa devir özeti kopyalandı.")
+            self._log_line(f"Sorun Giderme ve Devir Paketi (ZIP) oluşturuldu ve bütünlük denetimi geçti: {zip_path.name}")
+
+            config = load_connection_config(ROOT)
+            if not config:
+                messagebox.showinfo(
+                    "Devir paketi hazır",
+                    f"ZIP oluşturuldu ve bütünlük denetimi geçti:\n{zip_path}\n\n"
+                    "Buluta gönderim için kök klasörde chatgpt_baglanti.local.json yapılandırılmalıdır. "
+                    "Panoya kısa devir özeti kopyalandı.",
+                )
+                return
+
+            daily_raw = json.loads(gzip.decompress(json_path.read_bytes()).decode("utf-8"))
+            troubleshooting_payload = {
+                "report_type": "troubleshooting",
+                "schema_version": 1,
+                "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "application": APP_TITLE,
+                "summary": {
+                    "application_version": self.current_state.get("application_version"),
+                    "engine_status": self.current_state.get("status"),
+                    "live_stream_status": self.current_state.get("live_stream_status"),
+                    "history_status": self.current_state.get("history_status"),
+                    "candidate_count": len(self.current_candidates),
+                    "zip_file": zip_path.name,
+                    "zip_size_bytes": zip_path.stat().st_size,
+                    "zip_sha256": _sha256_file(zip_path),
+                },
+                "daily_report": daily_raw,
+                "diagnostics": self._diagnostic_payload(),
+                "manifest": manifest,
+                "log_tail": log_tail,
+                "markdown": markdown,
+                "interpretation_limits": [
+                    "Bu paket teknik tanı içindir; alım/satım emri göndermez.",
+                    "Log bölümü son 300 satır ve en fazla 128 KiB kaynak metinle sınırlıdır.",
+                ],
+            }
+            troubleshooting_compressed = compress_analysis_report(troubleshooting_payload)
+            self.status_var.set("Sorun giderme raporu ve ZIP buluta gönderiliyor…")
+            messagebox.showinfo(
+                "Devir paketi hazır",
+                f"ZIP oluşturuldu ve bütünlük denetimi geçti:\n{zip_path}\n\n"
+                "Okunabilir tanı raporu ve ZIP dosyası buluta arka planda gönderiliyor. "
+                "Tamamlanınca bağlantılar gösterilecek.",
+            )
+
+            def _upload() -> None:
+                structured_result = None
+                zip_result = None
+                structured_error = None
+                zip_error = None
+                try:
+                    structured_result = upload_json_report(config, troubleshooting_compressed, "troubleshooting")
+                except Exception as exc:
+                    structured_error = f"{type(exc).__name__}: {exc}"
+                try:
+                    zip_result = upload_troubleshooting_zip(config, zip_path.read_bytes())
+                except Exception as exc:
+                    zip_error = f"{type(exc).__name__}: {exc}"
+                try:
+                    self.after(0, lambda: self._troubleshooting_upload_finished(
+                        zip_path, structured_result, zip_result, structured_error, zip_error
+                    ))
+                except tk.TclError:
+                    pass
+
+            threading.Thread(target=_upload, name="troubleshooting-report-upload", daemon=True).start()
         except Exception as exc:
-            LOGGER.exception("Devir ZIP oluşturulamadı")
-            messagebox.showerror("Devir ZIP oluşturulamadı", f"{type(exc).__name__}: {exc}")
+            LOGGER.exception("Devir ZIP oluşturulamadı veya bulut aktarımı hazırlanamadı")
+            messagebox.showerror("Devir paketi oluşturulamadı", f"{type(exc).__name__}: {exc}")
+
+    def _troubleshooting_upload_finished(
+        self, zip_path: Path,
+        structured_result: dict[str, Any] | None, zip_result: dict[str, Any] | None,
+        structured_error: str | None, zip_error: str | None,
+    ) -> None:
+        lines = []
+        if structured_result:
+            url = structured_result.get("read_url") or "Okuma bağlantısı sunucu tarafından verilmedi."
+            lines.append(f"ChatGPT'nin okuyabileceği tanı raporu:\n{url}")
+            self._log_line(f"Sorun giderme tanı raporu buluta gönderildi: {zip_path.name}")
+        else:
+            lines.append(f"Okunabilir tanı raporu gönderilemedi: {structured_error or 'bilinmeyen hata'}")
+            self._log_line(f"Sorun giderme tanı raporu gönderilemedi: {structured_error or 'bilinmeyen hata'}")
+        if zip_result:
+            url = zip_result.get("read_url") or "ZIP indirme bağlantısı sunucu tarafından verilmedi."
+            lines.append(f"ZIP indirme bağlantısı:\n{url}")
+            self._log_line(f"Sorun giderme ZIP paketi buluta gönderildi: {zip_path.name}")
+        else:
+            lines.append(f"ZIP buluta gönderilemedi: {zip_error or 'bilinmeyen hata'}")
+            self._log_line(f"Sorun giderme ZIP paketi gönderilemedi: {zip_error or 'bilinmeyen hata'}")
+        if structured_result and zip_result:
+            self.status_var.set("Sorun giderme raporu ve ZIP buluta yüklendi")
+            messagebox.showinfo("Devir paketi gönderildi", "\n\n".join(lines))
+        elif structured_result or zip_result:
+            self.status_var.set("Sorun giderme paketinin bir bölümü buluta yüklendi")
+            messagebox.showwarning("Devir paketi kısmen gönderildi", "\n\n".join(lines))
+        else:
+            self.status_var.set("Devir paketi yerelde kaydedildi; bulut aktarımı başarısız")
+            messagebox.showwarning("Devir paketi yerelde kaydedildi", "\n\n".join(lines))
 
     def _open_select(self, path: Path) -> None:
         try:
