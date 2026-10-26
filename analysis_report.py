@@ -192,11 +192,18 @@ def build_analysis_report(state: Any) -> dict[str, Any]:
         ],
     }
 
+def gzip_compress_bytes(raw: bytes, *, compresslevel: int = 9) -> bytes:
+    """Compress UTF-8 report bytes deterministically for local storage and handoff."""
+    if not isinstance(raw, bytes):
+        raise TypeError("Sıkıştırılacak içerik bytes olmalıdır.")
+    return gzip.compress(raw, compresslevel=compresslevel, mtime=0)
+
+
 def compress_analysis_report(payload: dict[str, Any]) -> bytes:
     raw = json.dumps(
         payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")
     ).encode("utf-8")
-    compressed = gzip.compress(raw, compresslevel=9, mtime=0)
+    compressed = gzip_compress_bytes(raw, compresslevel=9)
     if len(compressed) > MAX_UPLOAD_BYTES:
         raise ValueError(
             f"Sıkıştırılmış analiz raporu sınırı aşıyor: {len(compressed)} bayt "
