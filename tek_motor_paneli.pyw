@@ -369,10 +369,11 @@ class ControlPanel(tk.Tk):
         self.title(APP_TITLE)
         screen_width = max(800, self.winfo_screenwidth())
         screen_height = max(600, self.winfo_screenheight())
-        window_width = min(int(screen_width * 0.76), int(screen_width * 0.80))
-        window_height = min(int(screen_height * 0.88), int(screen_height * 0.93))
-        window_width = max(min(1100, int(screen_width * 0.80)), window_width)
-        window_height = max(min(650, int(screen_height * 0.93)), window_height)
+        # Compact default footprint; retain a practical minimum for readability.
+        window_width = min(int(screen_width * 0.72), int(screen_width * 0.80))
+        window_height = min(int(screen_height * 0.86), int(screen_height * 0.93))
+        window_width = max(min(1000, int(screen_width * 0.80)), window_width)
+        window_height = max(min(620, int(screen_height * 0.93)), window_height)
         self.window_width = window_width
         self.geometry(
             f"{window_width}x{window_height}+"
@@ -424,6 +425,8 @@ class ControlPanel(tk.Tk):
         self._btcturk_price_stop = threading.Event()
 
         self.status_var = tk.StringVar(value="Motor durduruldu")
+        self.start_time_var = tk.StringVar(value="Son: —")
+        self.stop_time_var = tk.StringVar(value="Son: —")
         self.universe_var = tk.StringVar(value="Tarama evreni: —")
         self.ws_var = tk.StringVar(value="WebSocket: —")
         self.alert_var = tk.StringVar(value="Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
@@ -443,11 +446,14 @@ class ControlPanel(tk.Tk):
             style.theme_use("clam")
         except tk.TclError:
             pass
-        style.configure("Header.TLabel", font=("Segoe UI", 15, "bold"))
+        style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"))
         style.configure("Status.TLabel", font=("Segoe UI", 10, "bold"))
         style.configure("BTC.TLabel", font=("Segoe UI", 9, "bold"))
-        style.configure("Treeview", rowheight=25, font=("Segoe UI", 9))
-        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
+        style.configure("Treeview", rowheight=27, font=("Segoe UI", 9), borderwidth=0)
+        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), padding=(4, 5))
+        style.configure("TScale", troughcolor="#b9e5e3")
+        style.map("Treeview", background=[("selected", "#d6dce2")],
+                  foreground=[("selected", "#263746")])
 
         header = ttk.Frame(self, padding=(12, 10, 12, 6))
         header.pack(fill="x")
@@ -472,30 +478,32 @@ class ControlPanel(tk.Tk):
 
         controls = ttk.Frame(self, padding=(12, 0, 12, 8))
         controls.pack(fill="x")
-        self.start_button = ttk.Button(controls, text="Başlat", command=self.start_engine)
-        self.start_button.pack(side="left", padx=(0, 6))
-        self.stop_button = ttk.Button(controls, text="Durdur", command=self.stop_engine, state="disabled")
-        self.stop_button.pack(side="left", padx=6)
-        self.update_list_button = ttk.Button(controls, text="Parite listesini güncelle", command=self.update_universe)
-        self.update_list_button.pack(side="left", padx=6)
-        ttk.Button(controls, text="Kayıtları Aç", command=self.open_logs).pack(side="left", padx=6)
-        ttk.Button(controls, text="Seviye Takibini Aç/Kapat", command=self.toggle_level_watch).pack(side="left", padx=6)
+        start_group = ttk.Frame(controls)
+        start_group.pack(side="left", padx=(0, 5))
+        self.start_button = ttk.Button(start_group, text="Başlat", command=self.start_engine, width=10)
+        self.start_button.pack(fill="x")
+        ttk.Label(start_group, textvariable=self.start_time_var, font=("Segoe UI", 8)).pack()
+        stop_group = ttk.Frame(controls)
+        stop_group.pack(side="left", padx=5)
+        self.stop_button = ttk.Button(stop_group, text="Durdur", command=self.stop_engine, state="disabled", width=10)
+        self.stop_button.pack(fill="x")
+        ttk.Label(stop_group, textvariable=self.stop_time_var, font=("Segoe UI", 8)).pack()
+        self.update_list_button = ttk.Button(controls, text="Pariteyi Güncelle", command=self.update_universe)
+        self.update_list_button.pack(side="left", padx=5)
+        ttk.Button(controls, text="Kayıtlar", command=self.open_logs).pack(side="left", padx=5)
+        self.level_button = ttk.Button(controls, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch)
+        self.level_button.pack(side="left", padx=5)
 
         report_controls = ttk.Frame(self, padding=(12, 0, 12, 8))
         report_controls.pack(fill="x")
-        ttk.Button(
-            report_controls, text="Günlük Rapor Oluştur ve Gönder", command=self.create_report,
-        ).pack(side="left", padx=(0, 6))
-        ttk.Button(
-            report_controls, text="Analiz Raporu Gönder", command=self.create_analysis_report,
-        ).pack(side="left", padx=6)
-        ttk.Button(
-            report_controls, text="Sorun Giderme Paketini Gönder (ZIP)", command=self.create_handoff_zip,
-        ).pack(side="left", padx=6)
+        ttk.Label(report_controls, text="Rapor / Bulut:", style="BTC.TLabel").pack(side="left", padx=(0, 8))
+        ttk.Button(report_controls, text="Günlük Rapor", command=self.create_report).pack(side="left", padx=(0, 6))
+        ttk.Button(report_controls, text="Analiz Raporu", command=self.create_analysis_report).pack(side="left", padx=6)
+        ttk.Button(report_controls, text="Sorun Paketi (ZIP)", command=self.create_handoff_zip).pack(side="left", padx=6)
 
         sound = ttk.Frame(controls)
         sound.pack(side="right")
-        self.alarm_button = ttk.Button(sound, text="Alarm Açık" if self.alarm_enabled else "Alarm Kapalı", command=self.toggle_alarm)
+        self.alarm_button = ttk.Button(sound, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm)
         self.alarm_button.pack(side="left", padx=6)
         ttk.Label(sound, text="Ses").pack(side="left")
         self.volume_scale = ttk.Scale(sound, from_=0, to=100, orient="horizontal", length=110,
@@ -505,8 +513,8 @@ class ControlPanel(tk.Tk):
         self.volume_scale.bind("<KeyRelease>", self._save_volume)
         self.volume_label = ttk.Label(sound, text=f"{self.alarm_volume}%", width=4)
         self.volume_label.pack(side="left", padx=(4, 0))
-        ttk.Button(sound, text="Sesi dene", command=self._test_sound).pack(side="left", padx=6)
-        ttk.Label(sound, text="Aydınlık").pack(side="left", padx=(6, 0))
+        ttk.Button(sound, text="Sesi Dene", command=self._test_sound).pack(side="left", padx=5)
+        ttk.Label(sound, text="Panel ışığı").pack(side="left", padx=(5, 0))
         self.brightness_scale = ttk.Scale(
             sound, from_=60, to=100, orient="horizontal", length=78,
             variable=self.brightness_var, command=self._brightness_moved,
@@ -518,48 +526,43 @@ class ControlPanel(tk.Tk):
         self.brightness_label.pack(side="left", padx=(4, 0))
 
         pane = ttk.Panedwindow(self, orient="horizontal")
-        pane.pack(fill="both", expand=True, padx=12, pady=(0, 8))
+        pane.pack(fill="both", expand=True, padx=12, pady=(0, 6))
         left = ttk.Frame(pane, padding=(0, 0, 5, 0))
         right = ttk.Frame(pane, padding=(5, 0, 0, 0))
-        pane.add(left, weight=4)
-        pane.add(right, weight=3)
-        ttk.Label(left, text="Aday akışı", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
+        pane.add(left, weight=5)
+        pane.add(right, weight=4)
+        ttk.Label(left, text="Adaylar · güçlü ve güncel adaylar üstte", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
 
         tree_frame = ttk.Frame(left)
         tree_frame.pack(fill="both", expand=True)
-        columns = ("star", "symbol", "route", "phase", "price", "btcturk_price", "score", "btc_relative", "btc_correlation", "timeframe", "freshness", "decision")
+        columns = ("star", "symbol", "price", "btcturk_price", "score", "timeframe", "phase", "freshness", "decision")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", selectmode="browse")
         headers = {
-            "star": "★", "symbol": "Coin / Parite", "route": "Keşif yolu", "phase": "A/B/C",
-            "price": "Binance fiyatı", "btcturk_price": "BtcTurk fiyatı", "score": "Puan",
-            "btc_relative": "BTC göreli 1h", "btc_correlation": "BTC corr 1h",
-            "timeframe": "Zaman dilimi", "freshness": "Veri", "decision": "Karar sınıfı",
+            "star": "★", "symbol": "Coin", "price": "Binance USDT", "btcturk_price": "BtcTurk USDT",
+            "score": "Puan", "timeframe": "Süre", "phase": "A/B/C", "freshness": "Veri", "decision": "Son karar",
         }
-        widths = {"star": 30, "symbol": 100, "route": 95, "phase": 48, "price": 90,
-                  "btcturk_price": 90, "score": 55, "btc_relative": 78, "btc_correlation": 75,
-                  "timeframe": 72, "freshness": 95, "decision": 135}
+        widths = {"star": 28, "symbol": 88, "price": 88, "btcturk_price": 88, "score": 48,
+                  "timeframe": 55, "phase": 42, "freshness": 83, "decision": 112}
         for col in columns:
             self.tree.heading(col, text=headers[col])
-            self.tree.column(col, width=widths[col], minwidth=35,
-                             anchor="center" if col in ("star", "phase", "timeframe") else "w",
-                             stretch=col in ("symbol", "route", "decision"))
+            self.tree.column(col, width=widths[col], minwidth=32,
+                             anchor="center" if col in ("star", "phase", "timeframe", "score") else "w",
+                             stretch=col in ("symbol", "decision"))
         yscroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
-        xscroll = ttk.Scrollbar(left, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        self.tree.configure(yscrollcommand=yscroll.set)
         self.tree.grid(row=0, column=0, sticky="nsew")
         yscroll.grid(row=0, column=1, sticky="ns")
         tree_frame.rowconfigure(0, weight=1)
         tree_frame.columnconfigure(0, weight=1)
-        xscroll.pack(fill="x")
         self.tree.bind("<<TreeviewSelect>>", self._selection_changed)
-        self.tree.tag_configure("strong", background="#e5f3e8")
-        self.tree.tag_configure("stale", foreground="#777777")
-        self.tree.tag_configure("phase_a", foreground="#9a5b00")
-        self.tree.tag_configure("phase_b", foreground="#243b6b")
+        self.tree.tag_configure("strong", background="#e1f0e7", foreground="#176b37")
+        self.tree.tag_configure("stale", foreground="#087f8c")
+        self.tree.tag_configure("phase_a", foreground="#c62828")
+        self.tree.tag_configure("phase_b", foreground="#9a7000")
         self.tree.tag_configure("phase_c", foreground="#176b37")
         self.tree.tag_configure("decision_strong", foreground="#176b37")
         self.tree.tag_configure("decision_no_trade", foreground="#c62828")
-        self.tree.tag_configure("decision_wait", foreground="#ad7d00")
+        self.tree.tag_configure("decision_wait", foreground="#9a7000")
         self.tree.tag_configure("decision_watch", foreground="#2463a6")
         self.tree.tag_configure("decision_early", foreground="#8b5fbf")
         self.tree.tag_configure("decision_breakout", foreground="#008b8b")
@@ -571,9 +574,9 @@ class ControlPanel(tk.Tk):
         self.details.pack(side="left", fill="both", expand=True)
         detail_scroll.pack(side="right", fill="y")
 
-        lower = ttk.LabelFrame(self, text="Tanılama / son kayıtlar", padding=6)
-        lower.pack(fill="x", padx=12, pady=(0, 10))
-        self.log_view = tk.Text(lower, height=6, wrap="none", font=("Consolas", 8), state="disabled")
+        lower = ttk.LabelFrame(self, text="Tanılama / son kayıtlar · kısa görünüm", padding=5)
+        lower.pack(fill="x", padx=12, pady=(0, 7))
+        self.log_view = tk.Text(lower, height=3, wrap="none", font=("Consolas", 8), state="disabled")
         self.log_view.pack(fill="x", expand=True)
         ttk.Label(self, text="A/B/C araştırma aşamalarıdır; fiyat senaryoları garanti değildir. Otomatik alım-satım yoktur.",
                   padding=(12, 0, 12, 8)).pack(anchor="w")
@@ -590,7 +593,8 @@ class ControlPanel(tk.Tk):
         for widget_style in ("TFrame", "TLabel", "TLabelframe", "TLabelframe.Label", "TButton"):
             style.configure(widget_style, background=background, foreground=foreground)
         style.configure("Treeview", background=background, fieldbackground=background, foreground=foreground)
-        style.configure("Treeview.Heading", background=background, foreground=foreground)
+        style.configure("Treeview.Heading", background="#e4e9ed", foreground="#334451")
+        style.configure("TScale", troughcolor="#b9e5e3")
         for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
             if widget is not None:
                 widget.configure(background=background, foreground=foreground, insertbackground=foreground)
@@ -620,10 +624,12 @@ class ControlPanel(tk.Tk):
             self._level_previous_price = None
             self._level_crossed.clear()
             self.level_var.set("Seviye takibi: kapalı (aday seçimi değişti)")
+            self.level_button.configure(text="Seviye Takibi: Kapalı")
         self.current_candidate_key = key
         plan = candidate.get("risk_plan") if isinstance(candidate.get("risk_plan"), dict) else {}
         lines = [
             f"Parite: {candidate.get('symbol') or candidate.get('base_asset') or '—'}",
+            f"Keşif yolu: {candidate.get('discovery_route') or candidate.get('discovery_path') or candidate.get('discovery_method') or '—'}",
             f"Aşama: {candidate.get('phase') or candidate.get('last_known_phase') or '—'}  |  Durum: {candidate.get('state') or '—'}",
             f"Zaman dilimi: {candidate.get('phase_timeframe') or candidate.get('timeframe') or '—'}",
             f"Güncel fiyat: {_format_price(candidate.get('latest_price', candidate.get('price')))} USDT",
@@ -665,6 +671,7 @@ class ControlPanel(tk.Tk):
             messagebox.showerror("Başlatılamadı", f"Durdurma işareti kaldırılamadı: {exc}")
             return
         self.engine_started_epoch = time.time()
+        self.start_time_var.set("Son: " + datetime.fromtimestamp(self.engine_started_epoch).strftime("%H:%M:%S"))
         self.stop_requested_epoch = None
         self._last_rendered_stamp = None
         self._previous_strong_keys.clear()
@@ -798,6 +805,7 @@ class ControlPanel(tk.Tk):
             if return_code is not None:
                 self._log_line(f"Motor süreci sona erdi. Çıkış kodu: {return_code}")
                 self.engine = None
+                self.stop_time_var.set("Son: " + datetime.now().strftime("%H:%M:%S"))
                 self.start_button.configure(state="normal")
                 self.stop_button.configure(state="disabled")
                 if not self.close_after_stop:
@@ -958,13 +966,12 @@ class ControlPanel(tk.Tk):
                 phase_tag = f"phase_{str(phase).lower()}" if phase in ("A", "B", "C") else None
                 tags = tuple(tag for tag in (phase_tag, decision_tag) if tag)
             self.tree.insert("", "end", iid=key, values=(
-                "★" if strong else "", symbol, route, phase,
+                "★" if strong else "", symbol,
                 _format_price(row.get("latest_price", row.get("price"))),
                 _format_btcturk_price(self.btcturk_prices, str(row.get("symbol") or row.get("base_asset") or ""), self.btcturk_prices_updated_at),
                 row.get("opportunity_score", row.get("score_0_100", "—")),
-                _format_btc_relative(row), _format_btc_correlation(row),
                 row.get("phase_timeframe") or row.get("timeframe") or "—",
-                freshness, decision,
+                phase, freshness, decision,
             ), tags=tags)
         if selected and selected in normalized:
             self.tree.selection_set(selected)
@@ -1027,7 +1034,7 @@ class ControlPanel(tk.Tk):
     def toggle_alarm(self) -> None:
         self.alarm_enabled = not self.alarm_enabled
         self.panel_settings["alarm_sound_enabled"] = self.alarm_enabled
-        self.alarm_button.configure(text="Alarm Açık" if self.alarm_enabled else "Alarm Kapalı")
+        self.alarm_button.configure(text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı")
         self.alert_var.set("Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
         self._save_panel_settings()
         self._log_line("Güçlü alarm sesi " + ("açıldı." if self.alarm_enabled else "kapatıldı."))
@@ -1128,6 +1135,7 @@ class ControlPanel(tk.Tk):
             self._level_previous_price = None
             self._level_crossed.clear()
             self.level_var.set("Seviye takibi: kapalı")
+            self.level_button.configure(text="Seviye Takibi: Kapalı")
             self._log_line("Seviye takibi kapatıldı.")
             return
         if not self.engine or self.engine.poll() is not None:
@@ -1149,6 +1157,7 @@ class ControlPanel(tk.Tk):
             messagebox.showwarning("Seviye takibi açılamadı", "Güncel fiyat bulunamadı.")
             return
         self._level_watch_key = self._candidate_key(candidate)
+        self.level_button.configure(text="Seviye Takibi: Açık")
         self._level_previous_price = price
         self._level_crossed.clear()
         self.level_var.set(f"Seviye takibi: {self._level_watch_key}")
