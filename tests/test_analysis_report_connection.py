@@ -2,7 +2,7 @@ import gzip
 import json
 import unittest
 
-from analysis_report import build_analysis_report, compress_analysis_report
+from analysis_report import build_analysis_report, compress_analysis_report, gzip_compress_bytes
 
 
 class AnalysisReportTests(unittest.TestCase):
@@ -60,6 +60,13 @@ class AnalysisReportTests(unittest.TestCase):
         decoded = json.loads(gzip.decompress(compressed).decode("utf-8"))
         self.assertEqual(decoded["candidate_count"], 1)
         self.assertLess(len(compressed), len(json.dumps(payload, ensure_ascii=False).encode("utf-8")))
+
+    def test_gzip_compress_bytes_round_trip(self):
+        raw = ("Fırsat-Kontrol Paneli raporu\n" * 100).encode("utf-8")
+        compressed = gzip_compress_bytes(raw)
+        self.assertEqual(gzip.decompress(compressed), raw)
+        self.assertLess(len(compressed), len(raw))
+        self.assertEqual(compressed, gzip_compress_bytes(raw))
 
     def test_invalid_nan_is_not_silently_serialized(self):
         with self.assertRaises(ValueError):
