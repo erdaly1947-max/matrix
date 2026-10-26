@@ -575,6 +575,7 @@ class ControlPanel(tk.Tk):
         self.details.tag_configure("stop", foreground="#c62828")
         self.details.tag_configure("target", foreground="#8053a8")
         self.details.tag_configure("stale", foreground="#087f8c")
+        self.details.tag_configure("current", foreground="#234a74")
         self.details.tag_configure("decision_good", foreground="#176b37")
         self.details.tag_configure("decision_wait", foreground="#9a7000")
         self.details.tag_configure("decision_bad", foreground="#c62828")
@@ -637,8 +638,10 @@ class ControlPanel(tk.Tk):
                 tag = "stop"
             elif line.startswith("Hedef:"):
                 tag = "target"
-            elif line.startswith("Fiyat:") and "CANLI AKIŞ GÜNCEL" not in line:
-                if "Veri: —" not in line and "Veri: GÜNCEL" not in line:
+            elif line.startswith("Fiyat:"):
+                if "CANLI AKIŞ GÜNCEL" in line:
+                    tag = "current"
+                elif "Veri: —" not in line and "Veri: GÜNCEL" not in line:
                     tag = "stale"
             if tag:
                 self.details.tag_add(tag, f"{line_number}.0", f"{line_number}.end")
