@@ -425,8 +425,8 @@ class ControlPanel(tk.Tk):
         self._btcturk_price_stop = threading.Event()
 
         self.status_var = tk.StringVar(value="Motor durduruldu")
-        self.start_time_var = tk.StringVar(value="Son: —")
-        self.stop_time_var = tk.StringVar(value="Son: —")
+        self.start_time_var = tk.StringVar(value="Başlangıç: —")
+        self.stop_time_var = tk.StringVar(value="Bitiş: —")
         self.universe_var = tk.StringVar(value="Tarama evreni: —")
         self.ws_var = tk.StringVar(value="WebSocket: —")
         self.alert_var = tk.StringVar(value="Sesli alarmlar: açık" if self.alarm_enabled else "Sesli alarmlar: kapalı")
@@ -724,7 +724,7 @@ class ControlPanel(tk.Tk):
             messagebox.showerror("Başlatılamadı", f"Durdurma işareti kaldırılamadı: {exc}")
             return
         self.engine_started_epoch = time.time()
-        self.start_time_var.set("Son: " + datetime.fromtimestamp(self.engine_started_epoch).strftime("%H:%M:%S"))
+        self.start_time_var.set("Başlangıç: " + datetime.fromtimestamp(self.engine_started_epoch).strftime("%H:%M:%S"))
         self.stop_requested_epoch = None
         self._last_rendered_stamp = None
         self._previous_strong_keys.clear()
@@ -862,7 +862,7 @@ class ControlPanel(tk.Tk):
             if return_code is not None:
                 self._log_line(f"Motor süreci sona erdi. Çıkış kodu: {return_code}")
                 self.engine = None
-                self.stop_time_var.set("Son: " + datetime.now().strftime("%H:%M:%S"))
+                self.stop_time_var.set("Bitiş: " + datetime.now().strftime("%H:%M:%S"))
                 if self._level_watch_key:
                     self._level_watch_key = None
                     self._level_previous_price = None
