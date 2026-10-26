@@ -7,7 +7,7 @@ Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini i
 - Aday tablosu kısa ve tek bakışta okunabilir tutulur: öncelik, coin, Binance USDT fiyatı, BtcTurk USDT fiyatı, fırsat puanı, zaman dilimi, A/B/C aşaması, veri durumu ve son karar.
 - Binance ile BtcTurk fiyat farkı sütunu eklenmez. Keşif yolu, BTC göreli güç/korelasyon ayrıntıları ve teknik plan seçilen coin bölümünde kalır.
 - Güncel olmayan veya eksik veriye sahip bir aday güçlü fırsatın yeşil vurgusunu alamaz; veri uyarısı ayrı tutulur.
-- Seçilen coin bölümünde koşullu giriş bölgesi, kırılım, zarar durdurma ve en fazla üç teknik hedef öne çıkarılır. Karar ve seviyeler anlamlarına göre sınırlı renklerle ayrılır.
+- Seçilen coin bölümünde koşullu giriş bölgesi, kırılım, zarar durdurma ve en fazla üç teknik hedef öne çıkarılır. Canlı veri lacivert, eski/eksik veri turkuaz; senaryo yeşil, giriş nötr, kırılım sarı, stop kırmızı, hedefler lila ile ayrılır. Karar/puan satırı karar durumuna göre renklendirilir.
 - Güçlü fırsat alarmı üç çift tonlu zil, zarar durdurma geçişi dört daha yüksek perdeli kısa ton kullanır. Alarm testi düğmesi alarm aç/kapat düğmesinin yanındadır.
 - Motor kapanınca seviye takibi otomatik olarak kapatılır; arayüz açık takip yapılıyormuş izlenimi bırakmaz.
 - Arayüz değişiklikleri için başsız CI kontrol testleri eklendi. Bu kontroller motor birim testlerinin ve Windows üzerinde gerçek uygulama açılışının yerine geçmez.
