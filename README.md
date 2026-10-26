@@ -350,3 +350,13 @@ ZIP'e dağıtım için gerekli masaüstü dosyaları ve market_data_relay.json e
 3. Yeni geçidin adresi kaynak market_data_relay.json dosyasına yazılır; GitHub Actions içinde güncel paket adresi ve canlı smoke-test adresi aynı tutulur. Bu iki adresin tutarsız kalmasına izin verilmez.
 4. Kod veya yapılandırma main dalına kaydedildiğinde otomatik test ve paketleme çalıştırmasının sonucu kontrol edilir. ZIP bağlantısı ancak başarılı paketleme ve Release güncellemesi doğrulandıktan sonra güncel kabul edilir.
 5. Render ücretsiz hizmeti kullanım dışı kaldığında uykuya geçebileceği için, taramaya yeniden başlanırken ilk bağlantı gecikmesi ve WebSocket yeniden bağlanma durumu normalleştirilmeden canlı piyasa verisi güncel kabul edilmez.
+
+## ChatGPT bağlantısı — Analiz Raporu
+
+Paneldeki **Analiz Raporu** butonu, motor tanı raporlarından ayrı bir teknik analiz özeti üretir. Aday puanları ve kararları, zaman dilimi bulguları, seçilmiş teknik göstergeler, BTC piyasa bağlamı, veri yeterliliği ve koşullu giriş/stop/hedef planları rapora dahil edilir. Ham mum dizileri ve motor tanılama alanları bu rapora dahil edilmez.
+
+Rapor JSON olarak hazırlanır ve gzip ile sıkıştırılır. Yerel kopya `reports/analiz_raporu_*.json.gz` biçiminde saklanır. Sunucu bağlantısı yapılandırılmamışsa panel yalnızca yerel dosyayı üretir; piyasa taramasını etkilemez. Yapılandırılmışsa rapor HTTPS üzerinden, yetkilendirilmiş yükleme uç noktasına arka planda gönderilir.
+
+Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worker/README.md). Örnek masaüstü ayarı: [chatgpt_baglanti.example.json](chatgpt_baglanti.example.json). Gerçek erişim bilgileri `chatgpt_baglanti.local.json` içinde tutulmalı ve GitHub'a gönderilmemelidir.
+
+**Önemli:** Bu commitler Worker'ı Cloudflare hesabına dağıtmaz ve KV namespace/secret oluşturmaz. Bulut tarafı kurulum ve gerçek ChatGPT okuma testi ayrıca tamamlanmalıdır. `GET /latest` rapor uç noktası salt okunurdur ve bağlantıya sahip herkes tarafından okunabilir; bu yüzden hassas kişisel veri içermemelidir. ChatGPT sohbetine otomatik mesaj gönderilmez; rapor URL'sinden okuma ayrıca istenmelidir.
