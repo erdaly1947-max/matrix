@@ -1,0 +1,5 @@
+{
+  "upload_url": "https://REPLACE_WITH_WORKER_HOST/api/report",
+  "upload_token": "SET_THE_SAME_SECRET_AS_CLOUDFLARE_UPLOAD_TOKEN",
+  "read_url": "https://REPLACE_WITH_WORKER_HOST/latest"
+}
