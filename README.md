@@ -1,5 +1,22 @@
 # Fırsat-Kontrol Paneli — başlangıç kaynak kodu
 
+## 26 Ekim 2026 — Sürüm 00 masaüstü panel düzenlemesi
+
+Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini iyileştirir; Binance analiz motorunun puanlama, aday değerlendirme ve güçlü fırsat koşullarını değiştirmez.
+
+- Aday tablosu kısa ve tek bakışta okunabilir tutulur: öncelik, coin, Binance USDT fiyatı, BtcTurk USDT fiyatı, fırsat puanı, zaman dilimi, A/B/C aşaması, veri durumu ve son karar.
+- Binance ile BtcTurk fiyat farkı sütunu eklenmez. Keşif yolu, BTC göreli güç/korelasyon ayrıntıları ve teknik plan seçilen coin bölümünde kalır.
+- Güncel olmayan veya eksik veriye sahip bir aday güçlü fırsatın yeşil vurgusunu alamaz; veri uyarısı ayrı tutulur.
+- Seçilen coin bölümünde koşullu giriş bölgesi, kırılım, zarar durdurma ve en fazla üç teknik hedef öne çıkarılır. Karar ve seviyeler anlamlarına göre sınırlı renklerle ayrılır.
+- Güçlü fırsat alarmı üç çift tonlu zil, zarar durdurma geçişi dört daha yüksek perdeli kısa ton kullanır. Alarm testi düğmesi alarm aç/kapat düğmesinin yanındadır.
+- Motor kapanınca seviye takibi otomatik olarak kapatılır; arayüz açık takip yapılıyormuş izlenimi bırakmaz.
+- Arayüz değişiklikleri için başsız CI kontrol testleri eklendi. Bu kontroller motor birim testlerinin ve Windows üzerinde gerçek uygulama açılışının yerine geçmez.
+
+### Dağıtım paketi kuralı
+
+Her `main` gönderiminde derleme, birim testleri, bulut Worker testleri ve canlı piyasa geçidi doğrulamaları çalışır. Dağıtım ZIP'i, SHA-256 dosyası, kalıcı Release varlıkları ve Actions artefaktı yalnızca `workflow_dispatch` ile veya commit mesajında açıkça `[package]` bulunduğunda oluşturulur. Böylece ara kod gönderimleri dağıtım paketini güncellemez.
+
+
 Bu depo, İki Radarlı Spot Trade / Fırsat-Kontrol Paneli projesinin başlangıç kaynak kodudur. Var olan motor ve analiz modülleri korunmuş; eksik iki dosya eldeki motor sözleşmeleri, ayarlar ve kullanım kılavuzu temel alınarak yeniden oluşturulmuştur.
 
 ## 26 Ekim 2026 — Bulut rapor aktarımı ve bağlantı testinin devir notu
