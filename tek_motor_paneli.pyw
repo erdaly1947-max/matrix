@@ -1106,7 +1106,7 @@ class ControlPanel(tk.Tk):
             key = self._candidate_key(row)
             live.add(key)
             if self._alarm_primed and key not in self._previous_strong_keys and self.alarm_enabled and self.alarm_volume > 0:
-                self._play_alert("opportunity")
+                self._play_alert()
                 LOGGER.info("Yeni güçlü fırsat alarmı: %s (%s)", key, phase)
         self._previous_strong_keys = live
         self._alarm_primed = True
