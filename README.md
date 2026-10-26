@@ -14,7 +14,7 @@ Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini i
 
 ### Dağıtım paketi kuralı
 
-Her `main` gönderiminde derleme, birim testleri, bulut Worker testleri ve canlı piyasa geçidi doğrulamaları çalışır. Dağıtım ZIP'i, SHA-256 dosyası, kalıcı Release varlıkları ve Actions artefaktı yalnızca `workflow_dispatch` ile veya commit mesajında açıkça `[package]` bulunduğunda oluşturulur. Böylece ara kod gönderimleri dağıtım paketini güncellemez.
+Her `main` gönderiminde derleme, birim testleri, bulut Worker testleri ve canlı piyasa geçidi doğrulamaları çalışır. Dağıtım ZIP'i, SHA-256 dosyası, kalıcı Release varlıkları ve Actions artefaktı yalnızca `workflow_dispatch` ile veya commit mesajında açıkça `[package]` bulunduğunda oluşturulur. Böylece ara kod gönderimleri dağıtım paketini güncellemez. `[package]` işareti yalnızca son doğrulama ve dağıtım için kullanılmalıdır; testler başarısızsa paketleme adımları çalışmaz.
 
 
 Bu depo, İki Radarlı Spot Trade / Fırsat-Kontrol Paneli projesinin başlangıç kaynak kodudur. Var olan motor ve analiz modülleri korunmuş; eksik iki dosya eldeki motor sözleşmeleri, ayarlar ve kullanım kılavuzu temel alınarak yeniden oluşturulmuştur.
