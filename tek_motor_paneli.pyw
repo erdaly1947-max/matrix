@@ -27,6 +27,13 @@ import zipfile
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from analysis_report import (
+    build_analysis_report,
+    compress_analysis_report,
+    load_connection_config,
+    upload_analysis_report,
+)
+
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LOG_DIR = ROOT / "logs"
@@ -438,6 +445,7 @@ class ControlPanel(tk.Tk):
         self.update_list_button = ttk.Button(controls, text="Parite listesini güncelle", command=self.update_universe)
         self.update_list_button.pack(side="left", padx=6)
         ttk.Button(controls, text="Rapor Oluştur", command=self.create_report).pack(side="left", padx=6)
+        ttk.Button(controls, text="Analiz Raporu", command=self.create_analysis_report).pack(side="left", padx=6)
         ttk.Button(controls, text="Rapor + Devir ZIP", command=self.create_handoff_zip).pack(side="left", padx=6)
         ttk.Button(controls, text="Kayıtları Aç", command=self.open_logs).pack(side="left", padx=6)
         ttk.Button(controls, text="Seviye Takibini Aç/Kapat", command=self.toggle_level_watch).pack(side="left", padx=6)
@@ -1216,6 +1224,74 @@ class ControlPanel(tk.Tk):
         except Exception as exc:
             LOGGER.exception("Rapor oluşturulamadı")
             messagebox.showerror("Rapor oluşturulamadı", f"{type(exc).__name__}: {exc}")
+
+    def create_analysis_report(self) -> None:
+        """Create a compact TA-only report and upload it asynchronously when configured."""
+        try:
+            payload = build_analysis_report(self.current_state)
+            compressed = compress_analysis_report(payload)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            report_path = REPORT_DIR / f"analiz_raporu_{stamp}.json.gz"
+            temporary = report_path.with_name(f".{report_path.name}.{os.getpid()}.tmp")
+            try:
+                temporary.write_bytes(compressed)
+                os.replace(temporary, report_path)
+            finally:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError:
+                    pass
+
+            config = load_connection_config(ROOT)
+            if not config:
+                messagebox.showinfo(
+                    "Analiz raporu hazır",
+                    f"Analiz raporu sıkıştırılarak kaydedildi:\n{report_path}\n\n"
+                    "Sunucuya gönderim için kök klasörde chatgpt_baglanti.local.json "
+                    "dosyası yapılandırılmalıdır. Örnek: chatgpt_baglanti.example.json",
+                )
+                self._log_line(f"Analiz raporu oluşturuldu; bağlantı yapılandırılmamış: {report_path.name}")
+                return
+
+            self.status_var.set("Analiz raporu sunucuya gönderiliyor…")
+            self._log_line(f"Analiz raporu gzip olarak gönderiliyor: {report_path.name}")
+
+            def _upload() -> None:
+                try:
+                    result = upload_analysis_report(config, compressed)
+                    error = None
+                except Exception as exc:
+                    result = None
+                    error = f"{type(exc).__name__}: {exc}"
+                try:
+                    self.after(0, lambda: self._analysis_upload_finished(report_path, result, error))
+                except tk.TclError:
+                    pass
+
+            threading.Thread(target=_upload, name="analysis-report-upload", daemon=True).start()
+        except Exception as exc:
+            LOGGER.exception("Analiz raporu oluşturulamadı")
+            messagebox.showerror("Analiz raporu oluşturulamadı", f"{type(exc).__name__}: {exc}")
+
+    def _analysis_upload_finished(
+        self, report_path: Path, result: dict[str, Any] | None, error: str | None
+    ) -> None:
+        if error:
+            self._log_line(f"Analiz raporu gönderilemedi: {error}")
+            messagebox.showwarning(
+                "Analiz raporu yerel olarak kaydedildi",
+                f"Sunucuya gönderim başarısız oldu. Radar çalışmaya devam ediyor.\n\n"
+                f"Dosya: {report_path}\nHata: {error}",
+            )
+            return
+        read_url = (result or {}).get("read_url") or "Sunucu yanıtında okuma bağlantısı yok."
+        self._log_line(f"Analiz raporu sunucuya gönderildi: {report_path.name}")
+        messagebox.showinfo(
+            "Analiz raporu gönderildi",
+            f"Güncel analiz raporu sunucuya yüklendi.\n\n"
+            f"ChatGPT'nin okuyabileceği bağlantı:\n{read_url}\n\n"
+            "ChatGPT sohbetinde bu bağlantıdan en güncel raporu okumasını isteyebilirsiniz.",
+        )
 
     def create_handoff_zip(self) -> None:
         try:
