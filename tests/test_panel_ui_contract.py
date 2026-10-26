@@ -90,7 +90,7 @@ class PanelUIContractTests(unittest.TestCase):
         ):
             step_line = f"- name: {step}"
             self.assertIn(step_line, workflow)
-            after_step = workflow.split(step_line, 1)[1].split("\\n", 3)
+            after_step = workflow.split(step_line, 1)[1].splitlines()
             self.assertTrue(any(condition in line for line in after_step[:2]), step)
 
 
