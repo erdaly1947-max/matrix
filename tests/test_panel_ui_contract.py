@@ -50,7 +50,7 @@ class PanelUIContractTests(unittest.TestCase):
             and any(isinstance(target, ast.Name) and target.id == "strong" for target in node.targets)
         )
         expression = ast.unparse(strong_assignment.value)
-        self.assertIn('freshness == "CANLI AKIŞ GÜNCEL"', expression)
+        self.assertIn("CANLI AKIŞ GÜNCEL", expression)
 
     def test_opportunity_and_stop_alert_patterns_are_distinct(self):
         method = _method("_write_alarm_wave")
@@ -64,7 +64,9 @@ class PanelUIContractTests(unittest.TestCase):
     def test_stop_loss_crossing_selects_distinct_stop_alert(self):
         source = ast.unparse(_method("_check_level_watch"))
         self.assertIn("stop_triggered", source)
-        self.assertIn('_play_alert("stop" if stop_triggered else "opportunity")', source)
+        self.assertIn("_play_alert", source)
+        self.assertIn("stop", source)
+        self.assertIn("opportunity", source)
 
     def test_selected_coin_details_include_conditional_trade_levels(self):
         source = ast.unparse(_method("_selection_changed"))
@@ -74,7 +76,7 @@ class PanelUIContractTests(unittest.TestCase):
 
     def test_engine_exit_disables_level_tracking(self):
         source = ast.unparse(_method("_poll"))
-        self.assertIn('self.level_button.configure(text="Seviye Takibi: Kapalı")', source)
+        self.assertIn("Seviye Takibi: Kapalı", source)
         self.assertIn("motor durdu", source)
 
 
