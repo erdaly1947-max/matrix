@@ -444,11 +444,20 @@ class ControlPanel(tk.Tk):
         self.stop_button.pack(side="left", padx=6)
         self.update_list_button = ttk.Button(controls, text="Parite listesini güncelle", command=self.update_universe)
         self.update_list_button.pack(side="left", padx=6)
-        ttk.Button(controls, text="Rapor Oluştur", command=self.create_report).pack(side="left", padx=6)
-        ttk.Button(controls, text="Analiz Raporu", command=self.create_analysis_report).pack(side="left", padx=6)
-        ttk.Button(controls, text="Rapor + Devir ZIP", command=self.create_handoff_zip).pack(side="left", padx=6)
         ttk.Button(controls, text="Kayıtları Aç", command=self.open_logs).pack(side="left", padx=6)
         ttk.Button(controls, text="Seviye Takibini Aç/Kapat", command=self.toggle_level_watch).pack(side="left", padx=6)
+
+        report_controls = ttk.Frame(self, padding=(12, 0, 12, 8))
+        report_controls.pack(fill="x")
+        ttk.Button(
+            report_controls, text="Günlük Rapor Oluştur", command=self.create_report,
+        ).pack(side="left", padx=(0, 6))
+        ttk.Button(
+            report_controls, text="Analiz Raporu Gönder", command=self.create_analysis_report,
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            report_controls, text="Sorun Giderme ve Devir Paketi (ZIP)", command=self.create_handoff_zip,
+        ).pack(side="left", padx=6)
 
         sound = ttk.Frame(controls)
         sound.pack(side="right")
@@ -1354,7 +1363,7 @@ class ControlPanel(tk.Tk):
             ]))
             self.update_idletasks()
             self._open_select(zip_path)
-            self._log_line(f"Rapor + Devir ZIP oluşturuldu: {zip_path.name}")
+            self._log_line(f"Sorun Giderme ve Devir Paketi (ZIP) oluşturuldu: {zip_path.name}")
             messagebox.showinfo("Devir paketi hazır", f"ZIP oluşturuldu ve bütünlük denetimi geçti:\n{zip_path}\n\nPanoya kısa devir özeti kopyalandı.")
         except Exception as exc:
             LOGGER.exception("Devir ZIP oluşturulamadı")

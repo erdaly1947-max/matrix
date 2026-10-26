@@ -360,3 +360,12 @@ Rapor JSON olarak hazırlanır ve gzip ile sıkıştırılır. Yerel kopya `repo
 Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worker/README.md). Örnek masaüstü ayarı: [chatgpt_baglanti.example.json](chatgpt_baglanti.example.json). Gerçek erişim bilgileri `chatgpt_baglanti.local.json` içinde tutulmalı ve GitHub'a gönderilmemelidir.
 
 **Önemli:** Bu commitler Worker'ı Cloudflare hesabına dağıtmaz ve KV namespace/secret oluşturmaz. Bulut tarafı kurulum ve gerçek ChatGPT okuma testi ayrıca tamamlanmalıdır. `GET /latest` rapor uç noktası salt okunurdur ve bağlantıya sahip herkes tarafından okunabilir; bu yüzden hassas kişisel veri içermemelidir. ChatGPT sohbetine otomatik mesaj gönderilmez; rapor URL'sinden okuma ayrıca istenmelidir.
+
+
+## Üç raporlama düğmesi
+
+- **Günlük Rapor Oluştur:** Programın genel durumunu ve çalışma özetini yerel rapor dosyalarına kaydeder.
+- **Sorun Giderme ve Devir Paketi (ZIP):** Sorun incelemek veya çalışmayı başka bir sohbet odasında sürdürmek için raporları, tanılama özetini, sınırlı günlük kayıtlarını ve bütünlük listesini tek ZIP dosyasında toplar.
+- **Analiz Raporu Gönder:** Radarın coin analiz sonuçlarını sıkıştırılmış rapor olarak yerel dosyaya kaydeder ve bağlantı ayarlanmışsa sunucuya gönderir. Bu rapor motor tanılamasını veya günlük kayıtlarını içermez.
+
+Bu üç düğme farklı amaçlara hizmet eder; birbirlerinin yerine geçmez.
