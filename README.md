@@ -12,6 +12,8 @@ Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini i
 - Eylem/rapor düğmeleri kırmızı, seviye takibi ve alarm/ses test düğmeleri turkuaz, oval kapsül biçimindedir. “Haritayı Güncelle” yerel USDT parite evrenini yeniler. Ses ve panel ışığı kontrolleri rapor düğmelerinin sağında bulunur; panel ışığı yüzde 0–100 aralığındadır.
 - Panelin nötr arka planı koyu gri, standart metinleri beyazdır. Seçilen coin ve kanıtlar bölümü Segoe UI yazı tipinde bir punto büyütülmüştür; teknik karar vurguları canlı renklerini korur.
 - Motor kapanınca seviye takibi otomatik olarak kapatılır; arayüz açık takip yapılıyormuş izlenimi bırakmaz.
+- Yıldız, coin adının önünde gösterilir; aday tablosu ve seçilen coin alanında ince yatay/dikey kaydırma çubukları bulunur. Düğme adları sade Türkçedir.
+- Kısa ve tüm düğmeleri açıklayan kullanım kılavuzu `KULLANIM_KILAVUZU.txt` dosyasındadır ve dağıtım ZIP'ine eklenir.
 - Arayüz değişiklikleri için başsız CI kontrol testleri eklendi. Bu kontroller motor birim testlerinin ve Windows üzerinde gerçek uygulama açılışının yerine geçmez.
 
 ### Dağıtım paketi kuralı

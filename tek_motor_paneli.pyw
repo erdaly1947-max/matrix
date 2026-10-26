@@ -540,6 +540,10 @@ class ControlPanel(tk.Tk):
         style.configure("BTC.TLabel", font=("Segoe UI", 9, "bold"))
         style.configure("Treeview", rowheight=27, font=("Segoe UI", 9), borderwidth=0)
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), padding=(4, 5))
+        style.configure("Slim.Vertical.TScrollbar", arrowsize=8, width=8, background="#666666",
+                        troughcolor="#444444", bordercolor="#444444", arrowcolor="#ffffff")
+        style.configure("Slim.Horizontal.TScrollbar", arrowsize=8, width=8, background="#666666",
+                        troughcolor="#444444", bordercolor="#444444", arrowcolor="#ffffff")
         style.configure("TScale", troughcolor="#40c9c2")
         style.map("Treeview", background=[("selected", "#454b52")],
                   foreground=[("selected", "#ffffff")])
@@ -569,12 +573,12 @@ class ControlPanel(tk.Tk):
         controls.pack(fill="x")
         start_group = ttk.Frame(controls)
         start_group.pack(side="left", padx=(0, 5))
-        self.start_button = PillButton(start_group, text="Başlat", command=self.start_engine, role="action", width=10)
+        self.start_button = PillButton(start_group, text="Motoru Başlat", command=self.start_engine, role="action", width=10)
         self.start_button.pack(fill="x")
         ttk.Label(start_group, textvariable=self.start_time_var, font=("Segoe UI", 8)).pack()
         stop_group = ttk.Frame(controls)
         stop_group.pack(side="left", padx=5)
-        self.stop_button = PillButton(stop_group, text="Durdur", command=self.stop_engine, role="action", state="disabled", width=10)
+        self.stop_button = PillButton(stop_group, text="Motoru Durdur", command=self.stop_engine, role="action", state="disabled", width=10)
         self.stop_button.pack(fill="x")
         ttk.Label(stop_group, textvariable=self.stop_time_var, font=("Segoe UI", 8)).pack()
         self.update_list_button = PillButton(controls, text="Haritayı Güncelle", command=self.update_universe, role="action")
@@ -588,13 +592,13 @@ class ControlPanel(tk.Tk):
         ttk.Label(report_controls, text="Rapor / Bulut:", style="BTC.TLabel").pack(side="left", padx=(0, 8))
         PillButton(report_controls, text="Günlük Rapor", command=self.create_report, role="action").pack(side="left", padx=(0, 6))
         PillButton(report_controls, text="Analiz Raporu", command=self.create_analysis_report, role="action").pack(side="left", padx=6)
-        PillButton(report_controls, text="Sorun Paketi (ZIP)", command=self.create_handoff_zip, role="action").pack(side="left", padx=6)
+        PillButton(report_controls, text="Sorun Giderme Paketi (ZIP)", command=self.create_handoff_zip, role="action").pack(side="left", padx=6)
 
         sound = ttk.Frame(report_controls)
         sound.pack(side="right")
         sound_controls = ttk.Frame(sound)
         sound_controls.pack(anchor="e")
-        self.alarm_button = PillButton(sound_controls, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm, role="accent")
+        self.alarm_button = PillButton(sound_controls, text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı", command=self.toggle_alarm, role="accent")
         self.alarm_button.pack(side="left", padx=6)
         PillButton(sound_controls, text="Ses Testi", command=self._test_sound, role="accent").pack(side="left", padx=5)
         ttk.Label(sound_controls, text="Ses").pack(side="left")
@@ -628,23 +632,25 @@ class ControlPanel(tk.Tk):
 
         tree_frame = ttk.Frame(left)
         tree_frame.pack(fill="both", expand=True)
-        columns = ("star", "symbol", "price", "btcturk_price", "score", "timeframe", "phase", "freshness", "decision")
+        columns = ("symbol", "price", "btcturk_price", "score", "timeframe", "phase", "freshness", "decision")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", selectmode="browse")
         headers = {
-            "star": "★", "symbol": "Coin", "price": "Binance USDT", "btcturk_price": "BtcTurk USDT",
+            "symbol": "Coin", "price": "Binance USDT", "btcturk_price": "BtcTurk USDT",
             "score": "Puan", "timeframe": "Süre", "phase": "A/B/C", "freshness": "Veri", "decision": "Son karar",
         }
-        widths = {"star": 24, "symbol": 76, "price": 82, "btcturk_price": 82, "score": 44,
+        widths = {"symbol": 96, "price": 82, "btcturk_price": 82, "score": 48,
                   "timeframe": 48, "phase": 38, "freshness": 78, "decision": 100}
         for col in columns:
             self.tree.heading(col, text=headers[col])
             self.tree.column(col, width=widths[col], minwidth=32,
-                             anchor="center" if col in ("star", "phase", "timeframe", "score") else "w",
+                             anchor="center" if col in ("price", "btcturk_price", "phase", "timeframe", "score", "freshness") else "w",
                              stretch=col in ("symbol", "decision"))
-        yscroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=yscroll.set)
+        yscroll = ttk.Scrollbar(tree_frame, orient="vertical", style="Slim.Vertical.TScrollbar", command=self.tree.yview)
+        xscroll = ttk.Scrollbar(tree_frame, orient="horizontal", style="Slim.Horizontal.TScrollbar", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
         self.tree.grid(row=0, column=0, sticky="nsew")
         yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
         tree_frame.rowconfigure(0, weight=1)
         tree_frame.columnconfigure(0, weight=1)
         self.tree.bind("<<TreeviewSelect>>", self._selection_changed)
@@ -661,7 +667,9 @@ class ControlPanel(tk.Tk):
         self.tree.tag_configure("decision_breakout", foreground="#40e5ec")
 
         ttk.Label(right, text="Seçilen coin ve kanıtlar", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
-        self.details = tk.Text(right, wrap="word", font=("Segoe UI", 10), state="disabled", height=22)
+        detail_frame = ttk.Frame(right)
+        detail_frame.pack(fill="both", expand=True)
+        self.details = tk.Text(detail_frame, wrap="none", font=("Segoe UI", 10), state="disabled", height=22)
         self.details.tag_configure("scenario", foreground="#8df0ad")
         self.details.tag_configure("entry", foreground="#ffffff")
         self.details.tag_configure("breakout", foreground="#ffd166")
@@ -674,10 +682,19 @@ class ControlPanel(tk.Tk):
         self.details.tag_configure("decision_bad", foreground="#ff7777")
         self.details.tag_configure("decision_early", foreground="#d8b4fe")
         self.details.tag_configure("decision_watch", foreground="#8ab4f8")
-        detail_scroll = ttk.Scrollbar(right, orient="vertical", command=self.details.yview)
-        self.details.configure(yscrollcommand=detail_scroll.set)
-        self.details.pack(side="left", fill="both", expand=True)
-        detail_scroll.pack(side="right", fill="y")
+        detail_scroll = ttk.Scrollbar(detail_frame, orient="vertical", style="Slim.Vertical.TScrollbar", command=self.details.yview)
+        detail_scroll_top = ttk.Scrollbar(detail_frame, orient="horizontal", style="Slim.Horizontal.TScrollbar", command=self.details.xview)
+        detail_scroll_bottom = ttk.Scrollbar(detail_frame, orient="horizontal", style="Slim.Horizontal.TScrollbar", command=self.details.xview)
+        self.details.configure(
+            yscrollcommand=detail_scroll.set,
+            xscrollcommand=lambda first, last: (detail_scroll_top.set(first, last), detail_scroll_bottom.set(first, last)),
+        )
+        detail_scroll_top.grid(row=0, column=0, sticky="ew")
+        self.details.grid(row=1, column=0, sticky="nsew")
+        detail_scroll.grid(row=1, column=1, sticky="ns")
+        detail_scroll_bottom.grid(row=2, column=0, sticky="ew")
+        detail_frame.rowconfigure(1, weight=1)
+        detail_frame.columnconfigure(0, weight=1)
 
         lower = ttk.LabelFrame(self, text="Tanılama / son kayıtlar · kısa görünüm", padding=5)
         lower.pack(fill="x", padx=12, pady=(0, 7))
@@ -701,6 +718,10 @@ class ControlPanel(tk.Tk):
                   background=[("active", "#606060")])
         style.configure("Treeview", background=background, fieldbackground=background, foreground=foreground)
         style.configure("Treeview.Heading", background="#505050", foreground="#ffffff")
+        style.configure("Slim.Vertical.TScrollbar", arrowsize=8, width=8, background="#666666",
+                        troughcolor=background, bordercolor=background, arrowcolor="#ffffff")
+        style.configure("Slim.Horizontal.TScrollbar", arrowsize=8, width=8, background="#666666",
+                        troughcolor=background, bordercolor=background, arrowcolor="#ffffff")
         style.map("Treeview", background=[("selected", "#454b52")],
                   foreground=[("selected", "#ffffff")])
         style.configure("TScale", troughcolor="#40c9c2")
@@ -1084,7 +1105,7 @@ class ControlPanel(tk.Tk):
         total = state.get("websocket_total_shards", "—")
         ws_age = state.get("websocket_last_message_age_seconds")
         self.ws_var.set(f"WebSocket: {connected}/{total} parça | son veri: {_format_age(ws_age)}")
-        self.alert_var.set("Sesli alarmlar: açık" if self.alarm_enabled else "Sesli alarmlar: kapalı")
+        self.alert_var.set("Sesli bildirim: açık" if self.alarm_enabled else "Sesli bildirim: kapalı")
         self.btc_context_var.set(_format_btc_context_summary(state))
 
         rows = state.get("candidates")
@@ -1150,7 +1171,7 @@ class ControlPanel(tk.Tk):
                 phase_tag = f"phase_{str(phase).lower()}" if phase in ("A", "B", "C") else None
                 tags = tuple(tag for tag in (phase_tag, decision_tag) if tag)
             self.tree.insert("", "end", iid=key, values=(
-                "★" if strong else "", symbol,
+                ("★ " if strong else "") + str(symbol),
                 _format_price(row.get("latest_price", row.get("price"))),
                 _format_btcturk_price(self.btcturk_prices, str(row.get("symbol") or row.get("base_asset") or ""), self.btcturk_prices_updated_at),
                 row.get("opportunity_score", row.get("score_0_100", "—")),
@@ -1218,10 +1239,10 @@ class ControlPanel(tk.Tk):
     def toggle_alarm(self) -> None:
         self.alarm_enabled = not self.alarm_enabled
         self.panel_settings["alarm_sound_enabled"] = self.alarm_enabled
-        self.alarm_button.configure(text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı")
-        self.alert_var.set("Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
+        self.alarm_button.configure(text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı")
+        self.alert_var.set("Sesli bildirim: açık" if self.alarm_enabled else "Sesli bildirim: kapalı")
         self._save_panel_settings()
-        self._log_line("Güçlü alarm sesi " + ("açıldı." if self.alarm_enabled else "kapatıldı."))
+        self._log_line("Sesli bildirim " + ("açıldı." if self.alarm_enabled else "kapatıldı."))
 
     def _volume_moved(self, _value: str | None = None) -> None:
         try:

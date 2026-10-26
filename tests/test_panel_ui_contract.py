@@ -38,7 +38,7 @@ class PanelUIContractTests(unittest.TestCase):
         values = tuple(ast.literal_eval(item) for item in columns.elts)
         self.assertEqual(
             values,
-            ("star", "symbol", "price", "btcturk_price", "score", "timeframe", "phase", "freshness", "decision"),
+            ("symbol", "price", "btcturk_price", "score", "timeframe", "phase", "freshness", "decision"),
         )
         self.assertFalse(any("diff" in value.lower() for value in values))
 
@@ -87,7 +87,7 @@ class PanelUIContractTests(unittest.TestCase):
         self.assertIn('gray = round(68 + value * 49 / 100)', source)
 
     def test_sound_test_is_not_mislabelled_as_opportunity_test(self):
-        source = ast.unparse(_method("_build_ui"))
+        source = PANEL_SOURCE
         self.assertIn('text="Ses Testi"', source)
         self.assertNotIn("Fırsat Testi", PANEL_SOURCE)
         self.assertIn("def _test_sound", PANEL_SOURCE)
@@ -96,11 +96,18 @@ class PanelUIContractTests(unittest.TestCase):
         self.assertIn("class PillButton(tk.Canvas)", PANEL_SOURCE)
         self.assertIn('base, hover = "#008f95", "#00767b"', PANEL_SOURCE)
         self.assertIn('base, hover = "#c62828", "#a91f1f"', PANEL_SOURCE)
-        source = ast.unparse(_method("_build_ui"))
+        source = PANEL_SOURCE
         self.assertIn("PillButton", source)
         self.assertIn('text="Haritayı Güncelle"', source)
         self.assertIn('sound = ttk.Frame(report_controls)', source)
         self.assertIn('text="Panel ışığı"', source)
+        self.assertIn('text="Motoru Başlat"', source)
+        self.assertIn('text="Motoru Durdur"', source)
+        self.assertIn('text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı"', source)
+        self.assertIn('text="Sorun Giderme Paketi (ZIP)"', source)
+        self.assertIn('orient="horizontal", style="Slim.Horizontal.TScrollbar"', source)
+        self.assertIn('wrap="none", font=("Segoe UI", 10)', source)
+        self.assertIn('("★ " if strong else "") + str(symbol)', PANEL_SOURCE)
 
     def test_distribution_packaging_requires_explicit_marker(self):
         workflow_path = ROOT / ".github" / "workflows" / "validate-and-package.yml"
