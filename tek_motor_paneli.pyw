@@ -505,6 +505,7 @@ class ControlPanel(tk.Tk):
         sound.pack(side="right")
         self.alarm_button = ttk.Button(sound, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm)
         self.alarm_button.pack(side="left", padx=6)
+        ttk.Button(sound, text="Fırsat Testi", command=self._test_sound).pack(side="left", padx=5)
         ttk.Label(sound, text="Ses").pack(side="left")
         self.volume_scale = ttk.Scale(sound, from_=0, to=100, orient="horizontal", length=110,
                                       variable=self.volume_var, command=self._volume_moved)
@@ -513,7 +514,6 @@ class ControlPanel(tk.Tk):
         self.volume_scale.bind("<KeyRelease>", self._save_volume)
         self.volume_label = ttk.Label(sound, text=f"{self.alarm_volume}%", width=4)
         self.volume_label.pack(side="left", padx=(4, 0))
-        ttk.Button(sound, text="Fırsat Testi", command=self._test_sound).pack(side="left", padx=5)
         ttk.Label(sound, text="Panel ışığı").pack(side="left", padx=(5, 0))
         self.brightness_scale = ttk.Scale(
             sound, from_=60, to=100, orient="horizontal", length=78,
