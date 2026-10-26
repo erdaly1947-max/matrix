@@ -2,6 +2,42 @@
 
 Bu depo, İki Radarlı Spot Trade / Fırsat-Kontrol Paneli projesinin başlangıç kaynak kodudur. Var olan motor ve analiz modülleri korunmuş; eksik iki dosya eldeki motor sözleşmeleri, ayarlar ve kullanım kılavuzu temel alınarak yeniden oluşturulmuştur.
 
+## 26 Ekim 2026 — Bulut rapor aktarımı ve bağlantı testinin devir notu
+
+### Sonuç: Raporları buluta gönderme ve ChatGPT'nin okuyabilmesi doğrulandı
+
+Bu işin temel amacı, Fırsat-Kontrol Paneli'nin raporlarını buluta göndermek ve ChatGPT'nin bu raporları kullanıcı her seferinde yerel dosya eklemek zorunda kalmadan okuyabilmesini sağlamaktı. **26 Ekim 2026 tarihinde bu amaç bulut aktarımı açısından başarıyla test edildi.** Kullanıcı programı çalıştırarak raporları yeniden gönderdi; Cloudflare KV kayıt zamanları ve içerik özetleri yenilendi. Üç JSON raporunun içeriği doğrudan buluttaki okuma uç noktalarından okunabildi ve sorun giderme ZIP'inin yükleme kaydı da doğrulandı.
+
+Kullanılan okuma adresleri:
+- Analiz raporu JSON: `/latest`
+- Günlük rapor JSON: `/daily`
+- Sorun giderme raporu JSON: `/troubleshooting`
+- Sorun giderme ZIP: `/troubleshooting.zip`
+
+Temel Worker adresi: `https://firsat-kontrol-analysis-report.erdaly1947.workers.dev`. Rapor gönderme uç noktaları token doğrulaması ister; okuma uç noktaları şu an URL'yi bilenler tarafından erişilebilir. Bu nedenle raporlara gizli anahtar veya hassas erişim bilgisi konulmamalıdır.
+
+### Kod durumu: Bu işlevler Sürüm 00 program koduna eklendi
+
+Bu yalnızca tasarım veya plan notu değildir; gerekli uygulama kodu GitHub deposundaki Sürüm 00 kaynaklarına işlendi ve Worker'a dağıtıldı:
+- `analysis_report.py): analiz, günlük ve okunabilir sorun giderme JSON raporlarını gönderen ortak yükleme işlevleri ile sorun giderme ZIP yükleme işlevi.
+- `tek_motor_paneli.pyw): panelde analiz raporu gönderme, günlük rapor oluşturup gönderme ve sorun giderme paketi gönderme işlemleri. Sorun giderme düğmesi, okunabilir sorun giderme JSON'u ile ZIP paketini birlikte gönderir; bu nedenle bunun için ayrı dördüncü düğme gerekmez.
+- `cloudflare/report-worker/src/index.js): dört tür yüklemeyi Cloudflare KV'ye kaydeden ve raporları okunabilir adreslerden sunan Worker rotaları.
+- `cloudflare/report-worker/test/index.test.js) ve README belgeleri: yükleme/okuma yolları için testler ve teknik kayıt.
+
+GitHub Actions doğrulama/paketleme çalıştırması başarılı tamamlandı; güncel Sürüm 00 ZIP'i ve SHA-256 dosyası Release'e yayımlandı. Bu işlevleri motor veya arayüz çalışmasında yeniden tasarlamak gerekmiyor; mevcut kod üzerinden hata çıkarsa o hata ayrıca incelenmeli.
+
+### Ev interneti üzerinden bağlantı: henüz kesin olarak doğrulanmadı
+
+Bulut aktarımının ve ChatGPT tarafından okunabilmesinin çalıştığı doğrulandı. Ancak **ev interneti bağlantısındaki ilk sorun ayrı bir konu olarak açık kaldı**. Önceki tanılamada Python üzerinden Worker'a erişim sağlanabiliyordu; analiz raporunun başarılı yüklemesi sırasında bilgisayarın telefon internet paylaşımına bağlı olduğu belirtildi. Ev Wi-Fi bağlantısı da daha sonra “bağlı, internet yok” olarak görünüyordu. Bu nedenle test, bulut aktarım kodunun çalıştığını kanıtlar; aynı işlemin ev interneti üzerinden sorunsuz çalıştığını tek başına kanıtlamaz.
+
+Ev ağındaki sorun daha sonra ayrıca ele alınacaksa, Worker'ın `/health` adresine erişim, Windows ağ bağlantısı ve Python HTTPS/TLS sonucu ev bağlantısında yeniden kontrol edilmelidir. Programın proxy veya güvenlik ayarlarını kendiliğinden değiştirmemesi kuralı korunur. Anahtar yenilemesi de bu aktarım testinin başarı koşulu değildi; mevcut gizli anahtar ayrı bir güvenlik işi olarak yenilenmelidir, ancak anahtar değeri README'ye veya GitHub'a yazılmamalıdır.
+
+### Sonraki çalışma odağı
+
+Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev tamamlandı ve doğrulandı. Sonraki çalışma bu testi baştan tekrarlamak değil, **Sürüm 00 motor işlevlerindeki gerçek aksaklıkları gidermek ve arayüzü sadeleştirip okunabilir hâle getirmek** olmalıdır. Ev interneti bağlantısı konusu yalnızca gerekirse ayrı ağ sorunu olarak ele alınır. Motor ve arayüz kapsamı değiştirilmeden önce mevcut README, son GitHub commit'i ve doğrulanmış test sonuçları esas alınır.
+
+---
+
 ## Başlangıç sürümündeki dosyalar
 
 - `binance_erken_firsat_radari.py`: Binance Spot piyasa verisi analiz motoru.
