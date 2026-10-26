@@ -33,7 +33,7 @@ Kaynak koddaki program sürüm etiketi `radar_core.py` içinde `APP_VERSION = "0
 
 **25 Ekim 2026 — motor durum ayrımı ve regresyon doğrulaması:** [Motor düzeltmesi commit'i](https://github.com/erdaly1947-max/matrix/commit/ab1c7d7d8a21ca8bf2b37d652a49d6d294737048) üzerinde canlı WebSocket sağlığı, geçmiş mum hazırlığı ve genel motor durumu ayrıştırıldı. WebSocket zaman damgaları ile saat aynı kilitli görüntüden alınır; doldurulamayan tarihsel mum boşlukları için yalnızca bu tür hatalarda yeniden deneme aralığı en az 24 saate çıkarılır. Geçici bağlantı hatalarının normal yeniden deneme davranışı korunur. Panel güçlü fırsat alarmı ve seviye takibinde genel geçmiş mum uyarısı yerine canlı akış durumunu ve adayın kendi veri/yeterlilik kapılarını kullanır. Raporlarda canlı akış ve geçmiş mum durumları ayrı gösterilir.
 
-[GitHub Actions doğrulama çalıştırması #40233230870](https://github.com/erdaly1947-max/matrix/actions/runs/40233230870) başarıyla tamamlandı. Python 3.14.8 üzerinde kaynak derlemesi, ayar JSON doğrulaması ve **48 otomatik Python birim testi** geçti. Bulut geçidi JavaScript testleri, Render sağlık kontrolü, Binance borsa sembol listesi (3.736 sembol), BTCUSDT 5 dakikalık mum verisi, BtcTurk USDT ticker verisi ve Render üzerinden canlı Binance WebSocket mum akışı doğrulandı. ZIP bütünlük kontrolü, SHA-256 üretimi, GitHub Release ZIP ve özet dosyalarının güncellenmesi de başarılı oldu. Her `main` gönderiminden sonra paket ve SHA-256 dosyaları otomatik yenilenir; kalıcı indirme bağlantıları [Sürüm 00 Release sayfasındadır](https://github.com/erdaly1947-max/matrix/releases/tag/surum-00).
+[GitHub Actions doğrulama çalıştırması #40233230870](https://github.com/erdaly1947-max/matrix/actions/runs/40233230870) başarıyla tamamlandı. Python 3.14.8 üzerinde kaynak derlemesi, ayar JSON doğrulaması ve otomatik Python birim testleri geçti. Bulut geçidi JavaScript testleri, Render sağlık kontrolü, Binance borsa sembol listesi (3.736 sembol), BTCUSDT 5 dakikalık mum verisi, BtcTurk USDT ticker verisi ve Render üzerinden canlı Binance WebSocket mum akışı doğrulandı. ZIP bütünlük kontrolü, SHA-256 üretimi, GitHub Release ZIP ve özet dosyalarının güncellenmesi de başarılı oldu. Her `main` gönderiminden sonra paket ve SHA-256 dosyaları otomatik yenilenir; kalıcı indirme bağlantıları [Sürüm 00 Release sayfasındadır](https://github.com/erdaly1947-max/matrix/releases/tag/surum-00).
 
 **Açık kalan doğrulamalar:** Bu CI sonucu, kullanıcının gerçek Windows bilgisayarındaki panel/görsel etkileşim testinin yerine geçmez. CVCUSDT ve USDCUSDT `1M` verilerindeki uzun boşlukların kaynağı resmî Binance işlem duyuruları ve güncel halka açık Spot mum serileriyle doğrulandı:
 
@@ -361,6 +361,10 @@ Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuz
 
 **Önemli:** Bu commitler Worker'ı Cloudflare hesabına dağıtmaz ve KV namespace/secret oluşturmaz. Bulut tarafı kurulum ve gerçek ChatGPT okuma testi ayrıca tamamlanmalıdır. `GET /latest` rapor uç noktası salt okunurdur ve bağlantıya sahip herkes tarafından okunabilir; bu yüzden hassas kişisel veri içermemelidir. ChatGPT sohbetine otomatik mesaj gönderilmez; rapor URL'sinden okuma ayrıca istenmelidir.
 
+
+## Aday tablosu
+
+Aday tablosu Binance fiyatının yanında BtcTurk fiyatını ve fırsat puanını da gösterir. BtcTurk fiyatı yalnızca görüntüleme içindir; Binance analiz motorunun karar girdisi değildir. Fiyat alınamazsa “veri yok”, son başarılı örnek 90 saniyeden eskiyse “veri eski” yazılır. Fiyat farkı sütunu eklenmez.
 
 ## Üç raporlama düğmesi
 
