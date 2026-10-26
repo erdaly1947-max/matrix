@@ -8,7 +8,9 @@ Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini i
 - Binance ile BtcTurk fiyat farkı sütunu eklenmez. Keşif yolu, BTC göreli güç/korelasyon ayrıntıları ve teknik plan seçilen coin bölümünde kalır.
 - Güncel olmayan veya eksik veriye sahip bir aday güçlü fırsatın yeşil vurgusunu alamaz; veri uyarısı ayrı tutulur.
 - Seçilen coin bölümünde koşullu giriş bölgesi, kırılım, zarar durdurma ve en fazla üç teknik hedef öne çıkarılır. Canlı veri lacivert, eski/eksik veri turkuaz; senaryo yeşil, giriş nötr, kırılım sarı, stop kırmızı, hedefler lila ile ayrılır. Karar/puan satırı karar durumuna göre renklendirilir.
-- Güçlü fırsat alarmı üç çift tonlu zil, zarar durdurma geçişi dört daha yüksek perdeli kısa ton kullanır. Alarm testi düğmesi alarm aç/kapat düğmesinin yanındadır.
+- Güçlü fırsat alarmı üç çift tonlu zil, zarar durdurma geçişi dört daha yüksek perdeli kısa ton kullanır. Düğmenin adı **Ses Testi** olup yalnızca mevcut alarm sesini sınar; “Fırsat Testi” adlı bir motor işlevi yoktur.
+- Eylem/rapor düğmeleri kırmızı, seviye takibi ve alarm/ses test düğmeleri turkuaz, oval kapsül biçimindedir. “Haritayı Güncelle” yerel USDT parite evrenini yeniler. Ses ve panel ışığı kontrolleri rapor düğmelerinin sağında bulunur; panel ışığı yüzde 0–100 aralığındadır.
+- Panelin nötr arka planı koyu gri, standart metinleri beyazdır. Seçilen coin ve kanıtlar bölümü Segoe UI yazı tipinde bir punto büyütülmüştür; teknik karar vurguları canlı renklerini korur.
 - Motor kapanınca seviye takibi otomatik olarak kapatılır; arayüz açık takip yapılıyormuş izlenimi bırakmaz.
 - Arayüz değişiklikleri için başsız CI kontrol testleri eklendi. Bu kontroller motor birim testlerinin ve Windows üzerinde gerçek uygulama açılışının yerine geçmez.
 
