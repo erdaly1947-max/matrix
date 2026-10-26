@@ -1084,6 +1084,45 @@ def _extract_btcturk_ticker_universe(payload: dict[str, Any]) -> dict[str, dict[
     return result
 
 
+def fetch_btcturk_usdt_last_prices(*, timeout: float = 4.5) -> dict[str, float]:
+    """Fetch current public BtcTurk prices for exact USDT Spot pairs; never use as TA input."""
+    endpoints = [
+        ("https://api.btcturk.com/api/v2/ticker/currency", {"symbol": "usdt"}),
+        ("https://api.btcturk.com/api/v2/ticker", None),
+    ]
+    errors: list[str] = []
+    for url, params in endpoints:
+        try:
+            payload = _json_get(url, timeout=timeout, params=params)
+            if payload.get("success") is False:
+                raise ValueError("BtcTurk ticker success=false döndürdü.")
+            raw = payload.get("data")
+            rows = raw if isinstance(raw, list) else [raw] if isinstance(raw, dict) else []
+            prices: dict[str, float] = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                pair = str(row.get("pair", row.get("pairSymbol", row.get("name", "")))).upper().replace("_", "").strip()
+                base = str(row.get("numeratorSymbol", row.get("numerator", row.get("baseAsset", "")))).upper().strip()
+                quote = str(row.get("denominatorSymbol", row.get("denominator", row.get("quoteAsset", "")))).upper().strip()
+                if not base and pair.endswith("USDT"):
+                    base, quote = pair[:-4], "USDT"
+                if not base or quote != "USDT" or pair != f"{base}USDT":
+                    continue
+                try:
+                    last = float(row.get("last", row.get("lastPrice", 0)) or 0)
+                except (TypeError, ValueError, OverflowError):
+                    continue
+                if math.isfinite(last) and last > 0:
+                    prices[pair] = last
+            if prices:
+                return prices
+            raise ValueError("Ticker yanıtında geçerli USDT fiyatı bulunamadı.")
+        except Exception as exc:
+            errors.append(f"{url}: {type(exc).__name__}: {str(exc)[:240]}")
+    raise RuntimeError("BtcTurk güncel USDT fiyatları alınamadı: " + " | ".join(errors))
+
+
 def fetch_btcturk_usdt_spot(*, allow_unverified_cache: bool = True) -> dict[str, dict[str, str]]:
     """Fetch USDT pairs; ticker fallback is explicitly marked as unverified."""
     endpoints = [
