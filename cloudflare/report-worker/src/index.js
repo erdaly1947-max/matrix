@@ -1,5 +1,21 @@
 const MAX_COMPRESSED_BYTES = 8 * 1024 * 1024;
-const REPORT_KEY = "latest";
+const MAX_ZIP_BYTES = 8 * 1024 * 1024;
+const REPORT_KEYS = Object.freeze({
+  analysis: "latest",
+  daily: "daily_latest",
+  troubleshooting: "troubleshooting_latest",
+  troubleshootingZip: "troubleshooting_zip_latest",
+});
+const JSON_REPORT_ROUTES = Object.freeze({
+  "/api/report": { kind: "analysis", key: REPORT_KEYS.analysis, readPath: "/latest" },
+  "/api/report/daily": { kind: "daily", key: REPORT_KEYS.daily, readPath: "/daily" },
+  "/api/report/troubleshooting": { kind: "troubleshooting", key: REPORT_KEYS.troubleshooting, readPath: "/troubleshooting" },
+});
+const JSON_READ_ROUTES = Object.freeze({
+  "/latest": { kind: "analysis", key: REPORT_KEYS.analysis },
+  "/daily": { kind: "daily", key: REPORT_KEYS.daily },
+  "/troubleshooting": { kind: "troubleshooting", key: REPORT_KEYS.troubleshooting },
+});
 
 function jsonResponse(payload, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(payload), {
@@ -37,6 +53,50 @@ async function readGzipJson(compressed) {
   return JSON.parse(text);
 }
 
+function requestTokenIsValid(request, env) {
+  const authorization = request.headers.get("Authorization") || "";
+  const provided = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  return tokenMatches(provided, env.UPLOAD_TOKEN);
+}
+
+function validJsonReport(report, kind) {
+  if (!report || report.report_type !== kind || report.schema_version !== 1) return false;
+  if (kind === "analysis") {
+    return Array.isArray(report.candidates) && report.candidate_count === report.candidates.length;
+  }
+  if (kind === "daily") {
+    return typeof report.report_generated_at_utc === "string" &&
+      report.payload && typeof report.payload === "object" &&
+      report.payload.state && typeof report.payload.state === "object" &&
+      report.payload.diagnostics && typeof report.payload.diagnostics === "object";
+  }
+  if (kind === "troubleshooting") {
+    return typeof report.generated_at_utc === "string" &&
+      report.daily_report && typeof report.daily_report === "object" &&
+      report.diagnostics && typeof report.diagnostics === "object" &&
+      Array.isArray(report.manifest?.files) && typeof report.log_tail === "string";
+  }
+  return false;
+}
+
+async function getStoredJsonReport(env, route) {
+  const record = await env.ANALYSIS_REPORTS.getWithMetadata(route.key, "arrayBuffer");
+  if (!record || !record.value) {
+    return jsonResponse({ ok: false, error: "Bu rapor türü için henüz kayıt yok." }, 404);
+  }
+  let report;
+  try {
+    report = await readGzipJson(record.value);
+  } catch {
+    return jsonResponse({ ok: false, error: "Saklanan rapor açılamadı." }, 500);
+  }
+  return jsonResponse(report, 200, {
+    "X-Report-SHA256": record.metadata?.sha256 || "",
+    "X-Report-Generated-At": record.metadata?.generated_at_utc || "",
+    "X-Report-Type": route.kind,
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -51,10 +111,9 @@ export default {
       return jsonResponse({ ok: true, service: "analysis-report-store", storage: "Cloudflare KV" });
     }
 
-    if (url.pathname === "/api/report" && request.method === "POST") {
-      const authorization = request.headers.get("Authorization") || "";
-      const provided = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-      if (!tokenMatches(provided, env.UPLOAD_TOKEN)) {
+    const jsonUploadRoute = JSON_REPORT_ROUTES[url.pathname];
+    if (request.method === "POST" && jsonUploadRoute) {
+      if (!requestTokenIsValid(request, env)) {
         return jsonResponse({ ok: false, error: "Yetkisiz yükleme." }, 401);
       }
       if ((request.headers.get("Content-Encoding") || "").toLowerCase() !== "gzip") {
@@ -70,43 +129,88 @@ export default {
       } catch {
         return jsonResponse({ ok: false, error: "Gzip/JSON içeriği okunamadı." }, 400);
       }
-      if (!report || report.report_type !== "analysis" || report.schema_version !== 1 ||
-          !Array.isArray(report.candidates) || report.candidate_count !== report.candidates.length) {
-        return jsonResponse({ ok: false, error: "Analiz raporu şeması geçersiz." }, 422);
+      if (!validJsonReport(report, jsonUploadRoute.kind)) {
+        return jsonResponse({ ok: false, error: "Rapor şeması geçersiz." }, 422);
       }
       const digest = await sha256Hex(compressed);
       const metadata = {
-        generated_at_utc: report.generated_at_utc || new Date().toISOString(),
-        candidate_count: report.candidate_count,
+        generated_at_utc: report.generated_at_utc || report.report_generated_at_utc || new Date().toISOString(),
+        report_type: jsonUploadRoute.kind,
+        candidate_count: report.candidate_count ?? report.daily_report?.state?.candidates?.length ?? null,
         compressed_bytes: compressed.byteLength,
         sha256: digest,
         schema_version: report.schema_version,
       };
-      await env.ANALYSIS_REPORTS.put(REPORT_KEY, compressed, { metadata });
+      await env.ANALYSIS_REPORTS.put(jsonUploadRoute.key, compressed, { metadata });
       return jsonResponse({
         ok: true,
-        report_type: "analysis",
-        candidate_count: report.candidate_count,
+        report_type: jsonUploadRoute.kind,
+        candidate_count: metadata.candidate_count,
         compressed_bytes: compressed.byteLength,
         sha256: digest,
-        read_url: new URL("/latest", url.origin).toString(),
+        read_url: new URL(jsonUploadRoute.readPath, url.origin).toString(),
       }, 201);
     }
 
-    if (url.pathname === "/latest" && request.method === "GET") {
-      const record = await env.ANALYSIS_REPORTS.getWithMetadata(REPORT_KEY, "arrayBuffer");
+    if (url.pathname === "/api/report/troubleshooting-zip" && request.method === "POST") {
+      if (!requestTokenIsValid(request, env)) {
+        return jsonResponse({ ok: false, error: "Yetkisiz yükleme." }, 401);
+      }
+      const contentType = (request.headers.get("Content-Type") || "").toLowerCase();
+      if (!contentType.startsWith("application/zip")) {
+        return jsonResponse({ ok: false, error: "ZIP dosyası application/zip olmalıdır." }, 415);
+      }
+      if (request.headers.has("Content-Encoding")) {
+        return jsonResponse({ ok: false, error: "ZIP gövdesi ayrıca Content-Encoding içermemelidir." }, 415);
+      }
+      const archive = await request.arrayBuffer();
+      if (!archive.byteLength || archive.byteLength > MAX_ZIP_BYTES) {
+        return jsonResponse({ ok: false, error: "ZIP boyutu geçersiz veya 8 MiB sınırını aşıyor." }, 413);
+      }
+      const signature = new Uint8Array(archive, 0, Math.min(4, archive.byteLength));
+      const isZip = signature.length >= 4 && signature[0] === 0x50 && signature[1] === 0x4b &&
+        ((signature[2] === 0x03 && signature[3] === 0x04) ||
+         (signature[2] === 0x05 && signature[3] === 0x06) ||
+         (signature[2] === 0x07 && signature[3] === 0x08));
+      if (!isZip) return jsonResponse({ ok: false, error: "Geçerli ZIP başlığı bulunamadı." }, 400);
+      const digest = await sha256Hex(archive);
+      await env.ANALYSIS_REPORTS.put(REPORT_KEYS.troubleshootingZip, archive, {
+        metadata: {
+          generated_at_utc: new Date().toISOString(),
+          report_type: "troubleshooting_zip",
+          compressed_bytes: archive.byteLength,
+          sha256: digest,
+        },
+      });
+      return jsonResponse({
+        ok: true,
+        report_type: "troubleshooting_zip",
+        compressed_bytes: archive.byteLength,
+        sha256: digest,
+        read_url: new URL("/troubleshooting.zip", url.origin).toString(),
+      }, 201);
+    }
+
+    const jsonReadRoute = JSON_READ_ROUTES[url.pathname];
+    if (request.method === "GET" && jsonReadRoute) {
+      return getStoredJsonReport(env, jsonReadRoute);
+    }
+
+    if (url.pathname === "/troubleshooting.zip" && request.method === "GET") {
+      const record = await env.ANALYSIS_REPORTS.getWithMetadata(REPORT_KEYS.troubleshootingZip, "arrayBuffer");
       if (!record || !record.value) {
-        return jsonResponse({ ok: false, error: "Henüz analiz raporu yüklenmedi." }, 404);
+        return jsonResponse({ ok: false, error: "Henüz sorun giderme ZIP paketi yüklenmedi." }, 404);
       }
-      let report;
-      try {
-        report = await readGzipJson(record.value);
-      } catch {
-        return jsonResponse({ ok: false, error: "Saklanan analiz raporu açılamadı." }, 500);
-      }
-      return jsonResponse(report, 200, {
-        "X-Report-SHA256": record.metadata?.sha256 || "",
-        "X-Report-Generated-At": record.metadata?.generated_at_utc || "",
+      return new Response(record.value, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": 'attachment; filename="firsat_kontrol_devir_latest.zip"',
+          "Cache-Control": "no-store, max-age=0",
+          "X-Report-SHA256": record.metadata?.sha256 || "",
+          "X-Report-Generated-At": record.metadata?.generated_at_utc || "",
+          "X-Content-Type-Options": "nosniff",
+        },
       });
     }
 
