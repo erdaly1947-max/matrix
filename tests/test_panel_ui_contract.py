@@ -79,6 +79,29 @@ class PanelUIContractTests(unittest.TestCase):
         self.assertIn("Seviye Takibi: Kapalı", source)
         self.assertIn("motor durdu", source)
 
+    def test_panel_brightness_can_reach_zero_and_uses_white_neutral_text(self):
+        source = PANEL_SOURCE
+        self.assertIn('from_=0, to=100', source)
+        self.assertIn('max(0, min(100, int(self.panel_brightness)))', source)
+        self.assertIn('foreground = "#ffffff"', source)
+        self.assertIn('gray = round(68 + value * 49 / 100)', source)
+
+    def test_sound_test_is_not_mislabelled_as_opportunity_test(self):
+        source = ast.unparse(_method("_build_ui"))
+        self.assertIn('text="Ses Testi"', source)
+        self.assertNotIn("Fırsat Testi", PANEL_SOURCE)
+        self.assertIn("def _test_sound", PANEL_SOURCE)
+
+    def test_semantic_pill_button_roles_and_report_row_layout(self):
+        self.assertIn("class PillButton(tk.Canvas)", PANEL_SOURCE)
+        self.assertIn('base, hover = "#008f95", "#00767b"', PANEL_SOURCE)
+        self.assertIn('base, hover = "#c62828", "#a91f1f"', PANEL_SOURCE)
+        source = ast.unparse(_method("_build_ui"))
+        self.assertIn("PillButton", source)
+        self.assertIn('text="Haritayı Güncelle"', source)
+        self.assertIn('sound = ttk.Frame(report_controls)', source)
+        self.assertIn('text="Panel ışığı"', source)
+
     def test_distribution_packaging_requires_explicit_marker(self):
         workflow_path = ROOT / ".github" / "workflows" / "validate-and-package.yml"
         workflow = workflow_path.read_text(encoding="utf-8")
