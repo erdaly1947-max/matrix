@@ -59,6 +59,18 @@ Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev
 
 ---
 
+## Yerel rapor dosyaları — sabit adlar
+
+Raporlar `reports/` klasöründe her üretimde aynı dosyaların üzerine yazılır; tarih-saat ekli yeni rapor dosyaları oluşturulmaz.
+
+- Günlük/durum JSON raporu: `firsat_kontrol_raporu.json.gz`
+- Günlük Markdown özeti: `firsat_kontrol_raporu.md.gz`
+- Günlük tanı özeti: `firsat_kontrol_raporu_tani.json.gz`
+- Teknik analiz raporu: `analiz_raporu.json.gz`
+- Sorun giderme/devir paketi: `firsat_kontrol_devir.zip`
+
+Başarılı yeni üretimden sonra program yalnızca kendi eski tarihli rapor adlandırma kalıplarıyla eşleşen dosyaları temizler. Diğer dosyalara dokunulmaz. Raporların JSON içerikleri yerelde gzip ile sıkıştırılır; devir paketi ZIP olarak oluşturulur. Buluta JSON raporları gzip sıkıştırmasıyla, devir paketi ise ZIP ikili dosyası olarak gönderilir. Bulut okuma uç noktaları JSON içeriğini açarak okunabilir biçimde sunar.
+
 ## Başlangıç sürümündeki dosyalar
 
 - `binance_erken_firsat_radari.py`: Binance Spot piyasa verisi analiz motoru.
