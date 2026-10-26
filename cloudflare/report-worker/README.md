@@ -25,7 +25,7 @@ Temel URL: `https://firsat-kontrol-analysis-report.erdaly1947.workers.dev`
 
 ## Masaüstü yapılandırması
 
-`chatgpt_baglanti.local.json` dosyası uygulamanın kök klasöründe bulunmalı ve `upload_url`, `upload_token`, `read_url` alanlarını içermelidir. Gerçek bağlantı dosyası `.gitignore` kapsamındadır; token kaynak koda, loglara veya GitHub'a konulmamalıdır.
+Masaüstü uygulaması Worker adresini kaynak kodundaki sabit değerlerden alır. Yükleme anahtarı Windows Kimlik Bilgileri Yöneticisi'nde genel kimlik bilgisi olarak saklanır; kaynak koda, loglara veya GitHub'a yazılmaz. Yükseltme sırasında eski chatgpt_baglanti.local.json dosyası bulunursa yalnızca bilinen Worker adresi kabul edilir; anahtar Windows kasasına kaydedilip geri okunarak doğrulanmadan dosya silinmez. İlk güncellemede ZIP mevcut program klasörüne ayıklanmalı ve eski dosya önceden silinmemelidir.
 
 ## İçerik ve bağlantılar
 

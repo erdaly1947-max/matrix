@@ -18,7 +18,7 @@ DÜĞMELER VE KONTROLLER
 • Kayıtlar — programın çalışma ve hata kayıtlarının bulunduğu klasörü açar.
 • Seviye Takibi: Açık/Kapalı — seçili coin için giriş bölgesi, kırılım, hedef ve zarar durdurma seviyelerinin izlenmesini açar/kapatır. Motor çalışmalı; coin verisi güncel ve teknik planı geçerli olmalıdır. Coin seçimi değişince takip kapanır.
 • Günlük Rapor — programın çalışma durumunu ve tanılama bilgilerini raporlar klasörüne kaydeder; okunabilir özet panoya kopyalanır.
-• Analiz Raporu — coinlerin teknik analiz sonuçlarını içeren sıkıştırılmış raporu oluşturur, dosyayı Dosya Gezgini'nde seçer ve JSON özetini panoya kopyalar. Bulut bağlantısı ayarlıysa raporu sunucuya da gönderir.
+• Analiz Raporu — coinlerin teknik analiz sonuçlarını içeren sıkıştırılmış raporu oluşturur, dosyayı Dosya Gezgini'nde seçer, JSON özetini panoya kopyalar ve kayıtlıysa Windows Kimlik Bilgileri Yöneticisi'ndeki anahtarla buluta gönderir.
 • Sorun Giderme Paketi (ZIP) — raporları ve sınırlı tanılama kayıtlarını tek ZIP dosyasında toplar. Paketi destek veya ChatGPT ile paylaşabilirsiniz.
 • Sesli Bildirim: Açık/Kapalı — güçlü fırsat ve seviye bildirimlerinin sesini açar/kapatır. Analizi ve puanlamayı kapatmaz.
 • Ses Testi — fırsat bildirim sesini dener; zarar durdurma sesini ayrıca test etmez.
@@ -37,4 +37,7 @@ ALARMLAR VE ÖNEMLİ NOT
 Güçlü fırsat bildirimi, canlı veriyle doğrulanmış yeni bir güçlü aday ortaya çıktığında çalar. Seviye takibi açıksa seçilen coin giriş, kırılım, hedef veya zarar durdurma seviyesini geçtiğinde bildirim verebilir. Zarar durdurma sesi diğer bildirimlerden farklıdır. Bildirimler emir göndermez; işlem kararı ve risk kullanıcıya aittir. Teknik seviyeler tahmindir, garanti değildir.
 
 RAPOR DOSYALARI
-Raporlar ve çalışma kayıtları uygulamanın klasöründeki reports ve logs klasörlerine yazılır. Raporlar otomatik olarak ChatGPT'ye gönderilmez; bulut aktarımı yalnızca bağlantı ayarlıysa çalışır.
+Raporlar ve çalışma kayıtları uygulamanın klasöründeki reports ve logs klasörlerine yazılır. Raporlar otomatik olarak ChatGPT'ye gönderilmez; her rapor düğmesi yalnızca kullanıcı isteğiyle bulut aktarımını başlatır.
+
+BULUT ANAHTARININ İLK TAŞINMASI
+İlk güncellemede programı kapatın ve yeni ZIP dosyasını mevcut program klasörüne ayıklayın; sorulursa mevcut dosyaların üzerine yazılmasına izin verin. Eski chatgpt_baglanti.local.json dosyasını önceden silmeyin. İlk rapor düğmesi kullanıldığında program anahtarı Windows Kimlik Bilgileri Yöneticisi'ne taşır, geri okuyup doğrular ve ancak doğrulama başarılıysa eski dosyayı kaldırır. Doğrulama başarısız olursa eski dosya korunur ve raporlar yerelde oluşturulmaya devam eder. Sonraki güncellemelerde anahtarın yeniden kopyalanması gerekmez. Anahtarı sohbetlere, ekran görüntülerine, kayıtlara veya GitHub'a koymayın.

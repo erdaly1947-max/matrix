@@ -414,9 +414,9 @@ Paneldeki **Analiz Raporu** butonu, motor tanı raporlarından ayrı bir teknik 
 
 Analiz raporu JSON olarak hazırlanır ve gzip ile sıkıştırılır. Yerel kopya `reports/analiz_raporu_*.json.gz` biçiminde saklanır. Günlük durum raporunun JSON, Markdown ve tanı dosyaları da ayrı ayrı gzip ile sıkıştırılır; Markdown metni kolay inceleme için panoya normal metin olarak kopyalanır. Devir ZIP'i bu sıkıştırılmış rapor dosyalarını ve sıkıştırılmış tanı/günlük eklerini içerir. Sunucu bağlantısı yapılandırılmamışsa panel yalnızca yerel dosyayı üretir; piyasa taramasını etkilemez. Yapılandırılmışsa rapor HTTPS üzerinden, yetkilendirilmiş yükleme uç noktasına arka planda gönderilir.
 
-Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worker/README.md). Örnek masaüstü ayarı: [chatgpt_baglanti.example.json](chatgpt_baglanti.example.json). Gerçek erişim bilgileri `chatgpt_baglanti.local.json` içinde tutulmalı ve GitHub'a gönderilmemelidir.
+Bağlantı mimarisi: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worker/README.md). Worker adresi programda sabittir; yükleme anahtarı Windows Kimlik Bilgileri Yöneticisi'nde saklanır. İlk güncellemede ZIP'i mevcut program klasörüne ayıklayın ve eski chatgpt_baglanti.local.json dosyasını önceden silmeyin. İlk rapor işleminde program yalnızca bilinen Worker adresini kabul eder, anahtarı Windows kasasına taşır, geri okuyarak doğrular ve bundan sonra eski dosyayı siler. Kayıt başarısızsa dosya korunur.
 
-**Önemli:** Bu commitler Worker'ı Cloudflare hesabına dağıtmaz ve KV namespace/secret oluşturmaz. Bulut tarafı kurulum ve gerçek ChatGPT okuma testi ayrıca tamamlanmalıdır. `GET /latest` rapor uç noktası salt okunurdur ve bağlantıya sahip herkes tarafından okunabilir; bu yüzden hassas kişisel veri içermemelidir. ChatGPT sohbetine otomatik mesaj gönderilmez; rapor URL'sinden okuma ayrıca istenmelidir.
+**Güvenlik:** Kod commitleri Worker dağıtımını veya Cloudflare gizli anahtarının (UPLOAD_TOKEN) kurulumunu değiştirmez; mevcut Worker ve anahtar ayrı kalır. Tüm yükleme uç noktaları Bearer anahtarını doğrular. Okuma adresleri bağlantıyı bilenlere açıktır; raporlara parola veya başka gizli bilgi koymayın. ChatGPT sohbetine otomatik mesaj gönderilmez; rapor bağlantısı ayrıca açılarak okunur.
 
 
 ## Aday tablosu

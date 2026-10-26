@@ -1546,7 +1546,8 @@ class ControlPanel(tk.Tk):
                 messagebox.showinfo(
                     "Günlük rapor hazır",
                     f"Rapor dosyaları yerelde oluşturuldu:\n{json_path}\n{md_path}\n{diagnostic_path}\n\n"
-                    "Buluta gönderim için kök klasörde chatgpt_baglanti.local.json yapılandırılmalıdır. "
+                    "Windows Kimlik Bilgileri Yöneticisi'nde yükleme anahtarı bulunamadı. " 
+                    "Eski bağlantı dosyanız varsa silmeyin; program onu yalnızca anahtar güvenli alana kaydedilip doğrulandıktan sonra kaldırır. "
                     "Markdown özeti panoya kopyalandı.",
                 )
                 self._log_line(f"Günlük rapor yerelde oluşturuldu; bulut bağlantısı yapılandırılmamış: {json_path.name}")
@@ -1637,8 +1638,8 @@ class ControlPanel(tk.Tk):
                 messagebox.showinfo(
                     "Analiz raporu hazır",
                     f"Analiz raporu sıkıştırılarak kaydedildi ve dosyası seçildi:\n{report_path}\n\n"
-                    "Raporun JSON özeti panoya kopyalandı. Sunucuya gönderim için kök klasörde chatgpt_baglanti.local.json "
-                    "dosyası yapılandırılmalıdır. Örnek: chatgpt_baglanti.example.json",
+                    "Raporun JSON özeti panoya kopyalandı. Windows Kimlik Bilgileri Yöneticisi'nde yükleme anahtarı bulunamadı. "
+                    "Eski bağlantı dosyanız varsa silmeyin; program doğrulama tamamlanmadan kaldırmaz.",
                 )
                 self._log_line(f"Analiz raporu oluşturuldu; bağlantı yapılandırılmamış: {report_path.name}")
                 return
@@ -1752,7 +1753,7 @@ class ControlPanel(tk.Tk):
                 messagebox.showinfo(
                     "Devir paketi hazır",
                     f"ZIP oluşturuldu ve bütünlük denetimi geçti:\n{zip_path}\n\n"
-                    "Buluta gönderim için kök klasörde chatgpt_baglanti.local.json yapılandırılmalıdır. "
+                    "Windows Kimlik Bilgileri Yöneticisi'nde yükleme anahtarı bulunamadı. "
                     "Panoya kısa devir özeti kopyalandı.",
                 )
                 return

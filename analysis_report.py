@@ -6,8 +6,11 @@ metrics, BTC context, and conditional entry/stop/target plans.
 """
 from __future__ import annotations
 
+import ctypes
 import gzip
+import hmac
 import json
+import os
 from pathlib import Path
 import urllib.error
 import urllib.parse
@@ -15,9 +18,36 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
+# Legacy-only filename: credentials are migrated out of this file on first report use.
 CONFIG_NAME = "chatgpt_baglanti.local.json"
+WORKER_BASE_URL = "https://firsat-kontrol-analysis-report.erdaly1947.workers.dev"
+UPLOAD_URL = f"{WORKER_BASE_URL}/api/report"
+READ_URL = f"{WORKER_BASE_URL}/latest"
+CREDENTIAL_TARGET = "Firsat-Kontrol-Paneli/ReportUploadToken"
+CREDENTIAL_BLOB_MAX_BYTES = 5120
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 TIMEFRAME_ORDER = ("5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M")
+
+
+class _CredentialFileTime(ctypes.Structure):
+    _fields_ = [("dwLowDateTime", ctypes.c_uint32), ("dwHighDateTime", ctypes.c_uint32)]
+
+
+class _CredentialW(ctypes.Structure):
+    _fields_ = [
+        ("Flags", ctypes.c_uint32),
+        ("Type", ctypes.c_uint32),
+        ("TargetName", ctypes.c_wchar_p),
+        ("Comment", ctypes.c_wchar_p),
+        ("LastWritten", _CredentialFileTime),
+        ("CredentialBlobSize", ctypes.c_uint32),
+        ("CredentialBlob", ctypes.POINTER(ctypes.c_ubyte)),
+        ("Persist", ctypes.c_uint32),
+        ("AttributeCount", ctypes.c_uint32),
+        ("Attributes", ctypes.c_void_p),
+        ("TargetAlias", ctypes.c_wchar_p),
+        ("UserName", ctypes.c_wchar_p),
+    ]
 
 METRIC_FIELDS = (
     "candle_start_ms", "close_time_ms", "close",
@@ -211,9 +241,68 @@ def compress_analysis_report(payload: dict[str, Any]) -> bytes:
         )
     return compressed
 
-def load_connection_config(root: str | Path) -> dict[str, str] | None:
-    """Read ignored local credentials; never read secrets from tracked settings."""
-    path = Path(root) / CONFIG_NAME
+def _read_windows_credential() -> str | None:
+    """Read the upload token from the current Windows user's Credential Manager."""
+    if os.name != "nt":
+        return None
+    api = None
+    credential_pointer = ctypes.POINTER(_CredentialW)()
+    try:
+        api = ctypes.WinDLL("Advapi32.dll", use_last_error=True)
+        api.CredReadW.argtypes = [
+            ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.POINTER(_CredentialW)),
+        ]
+        api.CredReadW.restype = ctypes.c_int
+        api.CredFree.argtypes = [ctypes.c_void_p]
+        api.CredFree.restype = None
+        found = api.CredReadW(CREDENTIAL_TARGET, 1, 0, ctypes.byref(credential_pointer))
+        if not found or not credential_pointer:
+            return None
+        record = credential_pointer.contents
+        if not record.CredentialBlob or not record.CredentialBlobSize:
+            return None
+        token = ctypes.string_at(
+            record.CredentialBlob, record.CredentialBlobSize
+        ).decode("utf-8")
+        return token if token and token == token.strip() else None
+    except Exception:
+        # Credential Manager failures must not stop local report creation or the radar.
+        return None
+    finally:
+        if api is not None and credential_pointer:
+            try:
+                api.CredFree(ctypes.cast(credential_pointer, ctypes.c_void_p))
+            except Exception:
+                pass
+
+
+def _write_windows_credential(token: str) -> bool:
+    """Store a token as a Windows generic credential; return success without logging it."""
+    if os.name != "nt" or not isinstance(token, str) or not token or token != token.strip():
+        return False
+    encoded = token.encode("utf-8")
+    if len(encoded) > CREDENTIAL_BLOB_MAX_BYTES:
+        return False
+    try:
+        api = ctypes.WinDLL("Advapi32.dll", use_last_error=True)
+        api.CredWriteW.argtypes = [ctypes.POINTER(_CredentialW), ctypes.c_uint32]
+        api.CredWriteW.restype = ctypes.c_int
+        blob = ctypes.create_string_buffer(encoded)
+        record = _CredentialW()
+        record.Type = 1  # CRED_TYPE_GENERIC
+        record.TargetName = CREDENTIAL_TARGET
+        record.CredentialBlobSize = len(encoded)
+        record.CredentialBlob = ctypes.cast(blob, ctypes.POINTER(ctypes.c_ubyte))
+        record.Persist = 2  # CRED_PERSIST_LOCAL_MACHINE: persists for this Windows user
+        record.UserName = "Firsat-Kontrol-Paneli"
+        return bool(api.CredWriteW(ctypes.byref(record), 0))
+    except Exception:
+        return False
+
+
+def _read_legacy_upload_token(path: Path) -> str | None:
+    """Accept only the known Worker endpoint; do not migrate a token for another host."""
     try:
         with path.open("r", encoding="utf-8-sig") as handle:
             config = json.load(handle)
@@ -222,27 +311,88 @@ def load_connection_config(root: str | Path) -> dict[str, str] | None:
     if not isinstance(config, dict):
         return None
     upload_url = config.get("upload_url")
-    upload_token = config.get("upload_token")
-    if not isinstance(upload_url, str) or not isinstance(upload_token, str):
+    token = config.get("upload_token")
+    if not isinstance(upload_url, str) or not isinstance(token, str):
         return None
-    parsed = urllib.parse.urlsplit(upload_url)
-    if parsed.scheme != "https" or not parsed.netloc or not upload_token.strip():
+    try:
+        parsed = urllib.parse.urlsplit(upload_url)
+        expected = urllib.parse.urlsplit(UPLOAD_URL)
+        valid_url = (
+            parsed.scheme.lower() == "https"
+            and parsed.netloc.lower() == expected.netloc.lower()
+            and parsed.path.rstrip("/") == expected.path
+            and not parsed.query
+            and not parsed.fragment
+            and not parsed.username
+            and not parsed.password
+        )
+    except ValueError:
         return None
-    read_url = config.get("read_url", "")
+    if not valid_url or not token or token != token.strip():
+        return None
+    return token
+
+
+def _remove_legacy_config_after_verification(path: Path) -> None:
+    """Best-effort cleanup; failure leaves the old file available for another attempt."""
+    try:
+        path.unlink()
+    except OSError:
+        pass
+
+
+def load_connection_config(root: str | Path) -> dict[str, str] | None:
+    """Load fixed public endpoints and migrate a legacy token into Windows Credential Manager."""
+    legacy_path = Path(root) / CONFIG_NAME
+    legacy_token = _read_legacy_upload_token(legacy_path)
+    stored_token = _read_windows_credential()
+
+    if isinstance(stored_token, str) and stored_token and stored_token == stored_token.strip():
+        if legacy_token and hmac.compare_digest(legacy_token, stored_token):
+            _remove_legacy_config_after_verification(legacy_path)
+        return {
+            "upload_url": UPLOAD_URL,
+            "upload_token": stored_token,
+            "read_url": READ_URL,
+        }
+
+    if not legacy_token:
+        return None
+    if not _write_windows_credential(legacy_token):
+        return None
+
+    # Never delete the plaintext file until the saved value has been read back and matched.
+    verified_token = _read_windows_credential()
+    if not isinstance(verified_token, str) or not hmac.compare_digest(
+        verified_token, legacy_token
+    ):
+        return None
+
+    _remove_legacy_config_after_verification(legacy_path)
     return {
-        "upload_url": upload_url,
-        "upload_token": upload_token,
-        "read_url": read_url if isinstance(read_url, str) else "",
+        "upload_url": UPLOAD_URL,
+        "upload_token": verified_token,
+        "read_url": READ_URL,
     }
 
 def _report_endpoint(config: dict[str, str], suffix: str = "") -> str:
     """Build a typed upload URL from the configured /api/report endpoint."""
     url = config.get("upload_url", "")
     parsed = urllib.parse.urlsplit(url)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
-        raise ValueError("Yükleme adresi geçerli bir HTTPS adresi olmalıdır.")
-    if parsed.query or parsed.fragment or not parsed.path.rstrip("/").endswith("/api/report"):
-        raise ValueError("Yükleme adresi /api/report uç noktası olmalıdır.")
+    expected = urllib.parse.urlsplit(UPLOAD_URL)
+    if (
+        parsed.scheme.lower() != "https"
+        or parsed.netloc.lower() != expected.netloc.lower()
+        or parsed.username
+        or parsed.password
+    ):
+        raise ValueError("Yükleme adresi sabit ve güvenilir rapor sunucusuna ait olmalıdır.")
+    if (
+        parsed.query
+        or parsed.fragment
+        or parsed.path.rstrip("/") != expected.path
+    ):
+        raise ValueError("Yükleme adresi sabit /api/report uç noktası olmalıdır.")
     path = parsed.path.rstrip("/") + (f"/{suffix}" if suffix else "")
     return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
 
