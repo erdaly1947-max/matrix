@@ -821,6 +821,12 @@ class ControlPanel(tk.Tk):
                 self._log_line(f"Motor süreci sona erdi. Çıkış kodu: {return_code}")
                 self.engine = None
                 self.stop_time_var.set("Son: " + datetime.now().strftime("%H:%M:%S"))
+                if self._level_watch_key:
+                    self._level_watch_key = None
+                    self._level_previous_price = None
+                    self._level_crossed.clear()
+                    self.level_var.set("Seviye takibi: kapalı (motor durdu)")
+                    self.level_button.configure(text="Seviye Takibi: Kapalı")
                 self.start_button.configure(state="normal")
                 self.stop_button.configure(state="disabled")
                 if not self.close_after_stop:
