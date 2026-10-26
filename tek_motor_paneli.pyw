@@ -620,7 +620,7 @@ class ControlPanel(tk.Tk):
                 tag = "breakout"
             elif line.startswith("Zarar durdurma:"):
                 tag = "stop"
-            elif line.startswith("Hedef "):
+            elif line.startswith("Hedef:"):
                 tag = "target"
             elif line.startswith("Fiyat:") and "CANLI AKIŞ GÜNCEL" not in line:
                 if "Veri: —" not in line and "Veri: GÜNCEL" not in line:
@@ -660,7 +660,7 @@ class ControlPanel(tk.Tk):
             for index, target in enumerate(targets[:3], start=1):
                 if isinstance(target, dict) and _safe_float(target.get("price")) is not None:
                     label = target.get("name") or f"Hedef {index}"
-                    target_lines.append(f"{label}: {_format_price(target.get('price'))} USDT")
+                    target_lines.append(f"Hedef: {label} — {_format_price(target.get('price'))} USDT")
         entry_text = (
             f"{_format_price(entry_low)}–{_format_price(entry_high)} USDT"
             if entry_low is not None and entry_high is not None else "hesaplanmadı"
