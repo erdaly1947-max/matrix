@@ -586,9 +586,6 @@ class ControlPanel(tk.Tk):
         self.update_list_button = PillButton(controls, text="Haritayı Güncelle", command=self.update_universe, role="action")
         self.update_list_button.pack(side="left", padx=5)
         PillButton(controls, text="Kayıtlar", command=self.open_logs, role="action").pack(side="left", padx=5)
-        self.level_button = PillButton(controls, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch, role="accent")
-        self.level_button.pack(side="left", padx=5)
-
         report_controls = ttk.Frame(self, padding=(12, 0, 12, 7))
         report_controls.pack(fill="x")
         report_row_top = ttk.Frame(report_controls)
@@ -1101,10 +1098,9 @@ class ControlPanel(tk.Tk):
             else:
                 status = live_status
         self.status_var.set(status)
-        normalized_status = status.upper()
-        if normalized_status.startswith("CANLI AKIŞ GÜNCEL"):
+        if isinstance(live_status, str) and live_status == "CANLI AKIŞ GÜNCEL":
             ttk.Style(self).configure("Status.TLabel", foreground="#39ff88")
-        elif "CANLI AKIŞ" in normalized_status or normalized_status in ("VERİ ESKİ", "CANLI VERİ YOK"):
+        elif engine_running and isinstance(live_status, str) and live_status:
             ttk.Style(self).configure("Status.TLabel", foreground="#ff4545")
         else:
             ttk.Style(self).configure("Status.TLabel", foreground="#ffffff")
