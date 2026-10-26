@@ -18,7 +18,7 @@ DÜĞMELER VE KONTROLLER
 • Kayıtlar — programın çalışma ve hata kayıtlarının bulunduğu klasörü açar.
 • Seviye Takibi: Açık/Kapalı — seçili coin için giriş bölgesi, kırılım, hedef ve zarar durdurma seviyelerinin izlenmesini açar/kapatır. Motor çalışmalı; coin verisi güncel ve teknik planı geçerli olmalıdır. Coin seçimi değişince takip kapanır.
 • Günlük Rapor — programın çalışma durumunu ve tanılama bilgilerini raporlar klasörüne kaydeder; okunabilir özet panoya kopyalanır.
-• Analiz Raporu — coinlerin teknik analiz sonuçlarını içeren raporu oluşturur. Bulut bağlantısı ayarlıysa raporu sunucuya da gönderir.
+• Analiz Raporu — coinlerin teknik analiz sonuçlarını içeren sıkıştırılmış raporu oluşturur, dosyayı Dosya Gezgini'nde seçer ve JSON özetini panoya kopyalar. Bulut bağlantısı ayarlıysa raporu sunucuya da gönderir.
 • Sorun Giderme Paketi (ZIP) — raporları ve sınırlı tanılama kayıtlarını tek ZIP dosyasında toplar. Paketi destek veya ChatGPT ile paylaşabilirsiniz.
 • Sesli Bildirim: Açık/Kapalı — güçlü fırsat ve seviye bildirimlerinin sesini açar/kapatır. Analizi ve puanlamayı kapatmaz.
 • Ses Testi — fırsat bildirim sesini dener; zarar durdurma sesini ayrıca test etmez.
@@ -30,7 +30,7 @@ ADAY TABLOSU VE RENKLER
 • Binance USDT fiyatı analiz motorunun kullandığı fiyattır. BtcTurk USDT fiyatı yalnızca ek bilgi içindir; fiyat farkı sütunu yoktur.
 • A — erken hazırlık; teyit eksik olabilir. B — fiyat yapısı ve olağan dışı hacim teyidi. C — kırılımın devamlılığına ilişkin teyit.
 • Yeşil güçlü fırsat/olumlu senaryo, sarı bekleme veya kırılım, kırmızı zarar durdurma/uygunsuz durum, lila hedefler; mavi/turkuaz veri durumu veya eski/eksik veri uyarısı içindir.
-• Seçilen coin bölümünde koşullu giriş bölgesi, kırılım seviyesi, zarar durdurma ve en fazla üç teknik hedef bulunur. Uzun satırları üst/alt yatay kaydırma çubuklarıyla, içeriği sağdaki dikey çubukla kaydırabilirsiniz.
+• Seçilen coin bölümünde koşullu giriş bölgesi, kırılım seviyesi, zarar durdurma ve en fazla üç teknik hedef bulunur. Uzun satırları alttaki yatay kaydırma çubuğuyla, içeriği sağdaki dikey çubukla kaydırabilirsiniz.
 • Eski veya eksik veri güçlü fırsat değerlendirmesini geçersiz kılabilir. Fiyat giriş bölgesini geçtiyse “kovalama yok” uyarısını dikkate alın.
 
 ALARMLAR VE ÖNEMLİ NOT
