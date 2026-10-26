@@ -102,6 +102,19 @@ jobs:
           RELAY_URL: https://firsat-kontrol-market-relay.onrender.com
         run: npm run smoke --prefix render_relay
 
+      - name: Canlı BtcTurk USDT fiyat doğrulaması
+        run: |
+          python - <<'PY'
+          from ortak_piyasa import fetch_btcturk_usdt_last_prices
+
+          prices = fetch_btcturk_usdt_last_prices(timeout=8.0)
+          if not prices:
+              raise SystemExit("BtcTurk güncel USDT fiyatı alınamadı.")
+          sample = list(sorted(prices.items()))[:3]
+          print(f"BtcTurk canlı USDT fiyatı alınan parite: {len(prices)}")
+          print(f"Örnek fiyatlar: {sample}")
+          PY
+
       - name: Her main gönderiminde Sürüm 00 ZIP ve SHA-256 oluştur
         run: |
           python - <<'PY'
