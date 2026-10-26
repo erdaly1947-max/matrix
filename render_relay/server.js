@@ -311,7 +311,7 @@ async function readLimitedBody(request, maxBytes) {
 function bearerToken(request) {
   const value = request.headers.authorization;
   if (typeof value !== "string" || value.length > 8_192) return "";
-  const match = /^Bearer ([^\\s]+)$/.exec(value);
+  const match = /^Bearer ([^\s]+)$/.exec(value);
   return match?.[1] || "";
 }
 
@@ -357,7 +357,7 @@ async function handleReportUpload(request, response, route) {
   }
 
   const declaredLength = request.headers["content-length"];
-  if (declaredLength !== undefined && (!/^\\d+$/.test(String(declaredLength)) || Number(declaredLength) > REPORT_MAX_BODY_BYTES)) {
+  if (declaredLength !== undefined && (!/^\d+$/.test(String(declaredLength)) || Number(declaredLength) > REPORT_MAX_BODY_BYTES)) {
     jsonResponse(response, 413, { ok: false, error: "Rapor boyut sınırını aşıyor." });
     request.resume();
     return;
