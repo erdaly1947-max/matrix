@@ -79,6 +79,20 @@ class PanelUIContractTests(unittest.TestCase):
         self.assertIn("Seviye Takibi: Kapalı", source)
         self.assertIn("motor durdu", source)
 
+    def test_distribution_packaging_requires_explicit_marker(self):
+        workflow_path = ROOT / ".github" / "workflows" / "validate-and-package.yml"
+        workflow = workflow_path.read_text(encoding="utf-8")
+        condition = "if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[package]')"
+        for step in (
+            "Her main gönderiminde Sürüm 00 ZIP ve SHA-256 oluştur",
+            "Kalıcı GitHub Release indirme dosyalarını otomatik güncelle",
+            "GitHub Actions artifact'i de yayımla",
+        ):
+            step_line = f"- name: {step}"
+            self.assertIn(step_line, workflow)
+            after_step = workflow.split(step_line, 1)[1].split("\\n", 3)
+            self.assertTrue(any(condition in line for line in after_step[:2]), step)
+
 
 if __name__ == "__main__":
     unittest.main()
