@@ -36,6 +36,8 @@ from analysis_report import (
     upload_analysis_report,
 )
 
+from ortak_piyasa import fetch_btcturk_usdt_last_prices
+
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LOG_DIR = ROOT / "logs"
@@ -135,6 +137,15 @@ def _format_price(value: Any) -> str:
     if number is None or number <= 0:
         return "—"
     return f"{number:.10g}"
+
+
+def _format_btcturk_price(prices: dict[str, float], symbol: str, updated_at: float | None) -> str:
+    if updated_at is None:
+        return "bekleniyor"
+    if time.time() - updated_at > 90:
+        return "veri eski"
+    value = _safe_float(prices.get(symbol.upper()))
+    return _format_price(value) if value is not None and value > 0 else "veri yok"
 
 
 def _format_age(seconds: Any) -> str:
@@ -405,6 +416,10 @@ class ControlPanel(tk.Tk):
         self._level_crossed: set[str] = set()
         self._log_read_thread: threading.Thread | None = None
         self._last_error_state_stamp: str | None = None
+        self.btcturk_prices: dict[str, float] = {}
+        self.btcturk_prices_updated_at: float | None = None
+        self.btcturk_price_error: str | None = None
+        self._btcturk_price_stop = threading.Event()
 
         self.status_var = tk.StringVar(value="Motor durduruldu")
         self.universe_var = tk.StringVar(value="Tarama evreni: —")
@@ -417,6 +432,7 @@ class ControlPanel(tk.Tk):
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(250, self._poll)
+        threading.Thread(target=self._btcturk_price_loop, name="btcturk-price-refresh", daemon=True).start()
         LOGGER.info("Panel açıldı. Başlangıç kodu: %s", ENGINE_PATH.name)
 
     def _build_ui(self) -> None:
@@ -509,15 +525,17 @@ class ControlPanel(tk.Tk):
 
         tree_frame = ttk.Frame(left)
         tree_frame.pack(fill="both", expand=True)
-        columns = ("star", "symbol", "route", "phase", "price", "btc_relative", "btc_correlation", "timeframe", "freshness", "decision")
+        columns = ("star", "symbol", "route", "phase", "price", "btcturk_price", "score", "btc_relative", "btc_correlation", "timeframe", "freshness", "decision")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", selectmode="browse")
         headers = {
             "star": "★", "symbol": "Coin / Parite", "route": "Keşif yolu", "phase": "A/B/C",
-            "price": "Binance fiyatı", "btc_relative": "BTC göreli 1h", "btc_correlation": "BTC corr 1h",
+            "price": "Binance fiyatı", "btcturk_price": "BtcTurk fiyatı", "score": "Puan",
+            "btc_relative": "BTC göreli 1h", "btc_correlation": "BTC corr 1h",
             "timeframe": "Zaman dilimi", "freshness": "Veri", "decision": "Karar sınıfı",
         }
-        widths = {"star": 35, "symbol": 115, "route": 115, "phase": 55, "price": 105,
-                  "btc_relative": 95, "btc_correlation": 90, "timeframe": 85, "freshness": 110, "decision": 150}
+        widths = {"star": 30, "symbol": 100, "route": 95, "phase": 48, "price": 90,
+                  "btcturk_price": 90, "score": 55, "btc_relative": 78, "btc_correlation": 75,
+                  "timeframe": 72, "freshness": 95, "decision": 135}
         for col in columns:
             self.tree.heading(col, text=headers[col])
             self.tree.column(col, width=widths[col], minwidth=35,
@@ -733,6 +751,44 @@ class ControlPanel(tk.Tk):
             self.output_queue.put("__UNIVERSE_RESULT__" + json.dumps(result, ensure_ascii=False))
         threading.Thread(target=worker, daemon=True, name="universe-refresh").start()
 
+    def _btcturk_price_loop(self) -> None:
+        while not self._btcturk_price_stop.is_set():
+            try:
+                prices = fetch_btcturk_usdt_last_prices(timeout=4.5)
+                sampled_at = time.time()
+                error = None
+            except Exception as exc:
+                prices = None
+                sampled_at = None
+                error = f"{type(exc).__name__}: {str(exc)[:240]}"
+            try:
+                self.after(0, self._apply_btcturk_prices, prices, sampled_at, error)
+            except tk.TclError:
+                return
+            if self._btcturk_price_stop.wait(30):
+                return
+
+    def _apply_btcturk_prices(
+        self, prices: dict[str, float] | None, sampled_at: float | None, error: str | None
+    ) -> None:
+        if prices is not None:
+            self.btcturk_prices = prices
+            self.btcturk_prices_updated_at = sampled_at
+            self.btcturk_price_error = None
+        else:
+            self.btcturk_price_error = error or "BtcTurk fiyatı alınamadı."
+        for key, row in self.current_candidates.items():
+            if key not in self.tree.get_children(""):
+                continue
+            symbol = str(row.get("symbol") or row.get("base_asset") or "")
+            self.tree.set(key, "btcturk_price", _format_btcturk_price(
+                self.btcturk_prices, symbol, self.btcturk_prices_updated_at
+            ))
+        if error:
+            LOGGER.warning("BtcTurk fiyat güncellemesi başarısız: %s", error)
+        elif prices is not None:
+            LOGGER.info("BtcTurk USDT fiyatları güncellendi: %d parite", len(prices))
+
     def _poll(self) -> None:
         self._drain_output_queue()
         if self.engine:
@@ -745,6 +801,7 @@ class ControlPanel(tk.Tk):
                 if not self.close_after_stop:
                     self.status_var.set("Motor durduruldu" if return_code == 0 else f"Motor kapandı (çıkış kodu {return_code})")
                 if self.close_after_stop:
+                    self._btcturk_price_stop.set()
                     self.destroy()
                     return
             elif self.stop_requested_epoch and time.time() - self.stop_requested_epoch > 30:
@@ -901,6 +958,8 @@ class ControlPanel(tk.Tk):
             self.tree.insert("", "end", iid=key, values=(
                 "★" if strong else "", symbol, route, phase,
                 _format_price(row.get("latest_price", row.get("price"))),
+                _format_btcturk_price(self.btcturk_prices, str(row.get("symbol") or row.get("base_asset") or ""), self.btcturk_prices_updated_at),
+                row.get("opportunity_score", row.get("score_0_100", "—")),
                 _format_btc_relative(row), _format_btc_correlation(row),
                 row.get("phase_timeframe") or row.get("timeframe") or "—",
                 freshness, decision,
@@ -1415,6 +1474,7 @@ class ControlPanel(tk.Tk):
             self.stop_engine()
             self.status_var.set("Motor kapanması bekleniyor…")
             return
+        self._btcturk_price_stop.set()
         self.destroy()
 
 
