@@ -141,7 +141,7 @@ def _format_price(value: Any) -> str:
 
 def _format_btcturk_price(prices: dict[str, float], symbol: str, updated_at: float | None) -> str:
     if updated_at is None:
-        return "bekleniyor"
+        return "veri yok"
     if time.time() - updated_at > 90:
         return "veri eski"
     value = _safe_float(prices.get(symbol.upper()))
