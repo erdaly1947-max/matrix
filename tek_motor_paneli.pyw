@@ -583,7 +583,7 @@ class ControlPanel(tk.Tk):
         self.stop_button = PillButton(stop_group, text="Motoru Durdur", command=self.stop_engine, role="action", state="disabled", width=10)
         self.stop_button.pack(fill="x")
         ttk.Label(stop_group, textvariable=self.stop_time_var, font=("Segoe UI", 8)).pack()
-        self.update_list_button = PillButton(controls, text="Haritayı Güncelle", command=self.update_universe, role="action")
+        self.update_list_button = PillButton(controls, text="Pariteleri Güncelle", command=self.update_universe, role="action")
         self.update_list_button.pack(side="left", padx=5)
         PillButton(controls, text="Kayıtlar", command=self.open_logs, role="action").pack(side="left", padx=5)
         report_controls = ttk.Frame(self, padding=(12, 0, 12, 7))
