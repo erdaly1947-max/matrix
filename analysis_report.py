@@ -23,21 +23,21 @@ METRIC_FIELDS = (
     "candle_start_ms", "close_time_ms", "close",
     "one_bar_change_pct", "three_bar_change_pct", "positive_return_z",
     "current_volume", "volume_q60_history", "volume_q75_history",
-    "volume_history_complete", "current_volume_valid", "volume_early",
-    "volume_unusual", "volume_persistence_count",
+    "volume_measurement_source", "volume_history_complete", "volume_history_sample_count",
+    "current_volume_valid", "volume_persistence_history_complete", "recent_volume_window_complete",
+    "volume_early", "volume_unusual", "volume_persistence_count",
     "directional_structure", "breakout_level", "previous_resistance",
-    "previous_support", "typical_candle_range", "distance_to_resistance_atr",
-    "compression_ratio", "compression", "rising_lows", "near_resistance",
-    "continuity", "continuity_volume_confirmed", "retest_hold",
-    "ema_fast", "ema_slow", "ema_bullish", "ema_fast_slope_up",
-    "ema_slow_slope_up", "price_above_ema_fast", "price_above_ema_slow",
-    "ema_confirmed_bullish", "ema_cross_up",
-    "macd_line", "macd_signal", "macd_histogram", "macd_histogram_rising",
-    "rsi_14", "rsi_zone", "atr_14", "plus_di_14", "minus_di_14",
-    "adx_14", "dmi_direction", "trend_direction",
-    "support_level", "resistance_level", "nearest_support",
-    "nearest_resistance", "fib_support", "fib_resistance",
-    "fibonacci_levels", "volume_ratio", "relative_volume",
+    "previous_support", "typical_candle_range", "distance_to_resistance_typical_range",
+    "distance_to_resistance_atr", "compression_ratio", "compression", "rising_lows",
+    "near_resistance", "continuity", "continuity_volume_confirmed", "retest_hold",
+    "ema_fast_period", "ema_slow_period", "ema_fast", "ema_slow", "ema_bullish",
+    "ema_fast_slope_up", "ema_slow_slope_up", "price_above_ema_fast", "price_above_ema_slow",
+    "ema_confirmed_bullish", "ema_cross_up", "macd_fast_period", "macd_slow_period",
+    "macd_signal_period", "macd_line", "macd_signal", "macd_histogram", "macd_histogram_rising",
+    "rsi_period", "rsi_14", "rsi_zone", "atr_period", "atr_14", "adx_period",
+    "plus_di_14", "minus_di_14", "adx_14", "dmi_direction", "trend_direction",
+    "confirmed_pivot_count", "support_level", "resistance_level", "nearest_support",
+    "nearest_resistance", "fib_support", "fib_resistance", "volume_ratio", "relative_volume",
     "volume_participation", "momentum_score", "trend_score",
 )
 
@@ -90,6 +90,54 @@ def _compact_timeframes(value: Any) -> dict[str, Any]:
                     str(k): v for k, v in list(fib.items())[:20]
                     if isinstance(v, (str, int, float, bool)) or v is None
                 }
+            # Preserve bounded, decision-relevant nested structures from the real engine schema.
+            zones = metrics.get("support_resistance_zones")
+            if isinstance(zones, list):
+                compact_zones = []
+                zone_fields = (
+                    "kind", "center", "lower", "upper", "touch_count", "strong",
+                    "first_touch_ms", "last_touch_ms", "pivot_count", "timeframe",
+                )
+                for zone in zones[:16]:
+                    if isinstance(zone, dict):
+                        compact_zone = _copy_known(zone, zone_fields)
+                        if compact_zone:
+                            compact_zones.append(compact_zone)
+                if compact_zones:
+                    selected["support_resistance_zones"] = compact_zones
+
+            channel = metrics.get("confirmed_channel")
+            if isinstance(channel, dict):
+                compact_channel = _copy_known(
+                    channel,
+                    (
+                        "status", "available", "direction", "upper_now", "lower_now",
+                        "upper_slope_per_bar", "lower_slope_per_bar", "position_0_to_1",
+                        "pivot_high_count", "pivot_low_count", "slope_divergence_atr", "timeframe",
+                    ),
+                )
+                if compact_channel:
+                    selected["confirmed_channel"] = compact_channel
+
+            fib = metrics.get("fibonacci")
+            if isinstance(fib, dict):
+                compact_fib = _copy_known(
+                    fib,
+                    (
+                        "status", "available", "direction", "swing_low", "swing_high",
+                        "swing_range", "low_timestamp_ms", "high_timestamp_ms", "timeframe",
+                    ),
+                )
+                for nested_name in ("retracements", "extensions"):
+                    levels = fib.get(nested_name)
+                    if isinstance(levels, dict):
+                        compact_fib[nested_name] = {
+                            str(key): value for key, value in list(levels.items())[:12]
+                            if isinstance(value, (str, int, float, bool)) or value is None
+                        }
+                if compact_fib:
+                    selected["fibonacci"] = compact_fib
+
             if selected:
                 compact["metrics"] = selected
         result[timeframe] = compact

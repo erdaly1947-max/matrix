@@ -24,7 +24,13 @@ class AnalysisReportTests(unittest.TestCase):
                     "phase": "B",
                     "data_sufficient": True,
                     "findings": ["yükselen dipler"],
-                    "metrics": {"rsi_14": 61.2, "macd_histogram": 0.02, "unused_blob": "drop"},
+                    "metrics": {"rsi_14": 61.2, "macd_histogram": 0.02, "unused_blob": "drop",
+                    "fibonacci": {"status": "TEYİTLİ SALINIM", "available": True, "direction": "down",
+                        "retracements": {"retracement_0_618": 1.78}, "raw_blob": "drop"},
+                    "support_resistance_zones": [{"kind": "support", "center": 1.2, "lower": 1.19,
+                        "upper": 1.21, "touch_count": 3, "strong": True, "raw_blob": "drop"}],
+                    "confirmed_channel": {"status": "TEYİTLİ KANAL", "available": True,
+                        "direction": "YÜKSELEN", "upper_now": 1.4, "lower_now": 1.2, "raw_blob": "drop"}},
                 }},
             }],
         }
@@ -39,6 +45,13 @@ class AnalysisReportTests(unittest.TestCase):
         self.assertNotIn("runtime_diagnostics", report)
         self.assertEqual(candidate["timeframes"]["1h"]["metrics"]["rsi_14"], 61.2)
         self.assertNotIn("unused_blob", candidate["timeframes"]["1h"]["metrics"])
+        metrics = candidate["timeframes"]["1h"]["metrics"]
+        self.assertEqual(metrics["fibonacci"]["retracements"]["retracement_0_618"], 1.78)
+        self.assertNotIn("raw_blob", metrics["fibonacci"])
+        self.assertEqual(metrics["support_resistance_zones"][0]["center"], 1.2)
+        self.assertNotIn("raw_blob", metrics["support_resistance_zones"][0])
+        self.assertEqual(metrics["confirmed_channel"]["direction"], "YÜKSELEN")
+        self.assertNotIn("raw_blob", metrics["confirmed_channel"])
 
     def test_gzip_round_trip_and_size_reduction(self):
         state = {"candidates": [{"symbol": "ABCUSDT", "findings": ["yükselen dip"] * 100}]}
