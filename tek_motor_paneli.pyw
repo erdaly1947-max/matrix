@@ -986,7 +986,9 @@ class ControlPanel(tk.Tk):
                 "FIRSAT GEÇERSİZ": "GEÇERSİZ",
                 "GÜÇLÜ FIRSAT": "GÜÇLÜ FIRSAT",
             }.get(decision.upper(), decision)
-            strong = row.get("strong_opportunity_qualified") is True and row.get("strong_alarm_eligible") is True
+            strong = (row.get("strong_opportunity_qualified") is True
+                      and row.get("strong_alarm_eligible") is True
+                      and freshness == "CANLI AKIŞ GÜNCEL")
             if strong:
                 tags = ("strong", "decision_strong")
             elif freshness != "CANLI AKIŞ GÜNCEL":
