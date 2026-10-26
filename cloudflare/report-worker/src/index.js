@@ -191,6 +191,52 @@ export default {
       }, 201);
     }
 
+    if (request.method === "GET" && url.pathname === "/chatgpt/analysis") {
+      const record = await env.ANALYSIS_REPORTS.getWithMetadata(REPORT_KEYS.analysis, "arrayBuffer");
+      if (!record || !record.value) {
+        return jsonResponse({ ok: false, error: "Analiz raporu bulunamadı." }, 404);
+      }
+      try {
+        const report = await readGzipJson(record.value);
+        const fields = [
+          "symbol", "base_asset", "quote_asset", "phase", "state", "phase_timeframe",
+          "latest_price", "findings", "evidence_groups", "relative_strength_vs_btc_pct_points",
+          "btc_return_correlation", "missing_checks", "source_market_pair", "btcturk_market_pair",
+          "category_status", "data_note", "risk_plan", "data_freshness", "opportunity_score",
+          "score_0_100", "final_decision", "decision_class", "decision_reason",
+          "strong_opportunity_qualified", "strong_opportunity_gate_reasons", "liquidity_assessment"
+        ];
+        const candidates = (Array.isArray(report.candidates) ? report.candidates : []).map((candidate) => {
+          const compact = {};
+          for (const field of fields) {
+            if (candidate && Object.prototype.hasOwnProperty.call(candidate, field)) compact[field] = candidate[field];
+          }
+          return compact;
+        });
+        return jsonResponse({
+          report_type: report.report_type,
+          schema_version: report.schema_version,
+          generated_at_utc: report.generated_at_utc,
+          source_state_generated_at_utc: report.source_state_generated_at_utc,
+          application_version: report.application_version,
+          radar: report.radar,
+          universe: report.universe,
+          market_context: report.market_context,
+          market_context_freshness: report.market_context_freshness,
+          market_context_warning: report.market_context_warning,
+          candidate_count: report.candidate_count,
+          candidates,
+          interpretation_limits: report.interpretation_limits
+        }, 200, {
+          "X-Report-SHA256": record.metadata?.sha256 || "",
+          "X-Report-Generated-At": record.metadata?.generated_at_utc || "",
+          "X-Report-Type": "analysis-summary"
+        });
+      } catch {
+        return jsonResponse({ ok: false, error: "Analiz özeti oluşturulamadı." }, 500);
+      }
+    }
+
     const readPath = url.pathname.startsWith("/read/") ? `/${url.pathname.slice(6)}` : url.pathname;
     const jsonReadRoute = JSON_READ_ROUTES[readPath];
     if (request.method === "GET" && jsonReadRoute) {
