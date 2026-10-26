@@ -355,7 +355,7 @@ ZIP'e dağıtım için gerekli masaüstü dosyaları ve market_data_relay.json e
 
 Paneldeki **Analiz Raporu** butonu, motor tanı raporlarından ayrı bir teknik analiz özeti üretir. Aday puanları ve kararları, zaman dilimi bulguları, seçilmiş teknik göstergeler, BTC piyasa bağlamı, veri yeterliliği ve koşullu giriş/stop/hedef planları rapora dahil edilir. Ham mum dizileri ve motor tanılama alanları bu rapora dahil edilmez.
 
-Rapor JSON olarak hazırlanır ve gzip ile sıkıştırılır. Yerel kopya `reports/analiz_raporu_*.json.gz` biçiminde saklanır. Sunucu bağlantısı yapılandırılmamışsa panel yalnızca yerel dosyayı üretir; piyasa taramasını etkilemez. Yapılandırılmışsa rapor HTTPS üzerinden, yetkilendirilmiş yükleme uç noktasına arka planda gönderilir.
+Analiz raporu JSON olarak hazırlanır ve gzip ile sıkıştırılır. Yerel kopya `reports/analiz_raporu_*.json.gz` biçiminde saklanır. Günlük durum raporunun JSON, Markdown ve tanı dosyaları da ayrı ayrı gzip ile sıkıştırılır; Markdown metni kolay inceleme için panoya normal metin olarak kopyalanır. Devir ZIP'i bu sıkıştırılmış rapor dosyalarını ve sıkıştırılmış tanı/günlük eklerini içerir. Sunucu bağlantısı yapılandırılmamışsa panel yalnızca yerel dosyayı üretir; piyasa taramasını etkilemez. Yapılandırılmışsa rapor HTTPS üzerinden, yetkilendirilmiş yükleme uç noktasına arka planda gönderilir.
 
 Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worker/README.md). Örnek masaüstü ayarı: [chatgpt_baglanti.example.json](chatgpt_baglanti.example.json). Gerçek erişim bilgileri `chatgpt_baglanti.local.json` içinde tutulmalı ve GitHub'a gönderilmemelidir.
 
@@ -364,8 +364,8 @@ Bağlantı mimarisi ve ilk kurulum adımları: [Cloudflare rapor Worker kılavuz
 
 ## Üç raporlama düğmesi
 
-- **Günlük Rapor Oluştur:** Programın genel durumunu ve çalışma özetini yerel rapor dosyalarına kaydeder.
-- **Sorun Giderme ve Devir Paketi (ZIP):** Sorun incelemek veya çalışmayı başka bir sohbet odasında sürdürmek için raporları, tanılama özetini, sınırlı günlük kayıtlarını ve bütünlük listesini tek ZIP dosyasında toplar.
-- **Analiz Raporu Gönder:** Radarın coin analiz sonuçlarını sıkıştırılmış rapor olarak yerel dosyaya kaydeder ve bağlantı ayarlanmışsa sunucuya gönderir. Bu rapor motor tanılamasını veya günlük kayıtlarını içermez.
+- **Günlük Rapor Oluştur:** Programın genel durumunu ve çalışma özetini üç gzip dosyası olarak yerel reports klasörüne kaydeder: `.json.gz`, `.md.gz` ve `_tani.json.gz`. Markdown metni ayrıca panoya okunabilir metin olarak kopyalanır.
+- **Sorun Giderme ve Devir Paketi (ZIP):** Sıkıştırılmış günlük raporları, gzip biçimindeki tanı özeti ve sınırlı günlük kaydını, bütünlük manifestiyle birlikte tek ZIP dosyasında toplar.
+- **Analiz Raporu Gönder:** Radarın coin analiz sonuçlarını `.json.gz` biçiminde yerel dosyaya kaydeder ve bağlantı ayarlanmışsa aynı sıkıştırılmış içeriği sunucuya gönderir. Bu rapor motor tanılamasını veya günlük kayıtlarını içermez.
 
 Bu üç düğme farklı amaçlara hizmet eder; birbirlerinin yerine geçmez.
