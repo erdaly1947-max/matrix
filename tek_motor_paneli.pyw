@@ -400,7 +400,7 @@ class ControlPanel(tk.Tk):
         volume = _safe_float(panel.get("alarm_volume", 55))
         self.alarm_volume = int(max(0, min(100, volume if volume is not None else 55)))
         brightness = _safe_float(panel.get("panel_brightness", 85))
-        self.panel_brightness = int(max(60, min(100, brightness if brightness is not None else 85)))
+        self.panel_brightness = int(max(0, min(100, brightness if brightness is not None else 85)))
 
         self.engine: subprocess.Popen[str] | None = None
         self.engine_started_epoch: float | None = None
@@ -451,9 +451,9 @@ class ControlPanel(tk.Tk):
         style.configure("BTC.TLabel", font=("Segoe UI", 9, "bold"))
         style.configure("Treeview", rowheight=27, font=("Segoe UI", 9), borderwidth=0)
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), padding=(4, 5))
-        style.configure("TScale", troughcolor="#b9e5e3")
-        style.map("Treeview", background=[("selected", "#d6dce2")],
-                  foreground=[("selected", "#263746")])
+        style.configure("TScale", troughcolor="#40c9c2")
+        style.map("Treeview", background=[("selected", "#454b52")],
+                  foreground=[("selected", "#ffffff")])
 
         header = ttk.Frame(self, padding=(12, 10, 12, 6))
         header.pack(fill="x")
@@ -503,26 +503,30 @@ class ControlPanel(tk.Tk):
 
         sound = ttk.Frame(controls)
         sound.pack(side="right")
-        self.alarm_button = ttk.Button(sound, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm)
+        sound_controls = ttk.Frame(sound)
+        sound_controls.pack(anchor="e")
+        self.alarm_button = ttk.Button(sound_controls, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm)
         self.alarm_button.pack(side="left", padx=6)
-        ttk.Button(sound, text="Fırsat Testi", command=self._test_sound).pack(side="left", padx=5)
-        ttk.Label(sound, text="Ses").pack(side="left")
-        self.volume_scale = ttk.Scale(sound, from_=0, to=100, orient="horizontal", length=110,
+        ttk.Button(sound_controls, text="Ses Testi", command=self._test_sound).pack(side="left", padx=5)
+        ttk.Label(sound_controls, text="Ses").pack(side="left")
+        self.volume_scale = ttk.Scale(sound_controls, from_=0, to=100, orient="horizontal", length=110,
                                       variable=self.volume_var, command=self._volume_moved)
         self.volume_scale.pack(side="left", padx=(5, 0))
         self.volume_scale.bind("<ButtonRelease-1>", self._save_volume)
         self.volume_scale.bind("<KeyRelease>", self._save_volume)
-        self.volume_label = ttk.Label(sound, text=f"{self.alarm_volume}%", width=4)
+        self.volume_label = ttk.Label(sound_controls, text=f"{self.alarm_volume}%", width=4)
         self.volume_label.pack(side="left", padx=(4, 0))
-        ttk.Label(sound, text="Panel ışığı").pack(side="left", padx=(5, 0))
+        brightness_controls = ttk.Frame(sound)
+        brightness_controls.pack(anchor="e", pady=(3, 0))
+        ttk.Label(brightness_controls, text="Panel ışığı").pack(side="left", padx=(5, 0))
         self.brightness_scale = ttk.Scale(
-            sound, from_=60, to=100, orient="horizontal", length=78,
+            brightness_controls, from_=0, to=100, orient="horizontal", length=110,
             variable=self.brightness_var, command=self._brightness_moved,
         )
         self.brightness_scale.pack(side="left", padx=(4, 0))
         self.brightness_scale.bind("<ButtonRelease-1>", self._save_brightness)
         self.brightness_scale.bind("<KeyRelease>", self._save_brightness)
-        self.brightness_label = ttk.Label(sound, text=f"{self.panel_brightness}%", width=4)
+        self.brightness_label = ttk.Label(brightness_controls, text=f"{self.panel_brightness}%", width=4)
         self.brightness_label.pack(side="left", padx=(4, 0))
 
         pane = ttk.Panedwindow(self, orient="horizontal")
@@ -555,32 +559,32 @@ class ControlPanel(tk.Tk):
         tree_frame.rowconfigure(0, weight=1)
         tree_frame.columnconfigure(0, weight=1)
         self.tree.bind("<<TreeviewSelect>>", self._selection_changed)
-        self.tree.tag_configure("strong", background="#e1f0e7", foreground="#176b37")
-        self.tree.tag_configure("stale", foreground="#087f8c")
-        self.tree.tag_configure("phase_a", foreground="#c62828")
-        self.tree.tag_configure("phase_b", foreground="#9a7000")
-        self.tree.tag_configure("phase_c", foreground="#176b37")
-        self.tree.tag_configure("decision_strong", foreground="#176b37")
-        self.tree.tag_configure("decision_no_trade", foreground="#c62828")
-        self.tree.tag_configure("decision_wait", foreground="#9a7000")
-        self.tree.tag_configure("decision_watch", foreground="#2463a6")
-        self.tree.tag_configure("decision_early", foreground="#8b5fbf")
-        self.tree.tag_configure("decision_breakout", foreground="#008b8b")
+        self.tree.tag_configure("strong", background="#294b38", foreground="#8df0ad")
+        self.tree.tag_configure("stale", foreground="#40e5ec")
+        self.tree.tag_configure("phase_a", foreground="#ff7777")
+        self.tree.tag_configure("phase_b", foreground="#ffd166")
+        self.tree.tag_configure("phase_c", foreground="#8df0ad")
+        self.tree.tag_configure("decision_strong", foreground="#8df0ad")
+        self.tree.tag_configure("decision_no_trade", foreground="#ff7777")
+        self.tree.tag_configure("decision_wait", foreground="#ffd166")
+        self.tree.tag_configure("decision_watch", foreground="#8ab4f8")
+        self.tree.tag_configure("decision_early", foreground="#d8b4fe")
+        self.tree.tag_configure("decision_breakout", foreground="#40e5ec")
 
         ttk.Label(right, text="Seçilen coin ve kanıtlar", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
-        self.details = tk.Text(right, wrap="word", font=("Consolas", 9), state="disabled", height=22)
-        self.details.tag_configure("scenario", foreground="#18794e")
-        self.details.tag_configure("entry", foreground="#3b4652")
-        self.details.tag_configure("breakout", foreground="#9a7000")
-        self.details.tag_configure("stop", foreground="#c62828")
-        self.details.tag_configure("target", foreground="#8053a8")
-        self.details.tag_configure("stale", foreground="#087f8c")
-        self.details.tag_configure("current", foreground="#234a74")
-        self.details.tag_configure("decision_good", foreground="#176b37")
-        self.details.tag_configure("decision_wait", foreground="#9a7000")
-        self.details.tag_configure("decision_bad", foreground="#c62828")
-        self.details.tag_configure("decision_early", foreground="#8053a8")
-        self.details.tag_configure("decision_watch", foreground="#2463a6")
+        self.details = tk.Text(right, wrap="word", font=("Segoe UI", 10), state="disabled", height=22)
+        self.details.tag_configure("scenario", foreground="#8df0ad")
+        self.details.tag_configure("entry", foreground="#ffffff")
+        self.details.tag_configure("breakout", foreground="#ffd166")
+        self.details.tag_configure("stop", foreground="#ff7777")
+        self.details.tag_configure("target", foreground="#d8b4fe")
+        self.details.tag_configure("stale", foreground="#40e5ec")
+        self.details.tag_configure("current", foreground="#8ab4f8")
+        self.details.tag_configure("decision_good", foreground="#8df0ad")
+        self.details.tag_configure("decision_wait", foreground="#ffd166")
+        self.details.tag_configure("decision_bad", foreground="#ff7777")
+        self.details.tag_configure("decision_early", foreground="#d8b4fe")
+        self.details.tag_configure("decision_watch", foreground="#8ab4f8")
         detail_scroll = ttk.Scrollbar(right, orient="vertical", command=self.details.yview)
         self.details.configure(yscrollcommand=detail_scroll.set)
         self.details.pack(side="left", fill="both", expand=True)
@@ -595,18 +599,22 @@ class ControlPanel(tk.Tk):
         self._apply_brightness()
 
     def _apply_brightness(self) -> None:
-        """Adjust only the light grayscale UI brightness; no dark theme is used."""
-        value = max(60, min(100, int(self.panel_brightness)))
-        gray = round(210 + (value - 60) * 34 / 40)
+        """Adjust neutral panel gray from dark to medium gray without muting semantic accents."""
+        value = max(0, min(100, int(self.panel_brightness)))
+        gray = round(68 + value * 49 / 100)  # #444 at 0%; #757575 at 100%.
         background = f"#{gray:02x}{gray:02x}{gray:02x}"
-        foreground = "#444444"
+        foreground = "#ffffff"
         style = ttk.Style(self)
         self.configure(background=background)
         for widget_style in ("TFrame", "TLabel", "TLabelframe", "TLabelframe.Label", "TButton"):
             style.configure(widget_style, background=background, foreground=foreground)
+        style.map("TButton", foreground=[("disabled", "#c5c5c5"), ("active", "#ffffff")],
+                  background=[("active", "#606060")])
         style.configure("Treeview", background=background, fieldbackground=background, foreground=foreground)
-        style.configure("Treeview.Heading", background="#e4e9ed", foreground="#334451")
-        style.configure("TScale", troughcolor="#b9e5e3")
+        style.configure("Treeview.Heading", background="#505050", foreground="#ffffff")
+        style.map("Treeview", background=[("selected", "#454b52")],
+                  foreground=[("selected", "#ffffff")])
+        style.configure("TScale", troughcolor="#40c9c2")
         for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
             if widget is not None:
                 widget.configure(background=background, foreground=foreground, insertbackground=foreground)
@@ -1133,7 +1141,7 @@ class ControlPanel(tk.Tk):
 
     def _brightness_moved(self, _value: str | None = None) -> None:
         try:
-            self.panel_brightness = max(60, min(100, int(float(self.brightness_var.get()))))
+            self.panel_brightness = max(0, min(100, int(float(self.brightness_var.get()))))
         except (ValueError, tk.TclError):
             self.panel_brightness = 85
         self._apply_brightness()
