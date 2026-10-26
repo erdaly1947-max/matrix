@@ -541,8 +541,8 @@ class ControlPanel(tk.Tk):
             "star": "★", "symbol": "Coin", "price": "Binance USDT", "btcturk_price": "BtcTurk USDT",
             "score": "Puan", "timeframe": "Süre", "phase": "A/B/C", "freshness": "Veri", "decision": "Son karar",
         }
-        widths = {"star": 28, "symbol": 88, "price": 88, "btcturk_price": 88, "score": 48,
-                  "timeframe": 55, "phase": 42, "freshness": 83, "decision": 112}
+        widths = {"star": 24, "symbol": 76, "price": 82, "btcturk_price": 82, "score": 44,
+                  "timeframe": 48, "phase": 38, "freshness": 78, "decision": 100}
         for col in columns:
             self.tree.heading(col, text=headers[col])
             self.tree.column(col, width=widths[col], minwidth=32,
@@ -1026,7 +1026,7 @@ class ControlPanel(tk.Tk):
             key = self._candidate_key(row)
             live.add(key)
             if self._alarm_primed and key not in self._previous_strong_keys and self.alarm_enabled and self.alarm_volume > 0:
-                self._play_alert()
+                self._play_alert("opportunity")
                 LOGGER.info("Yeni güçlü fırsat alarmı: %s (%s)", key, phase)
         self._previous_strong_keys = live
         self._alarm_primed = True
@@ -1084,12 +1084,21 @@ class ControlPanel(tk.Tk):
         except Exception as exc:
             LOGGER.exception("Panel ses ayarları kaydedilemedi: %s", exc)
 
-    def _write_alarm_wave(self) -> Path:
-        """Create a volume-scaled PCM tone; Windows playback supports actual amplitude scaling."""
-        path = RUN_DIR / "panel_alert.wav"
+    def _write_alarm_wave(self, kind: str = "opportunity") -> Path:
+        """Create a volume-scaled, event-specific PCM alert for Windows."""
+        path = RUN_DIR / ("panel_stop_alert.wav" if kind == "stop" else "panel_opportunity_alert.wav")
         sample_rate = 22050
         amplitude = int(26000 * (self.alarm_volume / 100.0))
-        segments = [(880.0, 0.12), (0.0, 0.05), (1175.0, 0.20)]
+        if kind == "stop":
+            # Four short, high-pitched notes distinguish a stop-loss crossing.
+            segments = []
+            for _ in range(4):
+                segments.extend([(1568.0, 0.085), (0.0, 0.075)])
+        else:
+            # Three paired chimes identify a newly confirmed strong opportunity.
+            segments = []
+            for _ in range(3):
+                segments.extend([(880.0, 0.09), (1175.0, 0.13), (0.0, 0.10)])
         data = bytearray()
         for frequency, duration in segments:
             count = int(sample_rate * duration)
@@ -1104,19 +1113,20 @@ class ControlPanel(tk.Tk):
             wav.writeframes(bytes(data))
         return path
 
-    def _play_alert(self) -> None:
+    def _play_alert(self, kind: str = "opportunity") -> None:
         if not self.alarm_enabled or self.alarm_volume <= 0:
             return
         if os.name == "nt":
             try:
                 import winsound
-                path = self._write_alarm_wave()
+                path = self._write_alarm_wave(kind)
                 winsound.PlaySound(str(path), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
                 return
             except (OSError, RuntimeError, wave.Error):
                 pass
         try:
-            self.bell()
+            for _ in range(4 if kind == "stop" else 3):
+                self.bell()
         except tk.TclError:
             pass
 
@@ -1213,7 +1223,8 @@ class ControlPanel(tk.Tk):
             for event in events:
                 self._log_line(f"SEVİYE ALARMI | {key} | {event} | fiyat={_format_price(price)}")
             if self.alarm_enabled:
-                self._play_alert()
+                stop_triggered = any("Zarar durdurma seviyesi" in event for event in events)
+                self._play_alert("stop" if stop_triggered else "opportunity")
         self._level_previous_price = price
 
     def _diagnostic_payload(self) -> dict[str, Any]:
