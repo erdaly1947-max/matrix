@@ -83,6 +83,9 @@ jobs:
       - name: Bulut geçidi JavaScript testleri
         run: node --test cloudflare_worker/test/index.test.js
 
+      - name: Analiz raporu Worker testleri
+        run: node --test cloudflare/report-worker/test/index.test.js
+
       - name: Render piyasa geçidi bağımlılıkları
         run: npm install --prefix render_relay --no-package-lock
 
