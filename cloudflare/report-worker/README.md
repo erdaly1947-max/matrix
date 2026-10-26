@@ -1,33 +1,42 @@
-# Analiz Raporu — Cloudflare Worker kurulumu
+# Analiz Raporu — Cloudflare Worker
 
-Bu servis, piyasa verisi geçidinden ayrıdır. Yalnızca teknik analiz raporunu alır ve güncel raporu saklar. Mevcut Binance/BtcTurk piyasa veri geçidine dokunmaz.
+Bu servis yalnızca teknik analiz raporunu alır ve güncel raporu saklar. Mevcut Binance/BtcTurk piyasa verisi geçidinden ayrıdır; ona dokunmaz.
+
+## Dağıtılan uç noktalar
+
+- Worker: `firsat-kontrol-analysis-report`
+- Sağlık kontrolü: `https://firsat-kontrol-analysis-report.erdaly1947.workers.dev/health`
+- Rapor yükleme: `POST https://firsat-kontrol-analysis-report.erdaly1947.workers.dev/api/report`
+- Güncel raporu okuma: `GET https://firsat-kontrol-analysis-report.erdaly1947.workers.dev/latest`
+- KV namespace: `FirsatKontrolAnalysisReports`
+
+Worker ve KV, Cloudflare hesabında oluşturuldu. `ANALYSIS_REPORTS` KV binding'i ve `UPLOAD_TOKEN` gizli değeri yapılandırıldı. Yükleme token'ı hiçbir kaynak dosyaya veya GitHub'a konulmamalıdır.
 
 ## Veri akışı
 
-1. Masaüstü paneli aday ve teknik analiz verilerini analysis_report.py ile kompakt JSON'a dönüştürür.
-2. Ham mum dizileri, yinelenen aday BTC bağlamı ve tanılama bilgileri dışarıda bırakılır.
-3. JSON gzip ile sıkıştırılır; masaüstünde reports/analiz_raporu_*.json.gz olarak da saklanır.
-4. Uygulama POST /api/report uç noktasına Content-Encoding: gzip ve Authorization: Bearer ... başlıklarıyla gönderir.
-5. Worker gzip verisini açıp JSON şemasını doğrular, sıkıştırılmış baytları KV içindeki tek latest kaydına yazar.
-6. ChatGPT'nin okuyacağı GET /latest uç noktası gzip'i açıp yalnızca analiz JSON'unu döndürür. Tanılama raporu bu uç noktada yayımlanmaz.
-
-## Cloudflare'da ilk kurulum
-
-1. Yeni bir KV namespace oluşturun; mevcut firsat-kontrol-market-data Worker'ını veya piyasa verisi ayarlarını değiştirmeyin.
-2. wrangler.toml içindeki REPLACE_WITH_NEW_KV_NAMESPACE_ID alanına yeni namespace ID'sini yazın.
-3. UPLOAD_TOKEN adıyla güçlü ve rastgele bir Worker secret oluşturun. Token'ı kaynak dosyaya, GitHub'a, rapora veya ekran görüntüsüne yazmayın.
-4. cloudflare/report-worker klasöründen wrangler deploy çalıştırın.
-5. https://<worker-host>/health ile sağlık uç noktasını; ardından yerel config ile bir deneme yüklemesini ve https://<worker-host>/latest okumasını doğrulayın.
+1. Masaüstü paneli `analysis_report.py` ile adayları ve teknik analiz verilerini kompakt JSON'a dönüştürür.
+2. Ham mum arşivleri ve genel tanılama/log verileri analiz raporuna dahil edilmez.
+3. JSON gzip ile sıkıştırılır ve yerelde `reports/analiz_raporu_*.json.gz` olarak korunur.
+4. Uygulama `POST /api/report` adresine `Content-Encoding: gzip` ve `Authorization: Bearer ...` başlıklarıyla gönderir.
+5. Worker gzip'i açıp rapor türünü, şema sürümünü ve aday sayısını doğrular; sıkıştırılmış raporu KV'deki tek `latest` kaydına yazar.
+6. `GET /latest` gzip'i açıp tam analiz JSON'unu döndürür. SHA-256 ve rapor zamanı yanıt başlıklarında bulunur.
 
 ## Masaüstü bağlantı ayarı
 
-Örnek chatgpt_baglanti.example.json dosyasını aynı klasörde chatgpt_baglanti.local.json adıyla kopyalayın. upload_url, upload_token ve read_url alanlarını kendi Worker adresiniz ve secret değerinizle doldurun. Gerçek config dosyası .gitignore kapsamındadır; GitHub'a eklemeyin.
+Örnek dosya `chatgpt_baglanti.example.json`, dağıtılan Worker adresini içerir. `chatgpt_baglanti.local.json` dosyasını uygulamanın ana klasörüne koyun ve `upload_token` alanına size özel token'ı girin. Gerçek config dosyası `.gitignore` kapsamındadır; GitHub'a veya başkasına göndermeyin.
+
+## Doğrulama
+
+1. `/health` adresi `ok: true` döndürmelidir.
+2. İlk rapor yüklenmeden `/latest` adresi `404` döndürür; bu beklenen davranıştır.
+3. Panelden **Analiz Raporu Gönder** işlemini çalıştırın. Başarılı yanıt aday sayısını, sıkıştırılmış boyutu ve SHA-256'yı bildirir.
+4. Aynı sohbet içinde ChatGPT'den `https://firsat-kontrol-analysis-report.erdaly1947.workers.dev/latest` adresindeki güncel analiz raporunu açıp incelemesini isteyin. Uç noktaya ChatGPT erişimi ayrıca gerçek kullanımda doğrulanmalıdır.
 
 ## Güvenlik ve sınırlar
 
-- POST /api/report token olmadan veri kabul etmez.
-- GET /latest herkese açık, salt okunur bir uç noktadır; yalnızca teknik analiz verisi yayımlar. Bu tasarım, ChatGPT gibi harici okuyucuların ek hesap kimlik doğrulaması olmadan raporu çekebilmesi içindir. Bu URL'yi gizli bir kişisel veri alanı olarak değerlendirmeyin.
-- Tek KV anahtarı kullanılır; her başarılı yükleme güncel raporun üzerine yazar. Tarihsel rapor arşivi oluşturulmaz.
-- KV yayılımı bölgesel olarak gecikebilir; yüklemeden hemen sonra başka bir konumdan okuma kısa süre eski veriyi döndürebilir.
-- ChatGPT sohbetine otomatik mesaj gönderilmez. Sohbette /latest bağlantısından en güncel raporu okumasını istemek gerekir; ChatGPT erişimi gerçek kullanımda ayrıca doğrulanmalıdır.
-- Sunucuya ulaşılamazsa yerel .json.gz dosyası korunur ve radarın çalışması durdurulmaz.
+- `POST /api/report` geçerli token olmadan veri kabul etmez.
+- `GET /latest` herkese açık ve salt okunurdur; bağlantıyı bilen herkes teknik analiz raporunu okuyabilir. Rapora özel/kişisel bilgi koymayın.
+- Her başarılı yükleme önceki raporun üzerine yazar; tarihsel arşiv oluşturulmaz.
+- KV'nin bölgeler arası yayılımı kısa gecikme yaratabilir.
+- Sohbete otomatik mesaj gönderilmez; ChatGPT'ye güncel okuma bağlantısını açması istenir.
+- Sunucuya ulaşılamazsa yerel gzip raporu korunur ve radar çalışmaya devam eder.
