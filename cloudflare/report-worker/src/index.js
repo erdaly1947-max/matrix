@@ -191,7 +191,8 @@ export default {
       }, 201);
     }
 
-    const jsonReadRoute = JSON_READ_ROUTES[url.pathname];
+    const readPath = url.pathname.startsWith("/read/") ? `/${url.pathname.slice(6)}` : url.pathname;
+    const jsonReadRoute = JSON_READ_ROUTES[readPath];
     if (request.method === "GET" && jsonReadRoute) {
       return getStoredJsonReport(env, jsonReadRoute);
     }
