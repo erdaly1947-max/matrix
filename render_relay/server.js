@@ -1,4 +1,5 @@
 import http from "node:http";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
 
@@ -7,6 +8,17 @@ const REST_WINDOW_MS = 60_000;
 const REST_LIMIT_PER_IP = 1_200;
 const MAX_WS_PER_IP = 128;
 const MAX_WS_GLOBAL = 200;
+const REPORT_WORKER_BASE_URL = "https://firsat-kontrol-analysis-report.erdaly1947.workers.dev";
+const REPORT_MAX_BODY_BYTES = 8 * 1024 * 1024;
+const REPORT_RATE_WINDOW_MS = 60_000;
+const REPORT_RATE_LIMIT_PER_IP = 20;
+const REPORT_RATE_BUCKETS = new Map();
+const REPORT_UPLOAD_ROUTES = new Map([
+  ["/api/report", { kind: "analysis", contentType: "application/json", workerPath: "/api/report", encoding: "gzip" }],
+  ["/api/report/daily", { kind: "daily", contentType: "application/json", workerPath: "/api/report/daily", encoding: "gzip" }],
+  ["/api/report/troubleshooting", { kind: "troubleshooting", contentType: "application/json", workerPath: "/api/report/troubleshooting", encoding: "gzip" }],
+  ["/api/report/troubleshooting-zip", { kind: "troubleshooting_zip", contentType: "application/zip", workerPath: "/api/report/troubleshooting-zip", encoding: null }],
+]);
 const REST_BUCKETS = new Map();
 const REST_CACHE = new Map();
 const ACTIVE_WS_BY_IP = new Map();
@@ -257,6 +269,186 @@ async function fetchPublicMarketData(route, url) {
   };
 }
 
+
+function checkReportRateLimit(ip, now = Date.now()) {
+  let bucket = REPORT_RATE_BUCKETS.get(ip);
+  if (!bucket || now - bucket.startedAt >= REPORT_RATE_WINDOW_MS) {
+    bucket = { startedAt: now, count: 0 };
+    REPORT_RATE_BUCKETS.set(ip, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count > REPORT_RATE_LIMIT_PER_IP) {
+    return Math.max(1, Math.ceil((REPORT_RATE_WINDOW_MS - (now - bucket.startedAt)) / 1_000));
+  }
+  if (REPORT_RATE_BUCKETS.size > 5_000) {
+    for (const [key, value] of REPORT_RATE_BUCKETS.entries()) {
+      if (now - value.startedAt >= REPORT_RATE_WINDOW_MS) REPORT_RATE_BUCKETS.delete(key);
+    }
+  }
+  return 0;
+}
+
+async function readLimitedBody(request, maxBytes) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of request) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      const error = new Error("Rapor boyut sınırını aşıyor.");
+      error.status = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  if (total === 0) {
+    const error = new Error("Rapor gövdesi boş.");
+    error.status = 400;
+    throw error;
+  }
+  return Buffer.concat(chunks, total);
+}
+
+function bearerToken(request) {
+  const value = request.headers.authorization;
+  if (typeof value !== "string" || value.length > 8_192) return "";
+  const match = /^Bearer ([^\\s]+)$/.exec(value);
+  return match?.[1] || "";
+}
+
+async function handleReportUpload(request, response, route) {
+  if (request.method !== "POST") {
+    jsonResponse(response, 405, { ok: false, error: "Yalnızca POST kabul edilir." }, { Allow: "POST" });
+    request.resume();
+    return;
+  }
+
+  const token = bearerToken(request);
+  if (!token) {
+    jsonResponse(response, 401, { ok: false, error: "Rapor aktarım kimliği doğrulanamadı." });
+    request.resume();
+    return;
+  }
+
+  const configuredRelayToken = process.env.REPORT_RELAY_TOKEN;
+  if (
+    configuredRelayToken
+    && (
+      configuredRelayToken.length > 8_192
+      || Buffer.byteLength(token) !== Buffer.byteLength(configuredRelayToken)
+      || !timingSafeEqual(Buffer.from(token), Buffer.from(configuredRelayToken))
+    )
+  ) {
+    jsonResponse(response, 401, { ok: false, error: "Rapor aktarım kimliği doğrulanamadı." });
+    request.resume();
+    return;
+  }
+
+  const contentType = String(request.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  const contentEncoding = String(request.headers["content-encoding"] || "").trim().toLowerCase();
+  if (contentType !== route.contentType) {
+    jsonResponse(response, 415, { ok: false, error: "Rapor içerik türü beklenen biçimde değil." });
+    request.resume();
+    return;
+  }
+  if (contentEncoding !== (route.encoding || "")) {
+    jsonResponse(response, 415, { ok: false, error: "Rapor sıkıştırma biçimi beklenen biçimde değil." });
+    request.resume();
+    return;
+  }
+
+  const declaredLength = request.headers["content-length"];
+  if (declaredLength !== undefined && (!/^\\d+$/.test(String(declaredLength)) || Number(declaredLength) > REPORT_MAX_BODY_BYTES)) {
+    jsonResponse(response, 413, { ok: false, error: "Rapor boyut sınırını aşıyor." });
+    request.resume();
+    return;
+  }
+
+  const retryAfter = checkReportRateLimit(clientIp(request));
+  if (retryAfter > 0) {
+    jsonResponse(response, 429, { ok: false, error: "Rapor aktarım istek sınırına ulaşıldı." }, {
+      "Retry-After": String(retryAfter),
+    });
+    request.resume();
+    return;
+  }
+
+  let body;
+  try {
+    body = await readLimitedBody(request, REPORT_MAX_BODY_BYTES);
+  } catch (error) {
+    request.resume();
+    jsonResponse(response, error.status || 400, { ok: false, error: error.status === 413 ? error.message : "Rapor gövdesi okunamadı." });
+    return;
+  }
+
+  const requestId = randomUUID();
+  const upstreamToken = process.env.CLOUDFLARE_REPORT_TOKEN || token;
+  const headers = {
+    "Authorization": "Bearer " + upstreamToken,
+    "Accept": "application/json",
+    "Content-Type": route.contentType + (route.contentType === "application/json" ? "; charset=utf-8" : ""),
+    "User-Agent": "FirsatKontrolReportRelay/1.0",
+    "X-Request-ID": requestId,
+  };
+  if (route.encoding) headers["Content-Encoding"] = route.encoding;
+
+  let upstream;
+  let responseText;
+  try {
+    upstream = await fetch(REPORT_WORKER_BASE_URL + route.workerPath, {
+      method: "POST",
+      headers,
+      body,
+      redirect: "manual",
+      signal: AbortSignal.timeout(25_000),
+    });
+    responseText = await upstream.text();
+  } catch (error) {
+    jsonResponse(response, 502, {
+      ok: false,
+      error: error?.name === "TimeoutError"
+        ? "Cloudflare rapor deposuna iletim zaman aşımına uğradı."
+        : "Cloudflare rapor deposuna iletim başarısız.",
+      report_kind: route.kind,
+      request_id: requestId,
+    });
+    return;
+  }
+
+  let result = {};
+  try {
+    result = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    jsonResponse(response, 502, {
+      ok: false,
+      error: "Cloudflare rapor deposu beklenen JSON yanıtını vermedi.",
+      report_kind: route.kind,
+      request_id: requestId,
+    });
+    return;
+  }
+
+  if (!upstream.ok || result?.ok !== true) {
+    const status = upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502;
+    jsonResponse(response, status, {
+      ok: false,
+      error: typeof result?.error === "string" ? result.error.slice(0, 400) : "Cloudflare rapor deposu yüklemeyi onaylamadı.",
+      report_kind: route.kind,
+      request_id: requestId,
+    });
+    return;
+  }
+
+  jsonResponse(response, 200, {
+    ...result,
+    ok: true,
+    report_kind: route.kind,
+    request_id: requestId,
+    relay: "render",
+    forwarded_at_utc: new Date().toISOString(),
+  });
+}
+
 async function handleHttp(request, response) {
   let url;
   try {
@@ -283,6 +475,12 @@ async function handleHttp(request, response) {
     jsonResponse(response, 426, { error: "Bu yol yalnızca WebSocket bağlantısı içindir." }, {
       Upgrade: "websocket",
     });
+    return;
+  }
+
+  const reportRoute = REPORT_UPLOAD_ROUTES.get(url.pathname);
+  if (reportRoute) {
+    await handleReportUpload(request, response, reportRoute);
     return;
   }
 
