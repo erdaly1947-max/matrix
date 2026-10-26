@@ -98,7 +98,7 @@ class PanelUIContractTests(unittest.TestCase):
         self.assertIn('base, hover = "#c62828", "#a91f1f"', PANEL_SOURCE)
         source = PANEL_SOURCE
         self.assertIn("PillButton", source)
-        self.assertIn('text="Haritayı Güncelle"', source)
+        self.assertIn('text="Pariteleri Güncelle"', source)
         self.assertIn('report_row_top = ttk.Frame(report_controls)', source)
         self.assertIn('report_row_bottom = ttk.Frame(report_controls)', source)
         self.assertIn('text="Panel Işığı"', source)
