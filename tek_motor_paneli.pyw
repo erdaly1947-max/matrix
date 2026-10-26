@@ -6,6 +6,7 @@ verilerine erişmez ve emir göndermez. A/B/C değerleri araştırma aşamaları
 from __future__ import annotations
 
 import csv
+import gzip
 import hashlib
 import json
 import logging
@@ -30,6 +31,7 @@ from tkinter import messagebox, ttk
 from analysis_report import (
     build_analysis_report,
     compress_analysis_report,
+    gzip_compress_bytes,
     load_connection_config,
     upload_analysis_report,
 )
@@ -73,6 +75,20 @@ def _read_json(path: Path, default: Any = None) -> Any:
             return json.load(handle)
     except (OSError, UnicodeError, json.JSONDecodeError):
         return default
+
+
+def _write_gzip_atomic(path: Path, raw: bytes) -> None:
+    """Atomically save a gzip-compressed report without leaving partial files."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
+    try:
+        temp.write_bytes(gzip_compress_bytes(raw))
+        os.replace(temp, path)
+    finally:
+        try:
+            temp.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _write_json_atomic(path: Path, payload: Any) -> None:
@@ -1171,11 +1187,13 @@ class ControlPanel(tk.Tk):
             "state": self.current_state,
             "diagnostics": self._diagnostic_payload(),
         }
-        json_path = REPORT_DIR / f"{base}.json"
-        md_path = REPORT_DIR / f"{base}.md"
-        diagnostic_path = REPORT_DIR / f"{base}_tani.json"
-        _write_json_atomic(json_path, payload)
-        _write_json_atomic(diagnostic_path, payload["diagnostics"])
+        json_path = REPORT_DIR / f"{base}.json.gz"
+        md_path = REPORT_DIR / f"{base}.md.gz"
+        diagnostic_path = REPORT_DIR / f"{base}_tani.json.gz"
+        json_bytes = json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8") + b"\n"
+        diagnostic_bytes = json.dumps(payload["diagnostics"], ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8") + b"\n"
+        _write_gzip_atomic(json_path, json_bytes)
+        _write_gzip_atomic(diagnostic_path, diagnostic_bytes)
         candidates = self.current_state.get("candidates") if isinstance(self.current_state.get("candidates"), list) else []
         table_rows = []
         for row in candidates:
@@ -1218,8 +1236,8 @@ class ControlPanel(tk.Tk):
             "Fiyat/stop/hedef planları koşullu teknik senaryolardır. Komisyon ve kayma hesaplanmaz; spread ayrı likidite filtresinde değerlendirilir. Gerçek emir/dolum ve BtcTurk uygulanabilirliği bu programda doğrulanmaz.",
             "", "## Tanı bilgisi", "", "Ayrıntılar JSON raporundaki diagnostics alanında saklanır. Tam ayarlar.json içeriği rapora kopyalanmaz.", "",
         ])
-        md_path.write_text("\n".join(markdown), encoding="utf-8")
-        LOGGER.info("Rapor oluşturuldu: %s", json_path.name)
+        _write_gzip_atomic(md_path, "\n".join(markdown).encode("utf-8"))
+        LOGGER.info("Sıkıştırılmış raporlar oluşturuldu: %s, %s, %s", json_path.name, md_path.name, diagnostic_path.name)
         return json_path, md_path, diagnostic_path, "\n".join(markdown)
 
     def create_report(self) -> None:
@@ -1229,7 +1247,7 @@ class ControlPanel(tk.Tk):
             self.clipboard_append(markdown)
             self.update_idletasks()
             self._open_select(json_path)
-            messagebox.showinfo("Rapor hazır", f"Rapor dosyaları oluşturuldu:\n{json_path}\n{md_path}\n\nMarkdown metni panoya kopyalandı.")
+            messagebox.showinfo("Rapor hazır", f"Sıkıştırılmış rapor dosyaları oluşturuldu:\n{json_path}\n{md_path}\n{_diagnostic}\n\nMarkdown metni panoya kopyalandı.")
         except Exception as exc:
             LOGGER.exception("Rapor oluşturulamadı")
             messagebox.showerror("Rapor oluşturulamadı", f"{type(exc).__name__}: {exc}")
@@ -1323,19 +1341,19 @@ class ControlPanel(tk.Tk):
                 with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
                     for path in files:
                         if path is None:
-                            raw = log_tail.encode("utf-8", errors="replace")
-                            name = "diagnostics/log_tail.txt"
+                            raw = gzip_compress_bytes(log_tail.encode("utf-8", errors="replace"))
+                            name = "diagnostics/log_tail.txt.gz"
                         else:
                             raw = path.read_bytes()
                             name = f"reports/{path.name}"
                         archive.writestr(name, raw)
                         manifest["files"].append({"name": name, "size_bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()})
-                    state_summary = json.dumps(
+                    state_summary = gzip_compress_bytes(json.dumps(
                         self._diagnostic_payload(), ensure_ascii=False, indent=2
-                    ).encode("utf-8")
-                    archive.writestr("diagnostics/state_summary.json", state_summary)
+                    ).encode("utf-8"))
+                    archive.writestr("diagnostics/state_summary.json.gz", state_summary)
                     manifest["files"].append({
-                        "name": "diagnostics/state_summary.json",
+                        "name": "diagnostics/state_summary.json.gz",
                         "size_bytes": len(state_summary),
                         "sha256": hashlib.sha256(state_summary).hexdigest(),
                     })
