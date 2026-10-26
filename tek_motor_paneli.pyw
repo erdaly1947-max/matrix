@@ -363,6 +363,94 @@ def _format_candidate_decision_summary(candidate: dict[str, Any]) -> str:
     ])
 
 
+class PillButton(tk.Canvas):
+    """Small rounded pill button with explicit semantic color roles."""
+
+    def __init__(
+        self, master: tk.Misc, *, text: str, command: Any, role: str = "action",
+        state: str = "normal", width: int | None = None,
+    ) -> None:
+        self._text = text
+        self._command = command
+        self._role = role
+        self._state = state
+        self._hover = False
+        self._font = ("Segoe UI", 9, "bold")
+        measured = tk.font.Font(family=self._font[0], size=self._font[1], weight=self._font[2]).measure(text)
+        requested_width = max(measured + 28, int(width or 0) * 8)
+        super().__init__(
+            master, width=requested_width, height=32, bd=0, highlightthickness=0,
+            relief="flat", background="#444444", cursor="hand2",
+        )
+        self.bind("<Configure>", lambda _event: self._draw())
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+        self.bind("<Button-1>", self._on_click)
+        self._draw()
+
+    def configure(self, cnf: Any = None, **kwargs: Any) -> Any:
+        if isinstance(cnf, dict):
+            kwargs = {**cnf, **kwargs}
+            cnf = None
+        redraw = False
+        if "text" in kwargs:
+            self._text = str(kwargs.pop("text"))
+            redraw = True
+        if "command" in kwargs:
+            self._command = kwargs.pop("command")
+        if "role" in kwargs:
+            self._role = str(kwargs.pop("role"))
+            redraw = True
+        if "state" in kwargs:
+            self._state = str(kwargs.pop("state"))
+            self.configure(cursor="hand2" if self._state != "disabled" else "arrow")
+            redraw = True
+        result = super().configure(cnf, **kwargs)
+        if redraw:
+            self._draw()
+        return result
+
+    config = configure
+
+    def instate(self, states: list[str] | tuple[str, ...]) -> bool:
+        for state in states:
+            if state == "disabled" and self._state != "disabled":
+                return False
+            if state == "!disabled" and self._state == "disabled":
+                return False
+        return True
+
+    def _on_enter(self, _event: Any = None) -> None:
+        self._hover = True
+        self._draw()
+
+    def _on_leave(self, _event: Any = None) -> None:
+        self._hover = False
+        self._draw()
+
+    def _on_click(self, _event: Any = None) -> None:
+        if self._state != "disabled" and callable(self._command):
+            self._command()
+
+    def _draw(self) -> None:
+        self.delete("all")
+        width = max(20, self.winfo_width())
+        height = max(20, self.winfo_height())
+        if self._role == "accent":
+            base, hover = "#008f95", "#00767b"
+        else:
+            base, hover = "#c62828", "#a91f1f"
+        if self._state == "disabled":
+            fill, foreground = "#6a5555", "#d8d8d8"
+        else:
+            fill, foreground = (hover if self._hover else base), "#ffffff"
+        cap = height
+        self.create_oval(0, 0, cap, height, fill=fill, outline=fill)
+        self.create_rectangle(cap / 2, 0, width - cap / 2, height, fill=fill, outline=fill)
+        self.create_oval(width - cap, 0, width, height, fill=fill, outline=fill)
+        self.create_text(width / 2, height / 2, text=self._text, fill=foreground, font=self._font)
+
+
 class ControlPanel(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -480,34 +568,34 @@ class ControlPanel(tk.Tk):
         controls.pack(fill="x")
         start_group = ttk.Frame(controls)
         start_group.pack(side="left", padx=(0, 5))
-        self.start_button = ttk.Button(start_group, text="Başlat", command=self.start_engine, width=10)
+        self.start_button = PillButton(start_group, text="Başlat", command=self.start_engine, role="action", width=10)
         self.start_button.pack(fill="x")
         ttk.Label(start_group, textvariable=self.start_time_var, font=("Segoe UI", 8)).pack()
         stop_group = ttk.Frame(controls)
         stop_group.pack(side="left", padx=5)
-        self.stop_button = ttk.Button(stop_group, text="Durdur", command=self.stop_engine, state="disabled", width=10)
+        self.stop_button = PillButton(stop_group, text="Durdur", command=self.stop_engine, role="action", state="disabled", width=10)
         self.stop_button.pack(fill="x")
         ttk.Label(stop_group, textvariable=self.stop_time_var, font=("Segoe UI", 8)).pack()
-        self.update_list_button = ttk.Button(controls, text="Pariteyi Güncelle", command=self.update_universe)
+        self.update_list_button = PillButton(controls, text="Haritayı Güncelle", command=self.update_universe, role="action")
         self.update_list_button.pack(side="left", padx=5)
-        ttk.Button(controls, text="Kayıtlar", command=self.open_logs).pack(side="left", padx=5)
-        self.level_button = ttk.Button(controls, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch)
+        PillButton(controls, text="Kayıtlar", command=self.open_logs, role="action").pack(side="left", padx=5)
+        self.level_button = PillButton(controls, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch, role="accent")
         self.level_button.pack(side="left", padx=5)
 
         report_controls = ttk.Frame(self, padding=(12, 0, 12, 8))
         report_controls.pack(fill="x")
         ttk.Label(report_controls, text="Rapor / Bulut:", style="BTC.TLabel").pack(side="left", padx=(0, 8))
-        ttk.Button(report_controls, text="Günlük Rapor", command=self.create_report).pack(side="left", padx=(0, 6))
-        ttk.Button(report_controls, text="Analiz Raporu", command=self.create_analysis_report).pack(side="left", padx=6)
-        ttk.Button(report_controls, text="Sorun Paketi (ZIP)", command=self.create_handoff_zip).pack(side="left", padx=6)
+        PillButton(report_controls, text="Günlük Rapor", command=self.create_report, role="action").pack(side="left", padx=(0, 6))
+        PillButton(report_controls, text="Analiz Raporu", command=self.create_analysis_report, role="action").pack(side="left", padx=6)
+        PillButton(report_controls, text="Sorun Paketi (ZIP)", command=self.create_handoff_zip, role="action").pack(side="left", padx=6)
 
-        sound = ttk.Frame(controls)
+        sound = ttk.Frame(report_controls)
         sound.pack(side="right")
         sound_controls = ttk.Frame(sound)
         sound_controls.pack(anchor="e")
-        self.alarm_button = ttk.Button(sound_controls, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm)
+        self.alarm_button = PillButton(sound_controls, text="Alarm: Açık" if self.alarm_enabled else "Alarm: Kapalı", command=self.toggle_alarm, role="accent")
         self.alarm_button.pack(side="left", padx=6)
-        ttk.Button(sound_controls, text="Ses Testi", command=self._test_sound).pack(side="left", padx=5)
+        PillButton(sound_controls, text="Ses Testi", command=self._test_sound, role="accent").pack(side="left", padx=5)
         ttk.Label(sound_controls, text="Ses").pack(side="left")
         self.volume_scale = ttk.Scale(sound_controls, from_=0, to=100, orient="horizontal", length=110,
                                       variable=self.volume_var, command=self._volume_moved)
