@@ -26,6 +26,7 @@ import struct
 import zipfile
 
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import messagebox, ttk
 
 from analysis_report import (
@@ -376,7 +377,7 @@ class PillButton(tk.Canvas):
         self._state = state
         self._hover = False
         self._font = ("Segoe UI", 9, "bold")
-        measured = tk.font.Font(family=self._font[0], size=self._font[1], weight=self._font[2]).measure(text)
+        measured = tkfont.Font(family=self._font[0], size=self._font[1], weight=self._font[2]).measure(text)
         requested_width = max(measured + 28, int(width or 0) * 8)
         super().__init__(
             master, width=requested_width, height=32, bd=0, highlightthickness=0,
@@ -706,6 +707,13 @@ class ControlPanel(tk.Tk):
         for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
             if widget is not None:
                 widget.configure(background=background, foreground=foreground, insertbackground=foreground)
+        def sync_button_background(parent: tk.Misc) -> None:
+            for child in parent.winfo_children():
+                if isinstance(child, PillButton):
+                    child.configure(background=background)
+                else:
+                    sync_button_background(child)
+        sync_button_background(self)
         self.brightness_label.configure(text=f"{value}%")
 
     def _append_details(self, text: str) -> None:
