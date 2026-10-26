@@ -119,3 +119,100 @@ test("compressed upload size is bounded", async () => {
   const response = await worker.fetch(uploadRequest(oversized), env);
   assert.equal(response.status, 413);
 });
+
+test("daily and troubleshooting JSON reports have separate upload and read routes", async () => {
+  const env = makeEnv();
+  const daily = {
+    report_type: "daily",
+    schema_version: 1,
+    report_generated_at_utc: "2026-10-26T12:10:00Z",
+    payload: {
+      report_generated_at_utc: "2026-10-26T12:10:00Z",
+      state: { status: "RUNNING", candidates: [] },
+      diagnostics: { application: "FIRSAT-KONTROL PANELİ" },
+    },
+    markdown: "# Daily report",
+  };
+  const dailyUpload = await worker.fetch(
+    new Request("https://reports.test/api/report/daily", {
+      method: "POST",
+      headers: { Authorization: "Bearer test-upload-token", "Content-Type": "application/json", "Content-Encoding": "gzip" },
+      body: await gzipJson(daily),
+    }),
+    env,
+  );
+  assert.equal(dailyUpload.status, 201);
+  assert.equal((await dailyUpload.json()).read_url, "https://reports.test/daily");
+  const dailyRead = await worker.fetch(new Request("https://reports.test/daily"), env);
+  assert.equal(dailyRead.status, 200);
+  assert.deepEqual(await dailyRead.json(), daily);
+
+  const troubleshooting = {
+    report_type: "troubleshooting",
+    schema_version: 1,
+    generated_at_utc: "2026-10-26T12:11:00Z",
+    daily_report: daily,
+    diagnostics: { status: "RUNNING" },
+    manifest: { files: [{ name: "manifest.json", size_bytes: 12, sha256: "abc" }] },
+    log_tail: "test log line",
+  };
+  const upload = await worker.fetch(
+    new Request("https://reports.test/api/report/troubleshooting", {
+      method: "POST",
+      headers: { Authorization: "Bearer test-upload-token", "Content-Type": "application/json", "Content-Encoding": "gzip" },
+      body: await gzipJson(troubleshooting),
+    }),
+    env,
+  );
+  assert.equal(upload.status, 201);
+  assert.equal((await upload.json()).read_url, "https://reports.test/troubleshooting");
+  const read = await worker.fetch(new Request("https://reports.test/troubleshooting"), env);
+  assert.equal(read.status, 200);
+  assert.deepEqual(await read.json(), troubleshooting);
+});
+
+test("troubleshooting ZIP can be uploaded and downloaded without replacing JSON reports", async () => {
+  const env = makeEnv();
+  const archive = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x01, 0x02, 0x03]);
+  const upload = await worker.fetch(
+    new Request("https://reports.test/api/report/troubleshooting-zip", {
+      method: "POST",
+      headers: { Authorization: "Bearer test-upload-token", "Content-Type": "application/zip" },
+      body: archive,
+    }),
+    env,
+  );
+  assert.equal(upload.status, 201);
+  assert.equal((await upload.json()).read_url, "https://reports.test/troubleshooting.zip");
+  const download = await worker.fetch(new Request("https://reports.test/troubleshooting.zip"), env);
+  assert.equal(download.status, 200);
+  assert.equal(download.headers.get("Content-Type"), "application/zip");
+  assert.deepEqual(new Uint8Array(await download.arrayBuffer()), archive);
+  const missingDailyBeforeUpload = await worker.fetch(new Request("https://reports.test/daily"), makeEnv());
+  assert.equal(missingDailyBeforeUpload.status, 404);
+});
+
+test("new report routes require bearer auth and ZIP content type", async () => {
+  const env = makeEnv();
+  const unauthorized = await worker.fetch(
+    new Request("https://reports.test/api/report/daily", {
+      method: "POST",
+      headers: { Authorization: "Bearer wrong", "Content-Type": "application/json", "Content-Encoding": "gzip" },
+      body: await gzipJson({
+        report_type: "daily", schema_version: 1, report_generated_at_utc: "2026-10-26T12:00:00Z",
+        payload: { state: {}, diagnostics: {} },
+      }),
+    }),
+    env,
+  );
+  assert.equal(unauthorized.status, 401);
+  const wrongContentType = await worker.fetch(
+    new Request("https://reports.test/api/report/troubleshooting-zip", {
+      method: "POST",
+      headers: { Authorization: "Bearer test-upload-token", "Content-Type": "application/octet-stream" },
+      body: new Uint8Array([0x50, 0x4b, 0x03, 0x04]),
+    }),
+    env,
+  );
+  assert.equal(wrongContentType.status, 415);
+});
