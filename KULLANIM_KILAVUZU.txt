@@ -57,7 +57,7 @@ Panelin sağ tarafındaki küçük kontroller: “Alarm Açık/Kapalı” güçl
 
 PANELDEKİ ALANLAR
 - Motor ve piyasa durumu: çalışma durumu, aday kayıt sayısı, WebSocket bağlantıları ve veri yaşı.
-- Aday akışı: coin/parite, öncelik yıldızı, keşif yolu, A/B/C aşaması, Binance fiyatı, zaman dilimi ve veri durumu.
+- Aday akışı: coin/parite, öncelik yıldızı, keşif yolu, A/B/C aşaması, Binance fiyatı, BtcTurk fiyatı, fırsat puanı, BTC göreli güç/korelasyon, zaman dilimi, veri durumu ve karar sınıfı. BtcTurk fiyatı alınamazsa “veri yok”, 90 saniyeden eskiyse “veri eski” gösterilir; fiyat farkı sütunu yoktur. BtcTurk fiyatı yalnızca görüntüleme içindir, analiz motorunun kararlarını değiştirmez.
 - Güçlü fırsat bildiriminde motor adı, parite, fiyat, canlı veri doğrulama durumu ve gerçek tetikleyici gerekçesi yer alır.
 - Seçilen coin: bulgular, kanıt grupları, eksik kontroller ve zaman dilimi değerlendirmeleri. Senaryo/zaman dilimi yeşil, olası giriş bölgesi beyaz, kırılım sarı, zarar durdurma kırmızı, hedefler lila/açık morla vurgulanır.
 - Tanılama kayıtları arayüzde gösterilmez; başlatma/durdurma, bağlantı, liste güncellemesi, alarm olayları ve motorun stdout/stderr çıktısı arka planda `logs/tek_motor_paneli.log` dosyasına yazılır.
