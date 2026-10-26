@@ -1681,8 +1681,9 @@ class ControlPanel(tk.Tk):
         messagebox.showinfo(
             "Analiz raporu gönderildi",
             f"Güncel analiz raporu sunucuya yüklendi.\n\n"
+            f"Yerel dosya: {report_path}\n\n"
             f"ChatGPT'nin okuyabileceği bağlantı:\n{read_url}\n\n"
-            "ChatGPT sohbetinde bu bağlantıdan en güncel raporu okumasını isteyebilirsiniz.",
+            "Raporun JSON özeti panoya kopyalandı; yerel dosya Dosya Gezgini'nde seçildi.",
         )
 
     def create_handoff_zip(self) -> None:
