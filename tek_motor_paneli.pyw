@@ -968,8 +968,21 @@ class ControlPanel(tk.Tk):
             phase = row.get("phase") or row.get("last_known_phase") or "—"
             symbol = row.get("symbol") or row.get("base_asset") or "—"
             route = row.get("discovery_route") or row.get("discovery_path") or row.get("discovery_method") or "—"
-            freshness = row.get("data_freshness") or "—"
-            decision = row.get("final_decision") or row.get("decision_class") or row.get("state") or "—"
+            freshness = str(row.get("data_freshness") or "—")
+            if freshness == "CANLI AKIŞ GÜNCEL":
+                freshness_label = "GÜNCEL"
+            elif "ESKİ" in freshness.upper() or "STALE" in freshness.upper():
+                freshness_label = "ESKİ"
+            elif "EKSİK" in freshness.upper() or "MISSING" in freshness.upper():
+                freshness_label = "EKSİK"
+            else:
+                freshness_label = freshness[:12]
+            decision = str(row.get("final_decision") or row.get("decision_class") or row.get("state") or "—")
+            decision_label = {
+                "KIRILIM BEKLENİYOR": "KIRILIM BEKLE",
+                "FIRSAT GEÇERSİZ": "GEÇERSİZ",
+                "GÜÇLÜ FIRSAT": "GÜÇLÜ FIRSAT",
+            }.get(decision.upper(), decision)
             strong = row.get("strong_opportunity_qualified") is True and row.get("strong_alarm_eligible") is True
             if strong:
                 tags = ("strong", "decision_strong")
@@ -992,7 +1005,7 @@ class ControlPanel(tk.Tk):
                 _format_btcturk_price(self.btcturk_prices, str(row.get("symbol") or row.get("base_asset") or ""), self.btcturk_prices_updated_at),
                 row.get("opportunity_score", row.get("score_0_100", "—")),
                 row.get("phase_timeframe") or row.get("timeframe") or "—",
-                phase, freshness, decision,
+                phase, freshness_label, decision_label,
             ), tags=tags)
         if selected and selected in normalized:
             self.tree.selection_set(selected)
