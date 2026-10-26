@@ -569,6 +569,12 @@ class ControlPanel(tk.Tk):
 
         ttk.Label(right, text="Seçilen coin ve kanıtlar", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
         self.details = tk.Text(right, wrap="word", font=("Consolas", 9), state="disabled", height=22)
+        self.details.tag_configure("scenario", foreground="#18794e")
+        self.details.tag_configure("entry", foreground="#3b4652")
+        self.details.tag_configure("breakout", foreground="#9a7000")
+        self.details.tag_configure("stop", foreground="#c62828")
+        self.details.tag_configure("target", foreground="#8053a8")
+        self.details.tag_configure("stale", foreground="#087f8c")
         detail_scroll = ttk.Scrollbar(right, orient="vertical", command=self.details.yview)
         self.details.configure(yscrollcommand=detail_scroll.set)
         self.details.pack(side="left", fill="both", expand=True)
@@ -604,6 +610,23 @@ class ControlPanel(tk.Tk):
         self.details.configure(state="normal")
         self.details.delete("1.0", "end")
         self.details.insert("1.0", text)
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            tag = None
+            if line.startswith("PARİTE "):
+                tag = "scenario"
+            elif line.startswith("Koşullu giriş bölgesi:"):
+                tag = "entry"
+            elif line.startswith("Kırılım:"):
+                tag = "breakout"
+            elif line.startswith("Zarar durdurma:"):
+                tag = "stop"
+            elif line.startswith("Hedef "):
+                tag = "target"
+            elif line.startswith("Fiyat:") and "CANLI AKIŞ GÜNCEL" not in line:
+                if "Veri: —" not in line and "Veri: GÜNCEL" not in line:
+                    tag = "stale"
+            if tag:
+                self.details.tag_add(tag, f"{line_number}.0", f"{line_number}.end")
         self.details.configure(state="disabled")
 
     def _selected_candidate(self) -> dict[str, Any] | None:
@@ -653,8 +676,8 @@ class ControlPanel(tk.Tk):
             "", "--- GİRİŞ / RİSK PLANI ---",
             f"Plan durumu: {plan.get('status') or 'plan yok'}",
             f"Koşullu giriş bölgesi: {entry_text}",
-            f"Kırılım: {_format_price(breakout) if breakout is not None else 'mevcut değil'} USDT"
-            f"   |   Zarar durdurma: {_format_price(stop) if stop is not None else 'mevcut değil'} USDT",
+            f"Kırılım: {_format_price(breakout) if breakout is not None else 'mevcut değil'} USDT",
+            f"Zarar durdurma: {_format_price(stop) if stop is not None else 'mevcut değil'} USDT",
             *(target_lines or ["Teknik hedefler: mevcut değil"]),
             f"Plan notu: {plan.get('reason') or plan.get('invalidation_reason') or '—'}",
             "", "--- KONTROL DURUMU ---",
