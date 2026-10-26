@@ -585,7 +585,7 @@ class ControlPanel(tk.Tk):
     def _apply_brightness(self) -> None:
         """Adjust only the light grayscale UI brightness; no dark theme is used."""
         value = max(60, min(100, int(self.panel_brightness)))
-        gray = round(220 + (value - 60) * 35 / 40)
+        gray = round(210 + (value - 60) * 34 / 40)
         background = f"#{gray:02x}{gray:02x}{gray:02x}"
         foreground = "#444444"
         style = ttk.Style(self)
@@ -704,6 +704,10 @@ class ControlPanel(tk.Tk):
             )
         except (OSError, ValueError) as exc:
             self.engine = None
+            self.engine_started_epoch = None
+            self.status_var.set("Motor başlatılamadı")
+            self.start_button.configure(state="normal")
+            self.stop_button.configure(state="disabled")
             LOGGER.exception("Motor başlatılamadı")
             messagebox.showerror("Motor başlatılamadı", f"{type(exc).__name__}: {exc}")
             return
@@ -967,7 +971,6 @@ class ControlPanel(tk.Tk):
         for row, key in sortable:
             phase = row.get("phase") or row.get("last_known_phase") or "—"
             symbol = row.get("symbol") or row.get("base_asset") or "—"
-            route = row.get("discovery_route") or row.get("discovery_path") or row.get("discovery_method") or "—"
             freshness = str(row.get("data_freshness") or "—")
             if freshness == "CANLI AKIŞ GÜNCEL":
                 freshness_label = "GÜNCEL"
