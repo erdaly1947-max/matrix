@@ -380,7 +380,7 @@ class PillButton(tk.Canvas):
         measured = tkfont.Font(family=self._font[0], size=self._font[1], weight=self._font[2]).measure(text)
         requested_width = max(measured + 28, int(width or 0) * 8)
         super().__init__(
-            master, width=requested_width, height=32, bd=0, highlightthickness=0,
+            master, width=requested_width, height=27, bd=0, highlightthickness=0,
             relief="flat", background="#444444", cursor="hand2",
         )
         self.bind("<Configure>", lambda _event: self._draw())
@@ -538,13 +538,14 @@ class ControlPanel(tk.Tk):
         style.configure("Header.TLabel", font=("Segoe UI", 14, "bold"))
         style.configure("Status.TLabel", font=("Segoe UI", 10, "bold"))
         style.configure("BTC.TLabel", font=("Segoe UI", 9, "bold"))
-        style.configure("Treeview", rowheight=27, font=("Segoe UI", 9), borderwidth=0)
+        style.configure("Treeview", rowheight=25, font=("Segoe UI", 9), borderwidth=0)
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"), padding=(4, 5))
-        style.configure("Slim.Vertical.TScrollbar", arrowsize=8, width=8, background="#666666",
-                        troughcolor="#444444", bordercolor="#444444", arrowcolor="#ffffff")
-        style.configure("Slim.Horizontal.TScrollbar", arrowsize=8, width=8, background="#666666",
-                        troughcolor="#444444", bordercolor="#444444", arrowcolor="#ffffff")
-        style.configure("TScale", troughcolor="#40c9c2")
+        style.configure("Slim.Vertical.TScrollbar", arrowsize=6, width=5, background="#7b858d",
+                        troughcolor="#353a40", bordercolor="#353a40", arrowcolor="#ffffff")
+        style.configure("Slim.Horizontal.TScrollbar", arrowsize=6, width=5, background="#7b858d",
+                        troughcolor="#353a40", bordercolor="#353a40", arrowcolor="#ffffff")
+        style.configure("Slim.Horizontal.TScale", sliderthickness=10, troughcolor="#24d6cb", background="#24d6cb", borderwidth=0, relief="flat")
+        style.configure("TScale", troughcolor="#24d6cb", sliderthickness=10, borderwidth=0, relief="flat")
         style.map("Treeview", background=[("selected", "#454b52")],
                   foreground=[("selected", "#ffffff")])
 
@@ -552,7 +553,8 @@ class ControlPanel(tk.Tk):
         header.pack(fill="x")
         ttk.Label(header, text=APP_TITLE, style="Header.TLabel").pack(side="left")
         ttk.Label(header, text="Tek analiz motoru: Binance Spot · Emir göndermez", padding=(16, 5)).pack(side="left")
-        ttk.Label(header, textvariable=self.status_var, style="Status.TLabel", anchor="e").pack(side="right")
+        self.status_label = ttk.Label(header, textvariable=self.status_var, style="Status.TLabel", anchor="e")
+        self.status_label.pack(side="right")
 
         status_row = ttk.Frame(self, padding=(12, 0, 12, 8))
         status_row.pack(fill="x")
@@ -587,47 +589,50 @@ class ControlPanel(tk.Tk):
         self.level_button = PillButton(controls, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch, role="accent")
         self.level_button.pack(side="left", padx=5)
 
-        report_controls = ttk.Frame(self, padding=(12, 0, 12, 8))
+        report_controls = ttk.Frame(self, padding=(12, 0, 12, 7))
         report_controls.pack(fill="x")
-        ttk.Label(report_controls, text="Rapor / Bulut:", style="BTC.TLabel").pack(side="left", padx=(0, 8))
-        PillButton(report_controls, text="Günlük Rapor", command=self.create_report, role="action").pack(side="left", padx=(0, 6))
-        PillButton(report_controls, text="Analiz Raporu", command=self.create_analysis_report, role="action").pack(side="left", padx=6)
-        PillButton(report_controls, text="Sorun Giderme Paketi (ZIP)", command=self.create_handoff_zip, role="action").pack(side="left", padx=6)
+        report_row_top = ttk.Frame(report_controls)
+        report_row_top.pack(fill="x", pady=(0, 3))
+        report_row_bottom = ttk.Frame(report_controls)
+        report_row_bottom.pack(fill="x")
 
-        sound = ttk.Frame(report_controls)
-        sound.pack(side="right")
-        sound_controls = ttk.Frame(sound)
-        sound_controls.pack(anchor="e")
-        self.alarm_button = PillButton(sound_controls, text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı", command=self.toggle_alarm, role="accent")
-        self.alarm_button.pack(side="left", padx=6)
-        PillButton(sound_controls, text="Ses Testi", command=self._test_sound, role="accent").pack(side="left", padx=5)
-        ttk.Label(sound_controls, text="Ses").pack(side="left")
-        self.volume_scale = ttk.Scale(sound_controls, from_=0, to=100, orient="horizontal", length=110,
-                                      variable=self.volume_var, command=self._volume_moved)
-        self.volume_scale.pack(side="left", padx=(5, 0))
+        PillButton(report_row_top, text="Günlük Rapor", command=self.create_report, role="action").pack(side="left", padx=(0, 5))
+        PillButton(report_row_top, text="Analiz Raporu", command=self.create_analysis_report, role="action").pack(side="left", padx=5)
+        self.level_button = PillButton(report_row_top, text="Seviye Takibi: Kapalı", command=self.toggle_level_watch, role="accent")
+        self.level_button.pack(side="left", padx=(12, 5))
+        self.alarm_button = PillButton(report_row_top, text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı", command=self.toggle_alarm, role="accent")
+        self.alarm_button.pack(side="left", padx=5)
+        PillButton(report_row_top, text="Ses Testi", command=self._test_sound, role="accent").pack(side="left", padx=5)
+
+        PillButton(report_row_bottom, text="Sorun Giderme Paketi (ZIP)", command=self.create_handoff_zip, role="action").pack(side="left", padx=(0, 5))
+        ttk.Label(report_row_bottom, text="Ses").pack(side="left", padx=(12, 2))
+        self.volume_scale = ttk.Scale(report_row_bottom, from_=0, to=100, orient="horizontal", length=105,
+                                      variable=self.volume_var, command=self._volume_moved, style="Slim.Horizontal.TScale")
+        self.volume_scale.pack(side="left", padx=(2, 0))
         self.volume_scale.bind("<ButtonRelease-1>", self._save_volume)
         self.volume_scale.bind("<KeyRelease>", self._save_volume)
-        self.volume_label = ttk.Label(sound_controls, text=f"{self.alarm_volume}%", width=4)
-        self.volume_label.pack(side="left", padx=(4, 0))
-        brightness_controls = ttk.Frame(sound)
-        brightness_controls.pack(anchor="e", pady=(3, 0))
-        ttk.Label(brightness_controls, text="Panel ışığı").pack(side="left", padx=(5, 0))
+        self.volume_label = ttk.Label(report_row_bottom, text=f"{self.alarm_volume}%", width=4)
+        self.volume_label.pack(side="left", padx=(3, 0))
+        ttk.Label(report_row_bottom, text="Panel Işığı").pack(side="left", padx=(14, 2))
         self.brightness_scale = ttk.Scale(
-            brightness_controls, from_=0, to=100, orient="horizontal", length=110,
-            variable=self.brightness_var, command=self._brightness_moved,
+            report_row_bottom, from_=0, to=100, orient="horizontal", length=105,
+            variable=self.brightness_var, command=self._brightness_moved, style="Slim.Horizontal.TScale",
         )
-        self.brightness_scale.pack(side="left", padx=(4, 0))
+        self.brightness_scale.pack(side="left", padx=(2, 0))
         self.brightness_scale.bind("<ButtonRelease-1>", self._save_brightness)
         self.brightness_scale.bind("<KeyRelease>", self._save_brightness)
-        self.brightness_label = ttk.Label(brightness_controls, text=f"{self.panel_brightness}%", width=4)
-        self.brightness_label.pack(side="left", padx=(4, 0))
+        self.brightness_label = ttk.Label(report_row_bottom, text=f"{self.panel_brightness}%", width=4)
+        self.brightness_label.pack(side="left", padx=(3, 0))
 
-        pane = ttk.Panedwindow(self, orient="horizontal")
+        pane = ttk.Frame(self)
         pane.pack(fill="both", expand=True, padx=12, pady=(0, 6))
+        pane.columnconfigure(0, weight=5)
+        pane.columnconfigure(1, weight=4)
+        pane.rowconfigure(0, weight=1)
         left = ttk.Frame(pane, padding=(0, 0, 5, 0))
         right = ttk.Frame(pane, padding=(5, 0, 0, 0))
-        pane.add(left, weight=5)
-        pane.add(right, weight=4)
+        left.grid(row=0, column=0, sticky="nsew")
+        right.grid(row=0, column=1, sticky="nsew")
         ttk.Label(left, text="Adaylar · güçlü ve güncel adaylar üstte", style="Status.TLabel").pack(anchor="w", pady=(0, 5))
 
         tree_frame = ttk.Frame(left)
@@ -683,17 +688,12 @@ class ControlPanel(tk.Tk):
         self.details.tag_configure("decision_early", foreground="#d8b4fe")
         self.details.tag_configure("decision_watch", foreground="#8ab4f8")
         detail_scroll = ttk.Scrollbar(detail_frame, orient="vertical", style="Slim.Vertical.TScrollbar", command=self.details.yview)
-        detail_scroll_top = ttk.Scrollbar(detail_frame, orient="horizontal", style="Slim.Horizontal.TScrollbar", command=self.details.xview)
         detail_scroll_bottom = ttk.Scrollbar(detail_frame, orient="horizontal", style="Slim.Horizontal.TScrollbar", command=self.details.xview)
-        self.details.configure(
-            yscrollcommand=detail_scroll.set,
-            xscrollcommand=lambda first, last: (detail_scroll_top.set(first, last), detail_scroll_bottom.set(first, last)),
-        )
-        detail_scroll_top.grid(row=0, column=0, sticky="ew")
-        self.details.grid(row=1, column=0, sticky="nsew")
-        detail_scroll.grid(row=1, column=1, sticky="ns")
-        detail_scroll_bottom.grid(row=2, column=0, sticky="ew")
-        detail_frame.rowconfigure(1, weight=1)
+        self.details.configure(yscrollcommand=detail_scroll.set, xscrollcommand=detail_scroll_bottom.set)
+        self.details.grid(row=0, column=0, sticky="nsew")
+        detail_scroll.grid(row=0, column=1, sticky="ns")
+        detail_scroll_bottom.grid(row=1, column=0, sticky="ew")
+        detail_frame.rowconfigure(0, weight=1)
         detail_frame.columnconfigure(0, weight=1)
 
         lower = ttk.LabelFrame(self, text="Tanılama / son kayıtlar · kısa görünüm", padding=5)
@@ -714,17 +714,21 @@ class ControlPanel(tk.Tk):
         self.configure(background=background)
         for widget_style in ("TFrame", "TLabel", "TLabelframe", "TLabelframe.Label", "TButton"):
             style.configure(widget_style, background=background, foreground=foreground)
-        style.map("TButton", foreground=[("disabled", "#c5c5c5"), ("active", "#ffffff")],
+        style.map("TButton", foreground=[("disabled", "#ffffff"), ("active", "#ffffff")],
                   background=[("active", "#606060")])
+        status_text = self.status_var.get().upper()
+        status_color = "#39ff88" if status_text.startswith("CANLI AKIŞ GÜNCEL") else "#ff4545" if "CANLI AKIŞ" in status_text else "#ffffff"
+        style.configure("Status.TLabel", foreground=status_color)
         style.configure("Treeview", background=background, fieldbackground=background, foreground=foreground)
         style.configure("Treeview.Heading", background="#505050", foreground="#ffffff")
-        style.configure("Slim.Vertical.TScrollbar", arrowsize=8, width=8, background="#666666",
+        style.configure("Slim.Vertical.TScrollbar", arrowsize=6, width=5, background="#7b858d",
                         troughcolor=background, bordercolor=background, arrowcolor="#ffffff")
-        style.configure("Slim.Horizontal.TScrollbar", arrowsize=8, width=8, background="#666666",
+        style.configure("Slim.Horizontal.TScrollbar", arrowsize=6, width=5, background="#7b858d",
                         troughcolor=background, bordercolor=background, arrowcolor="#ffffff")
+        style.configure("Slim.Horizontal.TScale", sliderthickness=10, troughcolor="#24d6cb", background="#24d6cb", borderwidth=0, relief="flat")
         style.map("Treeview", background=[("selected", "#454b52")],
                   foreground=[("selected", "#ffffff")])
-        style.configure("TScale", troughcolor="#40c9c2")
+        style.configure("TScale", troughcolor="#24d6cb", sliderthickness=10, borderwidth=0, relief="flat")
         for widget in (getattr(self, "details", None), getattr(self, "log_view", None)):
             if widget is not None:
                 widget.configure(background=background, foreground=foreground, insertbackground=foreground)
@@ -1097,6 +1101,13 @@ class ControlPanel(tk.Tk):
             else:
                 status = live_status
         self.status_var.set(status)
+        normalized_status = status.upper()
+        if normalized_status.startswith("CANLI AKIŞ GÜNCEL"):
+            ttk.Style(self).configure("Status.TLabel", foreground="#39ff88")
+        elif "CANLI AKIŞ" in normalized_status or normalized_status in ("VERİ ESKİ", "CANLI VERİ YOK"):
+            ttk.Style(self).configure("Status.TLabel", foreground="#ff4545")
+        else:
+            ttk.Style(self).configure("Status.TLabel", foreground="#ffffff")
         count = state.get("scan_symbol_count", state.get("common_pair_count", "—"))
         mode = state.get("universe_mode") or "—"
         warning = str(state.get("universe_warning") or state.get("alert_filter_warning") or "").strip()
@@ -1620,12 +1631,17 @@ class ControlPanel(tk.Tk):
                 except OSError:
                     pass
 
+            self.clipboard_clear()
+            self.clipboard_append(json.dumps(payload, ensure_ascii=False, indent=2))
+            self.update_idletasks()
+            self._open_select(report_path)
+
             config = load_connection_config(ROOT)
             if not config:
                 messagebox.showinfo(
                     "Analiz raporu hazır",
-                    f"Analiz raporu sıkıştırılarak kaydedildi:\n{report_path}\n\n"
-                    "Sunucuya gönderim için kök klasörde chatgpt_baglanti.local.json "
+                    f"Analiz raporu sıkıştırılarak kaydedildi ve dosyası seçildi:\n{report_path}\n\n"
+                    "Raporun JSON özeti panoya kopyalandı. Sunucuya gönderim için kök klasörde chatgpt_baglanti.local.json "
                     "dosyası yapılandırılmalıdır. Örnek: chatgpt_baglanti.example.json",
                 )
                 self._log_line(f"Analiz raporu oluşturuldu; bağlantı yapılandırılmamış: {report_path.name}")
