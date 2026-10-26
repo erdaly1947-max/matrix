@@ -25,7 +25,7 @@ Temel URL: `https://firsat-kontrol-analysis-report.erdaly1947.workers.dev`
 
 ## Masaüstü yapılandırması
 
-Masaüstü uygulaması Worker adresini kaynak kodundaki sabit değerlerden alır. Yükleme anahtarı Windows Kimlik Bilgileri Yöneticisi'nde genel kimlik bilgisi olarak saklanır; kaynak koda, loglara veya GitHub'a yazılmaz. Yükseltme sırasında eski chatgpt_baglanti.local.json dosyası bulunursa yalnızca bilinen Worker adresi kabul edilir; anahtar Windows kasasına kaydedilip geri okunarak doğrulanmadan dosya silinmez. İlk güncellemede ZIP mevcut program klasörüne ayıklanmalı ve eski dosya önceden silinmemelidir.
+Masaüstü uygulaması Worker adresini kaynak kodundaki sabit değerlerden alır. Yükleme anahtarı Windows Kimlik Bilgileri Yöneticisi'nde genel kimlik bilgisi olarak saklanır; kaynak koda, loglara veya GitHub'a yazılmaz. Yükseltme sırasında eski chatgpt_baglanti.local.json dosyası bulunursa program açılışta yalnızca bilinen Worker adresini kabul eder; anahtar Windows kasasına kaydedilip geri okunarak doğrulanmadan dosya silinmez. İlk güncellemede ZIP mevcut program klasörüne ayıklanmalı ve eski dosya önceden silinmemelidir.
 
 ## İçerik ve bağlantılar
 

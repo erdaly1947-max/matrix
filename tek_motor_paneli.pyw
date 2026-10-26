@@ -1882,6 +1882,8 @@ class ControlPanel(tk.Tk):
 
 def main() -> int:
     try:
+        # Migrate legacy report credentials before showing the panel.
+        load_connection_config(ROOT)
         app = ControlPanel()
         app.mainloop()
         return 0

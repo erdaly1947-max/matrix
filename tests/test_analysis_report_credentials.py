@@ -117,5 +117,16 @@ class CredentialMigrationTests(unittest.TestCase):
         self.assertEqual(_report_endpoint(config, "troubleshooting-zip"), UPLOAD_URL + "/troubleshooting-zip")
 
 
+    def test_program_attempts_migration_before_creating_panel(self):
+        panel_source = Path(__file__).resolve().parents[1] / "tek_motor_paneli.pyw"
+        source = panel_source.read_text(encoding="utf-8")
+        main_start = source.index("def main() -> int:")
+        main_end = source.index('if __name__ == "__main__":', main_start)
+        main_body = source[main_start:main_end]
+        self.assertLess(
+            main_body.index("load_connection_config(ROOT)"),
+            main_body.index("ControlPanel()"),
+        )
+
 if __name__ == "__main__":
     unittest.main()
