@@ -235,35 +235,45 @@ def load_connection_config(root: str | Path) -> dict[str, str] | None:
         "read_url": read_url if isinstance(read_url, str) else "",
     }
 
-def upload_analysis_report(config: dict[str, str], compressed: bytes) -> dict[str, Any]:
-    """POST gzip JSON over HTTPS with the upload token in an Authorization header."""
-    if not isinstance(compressed, bytes) or not compressed:
-        raise ValueError("Gönderilecek sıkıştırılmış rapor boş.")
-    if len(compressed) > MAX_UPLOAD_BYTES:
-        raise ValueError("Sıkıştırılmış rapor boyut sınırını aşıyor.")
+def _report_endpoint(config: dict[str, str], suffix: str = "") -> str:
+    """Build a typed upload URL from the configured /api/report endpoint."""
     url = config.get("upload_url", "")
     parsed = urllib.parse.urlsplit(url)
-    if parsed.scheme != "https" or not parsed.netloc:
+    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
         raise ValueError("Yükleme adresi geçerli bir HTTPS adresi olmalıdır.")
-    request = urllib.request.Request(
-        url,
-        data=compressed,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {config['upload_token']}",
-            "Content-Type": "application/json; charset=utf-8",
-            "Content-Encoding": "gzip",
-            "Accept": "application/json",
-            "User-Agent": "Firsat-Kontrol-Paneli/00",
-        },
-    )
+    if parsed.query or parsed.fragment or not parsed.path.rstrip("/").endswith("/api/report"):
+        raise ValueError("Yükleme adresi /api/report uç noktası olmalıdır.")
+    path = parsed.path.rstrip("/") + (f"/{suffix}" if suffix else "")
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
+
+
+def _post_report(
+    config: dict[str, str], endpoint: str, body: bytes, *,
+    content_type: str, content_encoding: str | None = None,
+) -> dict[str, Any]:
+    if not isinstance(body, bytes) or not body:
+        raise ValueError("Gönderilecek rapor boş.")
+    if len(body) > MAX_UPLOAD_BYTES:
+        raise ValueError(f"Gönderilecek rapor {MAX_UPLOAD_BYTES} bayt sınırını aşıyor.")
+    token = config.get("upload_token", "")
+    if not isinstance(token, str) or not token.strip():
+        raise ValueError("Yükleme anahtarı yapılandırılmamış.")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": content_type,
+        "Accept": "application/json",
+        "User-Agent": "Firsat-Kontrol-Paneli/00",
+    }
+    if content_encoding:
+        headers["Content-Encoding"] = content_encoding
+    request = urllib.request.Request(endpoint, data=body, method="POST", headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=25) as response:
             response_body = response.read(256 * 1024).decode("utf-8", errors="replace")
             status = response.status
     except urllib.error.HTTPError as exc:
-        body = exc.read(2048).decode("utf-8", errors="replace")
-        raise RuntimeError(f"Sunucu HTTP {exc.code}: {body}") from exc
+        response_body = exc.read(2048).decode("utf-8", errors="replace")
+        raise RuntimeError(f"Sunucu HTTP {exc.code}: {response_body}") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise RuntimeError(f"Sunucu bağlantısı başarısız: {exc}") from exc
     try:
@@ -272,9 +282,49 @@ def upload_analysis_report(config: dict[str, str], compressed: bytes) -> dict[st
         body_json = {}
     if status < 200 or status >= 300 or body_json.get("ok") is not True:
         raise RuntimeError(body_json.get("error") or f"Sunucu beklenmeyen yanıt verdi (HTTP {status}).")
+    return body_json
+
+
+def upload_json_report(
+    config: dict[str, str], compressed: bytes, report_kind: str
+) -> dict[str, Any]:
+    """Upload one gzip-compressed JSON report to its isolated Worker route."""
+    if report_kind not in {"analysis", "daily", "troubleshooting"}:
+        raise ValueError("Bilinmeyen rapor türü.")
+    if not isinstance(compressed, bytes) or not compressed:
+        raise ValueError("Gönderilecek sıkıştırılmış rapor boş.")
+    if len(compressed) > MAX_UPLOAD_BYTES:
+        raise ValueError("Sıkıştırılmış rapor boyut sınırını aşıyor.")
+    endpoint = _report_endpoint(config, "" if report_kind == "analysis" else report_kind)
+    body_json = _post_report(
+        config, endpoint, compressed,
+        content_type="application/json; charset=utf-8",
+        content_encoding="gzip",
+    )
     return {
         "ok": True,
-        "read_url": body_json.get("read_url") or config.get("read_url", ""),
+        "report_kind": report_kind,
+        "read_url": body_json.get("read_url") or (config.get("read_url", "") if report_kind == "analysis" else ""),
         "candidate_count": body_json.get("candidate_count"),
         "compressed_bytes": len(compressed),
+    }
+
+
+def upload_analysis_report(config: dict[str, str], compressed: bytes) -> dict[str, Any]:
+    """Backwards-compatible upload API for the analysis report."""
+    return upload_json_report(config, compressed, "analysis")
+
+
+def upload_troubleshooting_zip(config: dict[str, str], archive: bytes) -> dict[str, Any]:
+    """Upload the validated local troubleshooting ZIP as a separate binary object."""
+    endpoint = _report_endpoint(config, "troubleshooting-zip")
+    body_json = _post_report(
+        config, endpoint, archive,
+        content_type="application/zip",
+    )
+    return {
+        "ok": True,
+        "report_kind": "troubleshooting_zip",
+        "read_url": body_json.get("read_url", ""),
+        "compressed_bytes": len(archive),
     }
