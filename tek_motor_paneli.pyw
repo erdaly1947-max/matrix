@@ -1277,6 +1277,7 @@ class ControlPanel(tk.Tk):
         self, report_path: Path, result: dict[str, Any] | None, error: str | None
     ) -> None:
         if error:
+            self.status_var.set("Analiz raporu yerelde kaydedildi; sunucuya gönderilemedi")
             self._log_line(f"Analiz raporu gönderilemedi: {error}")
             messagebox.showwarning(
                 "Analiz raporu yerel olarak kaydedildi",
@@ -1285,6 +1286,7 @@ class ControlPanel(tk.Tk):
             )
             return
         read_url = (result or {}).get("read_url") or "Sunucu yanıtında okuma bağlantısı yok."
+        self.status_var.set("Analiz raporu sunucuya yüklendi")
         self._log_line(f"Analiz raporu sunucuya gönderildi: {report_path.name}")
         messagebox.showinfo(
             "Analiz raporu gönderildi",
