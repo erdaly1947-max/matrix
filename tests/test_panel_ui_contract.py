@@ -99,14 +99,20 @@ class PanelUIContractTests(unittest.TestCase):
         source = PANEL_SOURCE
         self.assertIn("PillButton", source)
         self.assertIn('text="Haritayı Güncelle"', source)
-        self.assertIn('sound = ttk.Frame(report_controls)', source)
-        self.assertIn('text="Panel ışığı"', source)
+        self.assertIn('report_row_top = ttk.Frame(report_controls)', source)
+        self.assertIn('report_row_bottom = ttk.Frame(report_controls)', source)
+        self.assertIn('text="Panel Işığı"', source)
         self.assertIn('text="Motoru Başlat"', source)
         self.assertIn('text="Motoru Durdur"', source)
         self.assertIn('text="Sesli Bildirim: Açık" if self.alarm_enabled else "Sesli Bildirim: Kapalı"', source)
         self.assertIn('text="Sorun Giderme Paketi (ZIP)"', source)
         self.assertIn('orient="horizontal", style="Slim.Horizontal.TScrollbar"', source)
         self.assertIn('wrap="none", font=("Segoe UI", 10)', source)
+        self.assertNotIn('detail_scroll_top', source)
+        self.assertNotIn('ttk.Panedwindow(self, orient="horizontal")', source)
+        self.assertIn('self._open_select(report_path)', source)
+        self.assertIn('foreground="#39ff88"', source)
+        self.assertIn('foreground="#ff4545"', source)
         self.assertIn('("★ " if strong else "") + str(symbol)', PANEL_SOURCE)
 
     def test_distribution_packaging_requires_explicit_marker(self):
