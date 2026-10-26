@@ -191,6 +191,65 @@ export default {
       }, 201);
     }
 
+    if (request.method === "GET" && (url.pathname === "/chatgpt/daily" || url.pathname === "/chatgpt/troubleshooting")) {
+      const isDaily = url.pathname === "/chatgpt/daily";
+      const key = isDaily ? REPORT_KEYS.daily : REPORT_KEYS.troubleshooting;
+      const kind = isDaily ? "daily" : "troubleshooting";
+      const record = await env.ANALYSIS_REPORTS.getWithMetadata(key, "arrayBuffer");
+      if (!record || !record.value) {
+        return jsonResponse({ ok: false, error: "İstenen rapor bulunamadı." }, 404);
+      }
+      try {
+        const report = await readGzipJson(record.value);
+        const select = (value, keys) => {
+          if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+          const result = {};
+          for (const field of keys) if (Object.prototype.hasOwnProperty.call(value, field)) result[field] = value[field];
+          return result;
+        };
+        const stateKeys = [
+          "application_version", "radar", "source", "generated_at_utc", "generated_at_local",
+          "live_stream_status", "history_status", "live_stream_healthy", "status",
+          "bootstrap_completed", "bootstrap_total", "bootstrap_progress_pct", "bootstrap_errors",
+          "bootstrap_successful", "bootstrap_skipped", "bootstrap_ready", "bootstrap_retry_seconds",
+          "common_pair_count", "scan_symbol_count", "universe_generated_at_utc",
+          "btcturk_universe_generated_at_utc", "fan_token_count", "stablecoin_count"
+        ];
+        let payload;
+        if (isDaily) {
+          const body = report.payload || {};
+          payload = {
+            report_type: report.report_type,
+            schema_version: report.schema_version,
+            report_generated_at_utc: report.report_generated_at_utc,
+            generated_at_local: body.state?.generated_at_local,
+            state: select(body.state, stateKeys),
+            diagnostics: body.diagnostics && typeof body.diagnostics === "object" ? body.diagnostics : {}
+          };
+        } else {
+          const dailyState = report.daily_report?.state || {};
+          payload = {
+            report_type: report.report_type,
+            schema_version: report.schema_version,
+            generated_at_utc: report.generated_at_utc,
+            application: report.application,
+            summary: report.summary || {},
+            state: select(dailyState, stateKeys),
+            diagnostics: report.diagnostics && typeof report.diagnostics === "object" ? report.diagnostics : {},
+            manifest: Array.isArray(report.manifest?.files) ? report.manifest.files : [],
+            log_tail: typeof report.log_tail === "string" ? report.log_tail.slice(-12000) : ""
+          };
+        }
+        return jsonResponse(payload, 200, {
+          "X-Report-SHA256": record.metadata?.sha256 || "",
+          "X-Report-Generated-At": record.metadata?.generated_at_utc || "",
+          "X-Report-Type": kind + "-summary"
+        });
+      } catch {
+        return jsonResponse({ ok: false, error: "Rapor özeti oluşturulamadı." }, 500);
+      }
+    }
+
     if (request.method === "GET" && url.pathname === "/chatgpt/analysis") {
       const record = await env.ANALYSIS_REPORTS.getWithMetadata(REPORT_KEYS.analysis, "arrayBuffer");
       if (!record || !record.value) {
