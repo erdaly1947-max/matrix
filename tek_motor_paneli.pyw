@@ -575,6 +575,11 @@ class ControlPanel(tk.Tk):
         self.details.tag_configure("stop", foreground="#c62828")
         self.details.tag_configure("target", foreground="#8053a8")
         self.details.tag_configure("stale", foreground="#087f8c")
+        self.details.tag_configure("decision_good", foreground="#176b37")
+        self.details.tag_configure("decision_wait", foreground="#9a7000")
+        self.details.tag_configure("decision_bad", foreground="#c62828")
+        self.details.tag_configure("decision_early", foreground="#8053a8")
+        self.details.tag_configure("decision_watch", foreground="#2463a6")
         detail_scroll = ttk.Scrollbar(right, orient="vertical", command=self.details.yview)
         self.details.configure(yscrollcommand=detail_scroll.set)
         self.details.pack(side="left", fill="both", expand=True)
@@ -614,6 +619,16 @@ class ControlPanel(tk.Tk):
             tag = None
             if line.startswith("PARİTE "):
                 tag = "scenario"
+            elif line.startswith("GÜÇLÜ FIRSAT"):
+                tag = "decision_good"
+            elif line.startswith("İŞLEM YOK") or line.startswith("FIRSAT GEÇERSİZ"):
+                tag = "decision_bad"
+            elif line.startswith("KIRILIM BEKLENİYOR"):
+                tag = "decision_wait"
+            elif line.startswith("ERKEN ADAY"):
+                tag = "decision_early"
+            elif line.startswith("İZLEMEDE"):
+                tag = "decision_watch"
             elif line.startswith("Koşullu giriş bölgesi:"):
                 tag = "entry"
             elif line.startswith("Kırılım:"):
