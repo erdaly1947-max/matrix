@@ -21,7 +21,8 @@ from typing import Any
 # Legacy-only filename: credentials are migrated out of this file on first report use.
 CONFIG_NAME = "chatgpt_baglanti.local.json"
 WORKER_BASE_URL = "https://firsat-kontrol-analysis-report.erdaly1947.workers.dev"
-UPLOAD_URL = f"{WORKER_BASE_URL}/api/report"
+RELAY_BASE_URL = "https://firsat-kontrol-market-relay.onrender.com"
+UPLOAD_URL = f"{RELAY_BASE_URL}/api/report"
 READ_URL = f"{WORKER_BASE_URL}/latest"
 CREDENTIAL_TARGET = "Firsat-Kontrol-Paneli/ReportUploadToken"
 CREDENTIAL_BLOB_MAX_BYTES = 5120
@@ -316,11 +317,12 @@ def _read_legacy_upload_token(path: Path) -> str | None:
         return None
     try:
         parsed = urllib.parse.urlsplit(upload_url)
-        expected = urllib.parse.urlsplit(UPLOAD_URL)
+        legacy_expected = urllib.parse.urlsplit(f"{WORKER_BASE_URL}/api/report")
+        relay_expected = urllib.parse.urlsplit(UPLOAD_URL)
         valid_url = (
             parsed.scheme.lower() == "https"
-            and parsed.netloc.lower() == expected.netloc.lower()
-            and parsed.path.rstrip("/") == expected.path
+            and parsed.netloc.lower() in {legacy_expected.netloc.lower(), relay_expected.netloc.lower()}
+            and parsed.path.rstrip("/") == "/api/report"
             and not parsed.query
             and not parsed.fragment
             and not parsed.username
