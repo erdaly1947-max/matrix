@@ -627,28 +627,43 @@ class ControlPanel(tk.Tk):
             self.level_button.configure(text="Seviye Takibi: Kapalı")
         self.current_candidate_key = key
         plan = candidate.get("risk_plan") if isinstance(candidate.get("risk_plan"), dict) else {}
+        entry_low = _safe_float(plan.get("entry_zone_low"))
+        entry_high = _safe_float(plan.get("entry_zone_high"))
+        breakout = _safe_float(plan.get("breakout_level"))
+        stop = _safe_float(plan.get("stop_loss"))
+        targets = plan.get("targets")
+        target_lines = []
+        if isinstance(targets, list):
+            for index, target in enumerate(targets[:3], start=1):
+                if isinstance(target, dict) and _safe_float(target.get("price")) is not None:
+                    label = target.get("name") or f"Hedef {index}"
+                    target_lines.append(f"{label}: {_format_price(target.get('price'))} USDT")
+        entry_text = (
+            f"{_format_price(entry_low)}–{_format_price(entry_high)} USDT"
+            if entry_low is not None and entry_high is not None else "hesaplanmadı"
+        )
         lines = [
-            f"Parite: {candidate.get('symbol') or candidate.get('base_asset') or '—'}",
+            f"PARİTE  {candidate.get('symbol') or candidate.get('base_asset') or '—'}"
+            f"   |   {candidate.get('phase_timeframe') or candidate.get('timeframe') or '—'}"
+            f"   |   Aşama {candidate.get('phase') or candidate.get('last_known_phase') or '—'}",
+            f"Fiyat: {_format_price(candidate.get('latest_price', candidate.get('price')))} USDT"
+            f"   |   Veri: {candidate.get('data_freshness') or '—'}",
             f"Keşif yolu: {candidate.get('discovery_route') or candidate.get('discovery_path') or candidate.get('discovery_method') or '—'}",
-            f"Aşama: {candidate.get('phase') or candidate.get('last_known_phase') or '—'}  |  Durum: {candidate.get('state') or '—'}",
-            f"Zaman dilimi: {candidate.get('phase_timeframe') or candidate.get('timeframe') or '—'}",
-            f"Güncel fiyat: {_format_price(candidate.get('latest_price', candidate.get('price')))} USDT",
-            f"Veri güncelliği: {candidate.get('data_freshness') or '—'}",
-            "", "--- HIZLI KARAR ÖZETİ ---", _format_candidate_decision_summary(candidate),
-            "", "--- MEVCUT KARAR ALANLARI ---",
-            f"Karar: {candidate.get('final_decision') or candidate.get('decision_class') or '—'}",
-            f"Fırsat puanı: {candidate.get('opportunity_score', candidate.get('score_0_100', '—'))}",
-            f"Güçlü fırsat uygunluğu: {candidate.get('strong_opportunity_qualified', '—')}",
-            f"Güçlü alarm uygunluğu: {candidate.get('strong_alarm_eligible', '—')}",
+            "", "--- HIZLI KARAR ---", _format_candidate_decision_summary(candidate),
+            "", "--- GİRİŞ / RİSK PLANI ---",
+            f"Plan durumu: {plan.get('status') or 'plan yok'}",
+            f"Koşullu giriş bölgesi: {entry_text}",
+            f"Kırılım: {_format_price(breakout) if breakout is not None else 'mevcut değil'} USDT"
+            f"   |   Zarar durdurma: {_format_price(stop) if stop is not None else 'mevcut değil'} USDT",
+            *(target_lines or ["Teknik hedefler: mevcut değil"]),
+            f"Plan notu: {plan.get('reason') or plan.get('invalidation_reason') or '—'}",
+            "", "--- KONTROL DURUMU ---",
+            f"Güçlü fırsat: {'EVET' if candidate.get('strong_opportunity_qualified') is True else 'HAYIR / BEKLE'}"
+            f"   |   Güçlü alarm: {'EVET' if candidate.get('strong_alarm_eligible') is True else 'HAYIR'}",
             f"Alarm engeli: {candidate.get('strong_alarm_block_reason') or '—'}",
-            "", "--- Bulgular ---", _short(candidate.get("findings", []), 6000),
-            "", "--- Kanıt grupları ---", _short(candidate.get("evidence_groups", []), 3000),
-            "", "--- Eksik kontroller ---", _short(candidate.get("missing_checks", []), 3000),
-            "", "--- Koşullu risk planı ---", _short(plan, 7000),
-            "", "--- Zaman dilimi metrikleri ---",
-            _short({tf: row.get("metrics", {}) for tf, row in (candidate.get("timeframes", {}) or {}).items()
-                    if isinstance(row, dict)}, 11000),
-            "", "Planlar koşulludur. Komisyon ve kayma hesaplanmaz; güçlü fırsat kapısında brüt teknik risk/getiri kullanılır. Spread ayrı likidite filtresindedir. Emir gönderilmez.",
+            "Bulgular: " + _short(candidate.get('findings', []), 1400),
+            "Eksik kontroller: " + _short(candidate.get('missing_checks', []), 1000),
+            "", "A/B/C araştırma aşamalarıdır; karar ve hedefler garanti değildir. Fiyat giriş bölgesini geçtiyse kovalamak yok. Komisyon/kayma hariçtir; emir gönderilmez.",
         ]
         self._append_details("\n".join(map(str, lines)))
 
