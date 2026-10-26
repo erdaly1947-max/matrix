@@ -19,10 +19,10 @@ Temel Worker adresi: `https://firsat-kontrol-analysis-report.erdaly1947.workers.
 ### Kod durumu: Bu işlevler Sürüm 00 program koduna eklendi
 
 Bu yalnızca tasarım veya plan notu değildir; gerekli uygulama kodu GitHub deposundaki Sürüm 00 kaynaklarına işlendi ve Worker'a dağıtıldı:
-- `analysis_report.py): analiz, günlük ve okunabilir sorun giderme JSON raporlarını gönderen ortak yükleme işlevleri ile sorun giderme ZIP yükleme işlevi.
-- `tek_motor_paneli.pyw): panelde analiz raporu gönderme, günlük rapor oluşturup gönderme ve sorun giderme paketi gönderme işlemleri. Sorun giderme düğmesi, okunabilir sorun giderme JSON'u ile ZIP paketini birlikte gönderir; bu nedenle bunun için ayrı dördüncü düğme gerekmez.
-- `cloudflare/report-worker/src/index.js): dört tür yüklemeyi Cloudflare KV'ye kaydeden ve raporları okunabilir adreslerden sunan Worker rotaları.
-- `cloudflare/report-worker/test/index.test.js) ve README belgeleri: yükleme/okuma yolları için testler ve teknik kayıt.
+- `analysis_report.py`: analiz, günlük ve okunabilir sorun giderme JSON raporlarını gönderen ortak yükleme işlevleri ile sorun giderme ZIP yükleme işlevi.
+- `tek_motor_paneli.pyw`: panelde analiz raporu gönderme, günlük rapor oluşturup gönderme ve sorun giderme paketi gönderme işlemleri. Sorun giderme düğmesi, okunabilir sorun giderme JSON'u ile ZIP paketini birlikte gönderir; bu nedenle bunun için ayrı dördüncü düğme gerekmez.
+- `cloudflare/report-worker/src/index.js`: dört tür yüklemeyi Cloudflare KV'ye kaydeden ve raporları okunabilir adreslerden sunan Worker rotaları.
+- `cloudflare/report-worker/test/index.test.js` ve README belgeleri: yükleme/okuma yolları için testler ve teknik kayıt.
 
 GitHub Actions doğrulama/paketleme çalıştırması başarılı tamamlandı; güncel Sürüm 00 ZIP'i ve SHA-256 dosyası Release'e yayımlandı. Bu işlevleri motor veya arayüz çalışmasında yeniden tasarlamak gerekmiyor; mevcut kod üzerinden hata çıkarsa o hata ayrıca incelenmeli.
 
