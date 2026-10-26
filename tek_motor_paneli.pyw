@@ -429,7 +429,7 @@ class ControlPanel(tk.Tk):
         self.stop_time_var = tk.StringVar(value="Son: —")
         self.universe_var = tk.StringVar(value="Tarama evreni: —")
         self.ws_var = tk.StringVar(value="WebSocket: —")
-        self.alert_var = tk.StringVar(value="Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
+        self.alert_var = tk.StringVar(value="Sesli alarmlar: açık" if self.alarm_enabled else "Sesli alarmlar: kapalı")
         self.level_var = tk.StringVar(value="Seviye takibi: kapalı")
         self.volume_var = tk.IntVar(value=self.alarm_volume)
         self.brightness_var = tk.IntVar(value=self.panel_brightness)
@@ -513,7 +513,7 @@ class ControlPanel(tk.Tk):
         self.volume_scale.bind("<KeyRelease>", self._save_volume)
         self.volume_label = ttk.Label(sound, text=f"{self.alarm_volume}%", width=4)
         self.volume_label.pack(side="left", padx=(4, 0))
-        ttk.Button(sound, text="Sesi Dene", command=self._test_sound).pack(side="left", padx=5)
+        ttk.Button(sound, text="Fırsat Testi", command=self._test_sound).pack(side="left", padx=5)
         ttk.Label(sound, text="Panel ışığı").pack(side="left", padx=(5, 0))
         self.brightness_scale = ttk.Scale(
             sound, from_=60, to=100, orient="horizontal", length=78,
@@ -939,7 +939,7 @@ class ControlPanel(tk.Tk):
         total = state.get("websocket_total_shards", "—")
         ws_age = state.get("websocket_last_message_age_seconds")
         self.ws_var.set(f"WebSocket: {connected}/{total} parça | son veri: {_format_age(ws_age)}")
-        self.alert_var.set("Güçlü alarm: açık" if self.alarm_enabled else "Güçlü alarm: kapalı")
+        self.alert_var.set("Sesli alarmlar: açık" if self.alarm_enabled else "Sesli alarmlar: kapalı")
         self.btc_context_var.set(_format_btc_context_summary(state))
 
         rows = state.get("candidates")
