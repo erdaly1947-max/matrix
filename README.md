@@ -59,7 +59,7 @@ Bu yalnızca tasarım veya plan notu değildir; gerekli uygulama kodu GitHub dep
 Bulut aktarımının ve ChatGPT tarafından okunabilmesinin çalıştığı doğrulandı.
 ### Sonraki çalışma odağı
 
-Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev tamamlandı ve doğrulandı. Sonraki çalışma bu testi baştan tekrarlamak değil, **Sürüm 00 motor işlevlerindeki gerçek aksaklıkları gidermek,pırogramı kullanım amacı için dahada geliştirmek ve arayüzü tek bakışta kolay anlaşılabilir hâle getirmek** olmalıdır. Motor ve arayüz kapsamı değiştirilmeden önce mevcut README, son GitHub commit'i ve doğrulanmış test sonuçları esas alınır.
+Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev tamamlandı ve doğrulandı. Sonraki çalışma bu akışı baştan tekrarlamak değil, **Sürüm 00 motor işlevlerindeki gerçek aksaklıkları gidermek, programı kullanım amacı için geliştirmek ve arayüzü tek bakışta anlaşılır hâle getirmek** olmalıdır. Motor ve arayüz kapsamı değiştirilmeden önce mevcut README, son GitHub commit'i ve programın gerçek kullanımda doğrulanan güncel durumu esas alınır; Python/JavaScript otomatik testleri yalnızca yardımcı regresyon kontrolüdür.
 
 ## Yerel rapor dosyaları — sabit adlar
 
@@ -106,9 +106,9 @@ Kaynak koddaki program sürüm etiketi `radar_core.py` içinde `APP_VERSION = "0
 
 [GitHub Actions doğrulama çalıştırması #40233230870](https://github.com/erdaly1947-max/matrix/actions/runs/40233230870) başarıyla tamamlandı. Python 3.14.8 üzerinde kaynak derlemesi, ayar JSON doğrulaması ve otomatik Python birim testleri geçti. Bulut geçidi JavaScript testleri, Render sağlık kontrolü, Binance borsa sembol listesi (3.736 sembol), BTCUSDT 5 dakikalık mum verisi, BtcTurk USDT ticker verisi ve Render üzerinden canlı Binance WebSocket mum akışı doğrulandı. Bu tarihli çalışmada ZIP bütünlük kontrolü, SHA-256 üretimi ve GitHub Release dosyalarının güncellenmesi de başarılı oldu. O dönem için geçerli olan her gönderimde paketleme davranışı, 27 Ekim 2026 tarihli politika düzeltmesiyle kaldırılmıştır. Kalıcı indirme bağlantıları [Sürüm 00 Release sayfasındadır](https://github.com/erdaly1947-max/matrix/releases/tag/surum-00).
 
-**Açık kalan doğrulamaları araştırılmalı
+**Ayrı açık işler**
 
-Kullanıcının yerel Windows paneli ve canlı Binance kullanımı testi ayrıca yapılmalıdır.
+Tarihsel backtest ve Windows masaüstü panelinin görünüm/etkileşim kontrolü ayrı işler olarak kalır. Programın Render üzerinden piyasa verisi alması ve raporların buluta gönderilip buluttan okunabilmesi, güncel çalışma durumu olarak doğrulanmıştır.
 
 `ayarlar.json` komisyon/kayma ayarlarını içermez. Program bu oranları hesaplamaz ve karar/alarmlarda kullanmaz. Güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir.
 
