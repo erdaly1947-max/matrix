@@ -151,6 +151,7 @@ Her yeni çalışma başlangıcında şu bilgiler netleştirilir: mevcut sürüm
 - Testlerde başarısız sonuç varsa gerekli düzeltmeler yapılır ve etkilenen testler yeniden çalıştırılır. Başarısız testleri bulunan bir grup veya sürüm bir daha kontrol edilir.
 - **Gereksinim ve tasarım kaydı ile uygulama durumu kaydı birbirinden ayrıdır:** Gereksinimler ve planlanan davranış önceden yazılır; uygulamanın tamamlandığı, test edildiği veya başarılı olduğu bilgileri yalnızca gerçek kod ve test kanıtları görüldükten sonra güncellenir kullanıcıya bildirilir.
 - İlgili uygulama ve test grubu tamamlandığında sonuçlar, kalan eksikler ve sürüm kayıtları README'de gerçeğe uygun biçimde güncellenir. Uygun olduğunda ilgili kod, test ve durum kayıtları tek commit altında toplanır.
+- **README her zaman güncel tutulur:** Her çalışma sonunda güncel program durumu, gerçekten çalışan akışlar ve açık kalan işler README ile karşılaştırılır; güncel duruma aykırı eski ifadeler düzeltilir. Geçmiş kayıtlar gerektiğinde korunur, ancak açıkça “tarihsel/eski kayıt” ve ilgili tarih olarak işaretlenir. Eski test veya CI sonucu güncel çalışma durumuyla karıştırılmaz. Aynı konu hakkındaki güncel durum, eski notlardan belirgin biçimde ayrılır.
 - Tamamlanmış işler tekrar uygulanmaz. Her yeni değişiklik doğrulanmış bir eksiğe veya kullanıcı tarafından onaylanmış yeni bir gereksinime dayanır.
 
 ### 5. Dal, sürüm, aşamalar arası aktarım ve son ZIP paketi
