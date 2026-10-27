@@ -115,11 +115,10 @@ jobs:
           print(f"Örnek fiyatlar: {sample}")
           PY
 
-      - name: İstenen son paketleme için Sürüm 00 ZIP ve SHA-256 oluştur
+      - name: İstenen son paketleme için yalnızca Sürüm 00 program ZIP'ini oluştur
         if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package]')))
         run: |
           python - <<'PY'
-          import hashlib
           import json
           import os
           from pathlib import Path
@@ -168,15 +167,11 @@ jobs:
               if any(name.endswith(".zip") for name in names):
                   raise SystemExit("ZIP içinde iç içe ZIP dosyası bulundu.")
 
-          digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
-          checksum_path = archive_path.with_suffix(archive_path.suffix + ".sha256")
-          checksum_path.write_text(f"{digest}  {archive_path.name}\n", encoding="ascii")
           print(f"ZIP: {archive_path}")
-          print(f"SHA-256: {digest}")
           print(f"Dosya sayısı: {len(names)}")
           PY
 
-      - name: Kalıcı GitHub Release indirme dosyalarını otomatik güncelle
+      - name: GitHub Release'te yalnızca program ZIP'ini yayımla
         if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package]')))
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -254,7 +249,6 @@ jobs:
 
           files = [
               (Path("dist/Firsat-Kontrol-Paneli-Surum-00.zip"), "application/zip"),
-              (Path("dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256"), "text/plain"),
           ]
           upload_base = release["upload_url"].split("{", 1)[0]
           for path, content_type in files:
@@ -276,13 +270,3 @@ jobs:
           print(f"RELEASE_PAGE={release['html_url']}", flush=True)
           PY
 
-      - name: GitHub Actions artifact'i de yayımla
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package]')))
-        uses: actions/upload-artifact@v7
-        with:
-          name: Firsat-Kontrol-Paneli-Surum-00
-          path: |
-            dist/Firsat-Kontrol-Paneli-Surum-00.zip
-            dist/Firsat-Kontrol-Paneli-Surum-00.zip.sha256
-          if-no-files-found: error
-          retention-days: 14
