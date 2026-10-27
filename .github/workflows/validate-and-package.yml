@@ -208,7 +208,7 @@ jobs:
                       "target_commitish": os.environ["GITHUB_SHA"],
                       "name": "Fırsat Kontrol Paneli — Sürüm 00",
                       "body": (
-                          "Otomatik dağıtım paketi. Her başarılı main doğrulamasında "
+                          "Dağıtım paketi yalnızca kullanıcı tarafından açıkça başlatılan son paketleme işleminde güncellenir. "
                           "ZIP ve SHA-256 dosyaları güncellenir. Python 3.14.8 ve "
                           "halka açık piyasa verisi uç noktası önceliğini içerir. "
                           "Program hesap bağlantısı kurmaz ve alım-satım emri göndermez."
