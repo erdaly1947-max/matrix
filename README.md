@@ -1,4 +1,4 @@
-# Fırsat-Kontrol Paneli — başlangıç kaynak kodu
+# Fırsat-Kontrol Paneli — başlangıç kaynak kodu 00.SÜRÜMÜNÜN SON HALİ
 
 ## 26 Ekim 2026 — Sürüm 00 masaüstü panel düzenlemesi
 
@@ -21,7 +21,7 @@ Bu düzenleme masaüstü arayüzünü ve kullanıcıya sunulan durum bilgisini i
 Her `main` gönderiminde derleme, birim testleri, bulut Worker testleri ve canlı piyasa geçidi doğrulamaları çalışır. Dağıtım ZIP'i, SHA-256 dosyası, kalıcı Release varlıkları ve Actions artefaktı yalnızca `workflow_dispatch` ile veya commit mesajında açıkça `[package]` bulunduğunda oluşturulur. Böylece ara kod gönderimleri dağıtım paketini güncellemez. `[package]` işareti yalnızca son doğrulama ve dağıtım için kullanılmalıdır; testler başarısızsa paketleme adımları çalışmaz.
 
 
-Bu depo, İki Radarlı Spot Trade / Fırsat-Kontrol Paneli projesinin başlangıç kaynak kodudur. Var olan motor ve analiz modülleri korunmuş; eksik iki dosya eldeki motor sözleşmeleri, ayarlar ve kullanım kılavuzu temel alınarak yeniden oluşturulmuştur.
+Bu depo, Var olan motor ve analiz modülleri korunmuş, ayarlar ve kullanım kılavuzu temel alınarak yeniden oluşturulmuştur.
 
 ## 26 Ekim 2026 — Bulut rapor aktarımı ve bağlantı testinin devir notu
 
@@ -47,17 +47,12 @@ Bu yalnızca tasarım veya plan notu değildir; gerekli uygulama kodu GitHub dep
 
 GitHub Actions doğrulama/paketleme çalıştırması başarılı tamamlandı; güncel Sürüm 00 ZIP'i ve SHA-256 dosyası Release'e yayımlandı. Bu işlevleri motor veya arayüz çalışmasında yeniden tasarlamak gerekmiyor; mevcut kod üzerinden hata çıkarsa o hata ayrıca incelenmeli.
 
-### Ev interneti üzerinden bağlantı: henüz kesin olarak doğrulanmadı
+### Ev interneti üzerinden bağlantı:kesin olarak doğrulandı program ev internetinden render sayesinde veri alıyor.
 
-Bulut aktarımının ve ChatGPT tarafından okunabilmesinin çalıştığı doğrulandı. Ancak **ev interneti bağlantısındaki ilk sorun ayrı bir konu olarak açık kaldı**. Önceki tanılamada Python üzerinden Worker'a erişim sağlanabiliyordu; analiz raporunun başarılı yüklemesi sırasında bilgisayarın telefon internet paylaşımına bağlı olduğu belirtildi. Ev Wi-Fi bağlantısı da daha sonra “bağlı, internet yok” olarak görünüyordu. Bu nedenle test, bulut aktarım kodunun çalıştığını kanıtlar; aynı işlemin ev interneti üzerinden sorunsuz çalıştığını tek başına kanıtlamaz.
-
-Ev ağındaki sorun daha sonra ayrıca ele alınacaksa, Worker'ın `/health` adresine erişim, Windows ağ bağlantısı ve Python HTTPS/TLS sonucu ev bağlantısında yeniden kontrol edilmelidir. Programın proxy veya güvenlik ayarlarını kendiliğinden değiştirmemesi kuralı korunur. Anahtar yenilemesi de bu aktarım testinin başarı koşulu değildi; mevcut gizli anahtar ayrı bir güvenlik işi olarak yenilenmelidir, ancak anahtar değeri README'ye veya GitHub'a yazılmamalıdır.
-
+Bulut aktarımının ve ChatGPT tarafından okunabilmesinin çalıştığı doğrulandı.
 ### Sonraki çalışma odağı
 
-Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev tamamlandı ve doğrulandı. Sonraki çalışma bu testi baştan tekrarlamak değil, **Sürüm 00 motor işlevlerindeki gerçek aksaklıkları gidermek ve arayüzü sadeleştirip okunabilir hâle getirmek** olmalıdır. Ev interneti bağlantısı konusu yalnızca gerekirse ayrı ağ sorunu olarak ele alınır. Motor ve arayüz kapsamı değiştirilmeden önce mevcut README, son GitHub commit'i ve doğrulanmış test sonuçları esas alınır.
-
----
+Buluta rapor gönderme ve raporları ChatGPT'nin okuyabilmesi için temel işlev tamamlandı ve doğrulandı. Sonraki çalışma bu testi baştan tekrarlamak değil, **Sürüm 00 motor işlevlerindeki gerçek aksaklıkları gidermek,pırogramı kullanım amacı için dahada geliştirmek ve arayüzü tek bakışta kolay anlaşılabilir hâle getirmek** olmalıdır. Motor ve arayüz kapsamı değiştirilmeden önce mevcut README, son GitHub commit'i ve doğrulanmış test sonuçları esas alınır.
 
 ## Yerel rapor dosyaları — sabit adlar
 
@@ -71,7 +66,7 @@ Raporlar `reports/` klasöründe her üretimde aynı dosyaların üzerine yazıl
 
 Başarılı yeni üretimden sonra program yalnızca kendi eski tarihli rapor adlandırma kalıplarıyla eşleşen dosyaları temizler. Diğer dosyalara dokunulmaz. Raporların JSON içerikleri yerelde gzip ile sıkıştırılır; devir paketi ZIP olarak oluşturulur. Buluta JSON raporları gzip sıkıştırmasıyla, devir paketi ise ZIP ikili dosyası olarak gönderilir. Bulut okuma uç noktaları JSON içeriğini açarak okunabilir biçimde sunar.
 
-## Başlangıç sürümündeki dosyalar
+## Başlangıç sürümündeki dosyalar şunlardı
 
 - `binance_erken_firsat_radari.py`: Binance Spot piyasa verisi analiz motoru.
 - `radar_core.py`: teknik analiz, aday değerlendirme ve koşullu risk planı.
@@ -84,7 +79,7 @@ Başarılı yeni üretimden sonra program yalnızca kendi eski tarihli rapor adl
 
 ## Çalışma sınırları
 
-Program halka açık piyasa verilerini okur; borsa hesabına bağlanmaz, bakiye/pozisyon bilgisi istemez, emir göndermez ve otomatik alım-satım yapmaz. A/B/C aşamaları araştırma durumlarıdır, kârlılık garantisi veya emir değildir.
+Program halka açık piyasa verilerini okur; borsa hesabına bağlanmaz, bakiye/pozisyon bilgisi istemez, emir göndermez ve otomatik alım-satım yapmaz. A/B/C aşamaları araştırma durumlarıdır, kârlılık garantisi veya emir değildir.Öngörü oluşturmak içindir.
 
 ## Başlatma
 
@@ -104,24 +99,11 @@ Kaynak koddaki program sürüm etiketi `radar_core.py` içinde `APP_VERSION = "0
 
 [GitHub Actions doğrulama çalıştırması #40233230870](https://github.com/erdaly1947-max/matrix/actions/runs/40233230870) başarıyla tamamlandı. Python 3.14.8 üzerinde kaynak derlemesi, ayar JSON doğrulaması ve otomatik Python birim testleri geçti. Bulut geçidi JavaScript testleri, Render sağlık kontrolü, Binance borsa sembol listesi (3.736 sembol), BTCUSDT 5 dakikalık mum verisi, BtcTurk USDT ticker verisi ve Render üzerinden canlı Binance WebSocket mum akışı doğrulandı. ZIP bütünlük kontrolü, SHA-256 üretimi, GitHub Release ZIP ve özet dosyalarının güncellenmesi de başarılı oldu. Her `main` gönderiminden sonra paket ve SHA-256 dosyaları otomatik yenilenir; kalıcı indirme bağlantıları [Sürüm 00 Release sayfasındadır](https://github.com/erdaly1947-max/matrix/releases/tag/surum-00).
 
-**Açık kalan doğrulamalar:** Bu CI sonucu, kullanıcının gerçek Windows bilgisayarındaki panel/görsel etkileşim testinin yerine geçmez. CVCUSDT ve USDCUSDT `1M` verilerindeki uzun boşlukların kaynağı resmî Binance işlem duyuruları ve güncel halka açık Spot mum serileriyle doğrulandı:
-
-- [Binance, CVC/USDT işlem çiftini kaldırma duyurusu](https://www.binance.com/en/support/announcement/detail/13647176b1594beebe1a8aa3f9f843c8): işlemler 2022-12-09 03:00 UTC'de durduruldu. [CVC/USDT yeniden açılma duyurusu](https://www.binance.com/en/support/announcement/detail/c968644475a74284a292ecd3af39e6ff): işlemler 2023-05-12 08:00 UTC'de yeniden açıldı. API'den gelen aylık mum serisinde 2022-12 ile 2023-05 mumları arasında 2023-01–2023-04 eksik.
-- [Binance, USDC/USDT işlem çiftini kaldırma duyurusu](https://www.binance.com/en/support/announcement/detail/e62f703604a94538a1f1bc803b2d579f): işlemler 2022-09-26 03:00 UTC'de durduruldu. [USDC/USDT yeniden açılma duyurusu](https://www.binance.com/en/support/announcement/detail/dd331bed50bb44f485e47aed132bfc02): işlemler 2023-03-11 14:00 UTC'de yeniden açıldı. API'den gelen aylık mum serisinde 2022-09 ile 2023-03 mumları arasında 2022-10–2023-02 eksik.
-
-Bu nedenle boşluklar, ilgili Spot işlem çiftlerinin o aralıklarda işlem görmemesiyle uyumlu; bunlar doldurulmamış gerçek mum verisi aralıklarıdır. Sistem **mum uydurmaz ve bu aralıkları tamamlanmış saymaz**. Motor yaması, aynı boşluklar için her beş dakikada bir tekrarlanan gereksiz talepleri en az 24 saat aralığına çeker. Bu iki eşin `1M` tarihsel durumu veri kesintisi/uyarı olarak kalabilir; diğer paritelerin geçerli canlı analizlerini küresel olarak engellememelidir. İleride işlem yapılmayan dönemleri açıkça modellemek gerekirse yalnız resmî kaynakla doğrulanan işlem dönemleri kullanılmalı; sentetik mum üretilmemelidir.
+**Açık kalan doğrulamaları araştırılmalı
 
 Kullanıcının yerel Windows paneli ve canlı Binance kullanımı testi ayrıca yapılmalıdır.
 
 `ayarlar.json` komisyon/kayma ayarlarını içermez. Program bu oranları hesaplamaz ve karar/alarmlarda kullanmaz. Güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir.
-
-### Windows HTTPS bağlantı tanılaması
-
-TLS hatası oluştuğunda ve standart HTTPS ile proxy ayarları dışında doğrudan erişim başarısızsa, program yalnızca tanımlı resmî Binance/BtcTurk API alan adları için iki DNS-over-HTTPS sağlayıcısından genel IPv4 adresleri çözümlemeyi deneyebilir. Bağlantı, çözümlenen IP'ye kurulur ama asıl API alan adı TLS SNI/Host olarak korunur ve sertifika doğrulaması açık kalır. Özel/yerel IP'ler ve listede olmayan alan adları reddedilir. API normal HTTPS yanıtı olarak yönlendirirse, yalnızca HTTPS/443 üzerinde izin verilen resmî Binance/BtcTurk API alan adına yönlendirmeler sınırlı sayıda takip edilir; HTTP'ye veya bilinmeyen alana yönlendirmeler reddedilir. Bu yol DNS çözümlemesi kaynaklı bozulmayı giderebilir; ağın doğrudan TLS/SNI trafiğini engellemesini aşacağı garanti edilmez.
-
-
-
-`TLS WRONG_VERSION_NUMBER` hatası birden fazla bağımsız API alanında görülürse, bu durum tek başına ilgili borsanın API arızasını göstermez. Programın yerel tanılaması artık yalnızca ortam değişkenlerini değil, Python'ın algıladığı proxy uç noktalarını (kimlik bilgileri ve URL yolları gizlenerek), Windows Internet Settings içindeki proxy/PAC/otomatik algılama bayraklarını ve WinHTTP proxy durumunu da kaydeder. İlk TLS hatasında doğrudan TCP/443 bağlantısının ilk yanıtının TLS kaydı mı, açık HTTP mi, yoksa tanınmayan veri mi olduğu sınırlı bir tanılamayla sınanır. Yönlendirme yanıtlarında hedef alan adı ve sunucu başlığı güvenli biçimde özetlenir; yanıt gövdesi ve URL yolu kaydedilmez. Ayrıca TradingView ve Microsoft ana sayfalarına doğrudan TLS karşılaştırması yapılır; bu adresler piyasa verisi kaynağı olarak kullanılmaz. HTTP yönlendirmesi varsa yalnızca hedef sunucu/alan adı ile sınırlı sunucu bilgisi kaydedilir; URL yolu, sorgu değerleri ve yanıt gövdesi kaydedilmez, sertifika doğrulaması kapatılmaz. Bu kayıtlar yerel log ve durum raporuna eklenir. Tanılama, bilgisayarın veya ağın proxy/VPN/güvenlik yazılımı ayarlarını kendiliğinden değiştirmez.
 
 ## Sürüm 00 — başlangıç noktası ve geçerli durum
 
@@ -130,11 +112,10 @@ TLS hatası oluştuğunda ve standart HTTPS ile proxy ayarları dışında doğr
 - Sürüm 00 başlangıç hazırlığında README çalışma kuralları ile kaynak koddaki sürüm etiketi tutarlılaştırılmıştır. Bu kayıt, aşağıda tasarlanan yeni özelliklerin uygulanmış olduğu veya programın son ZIP paketinin dağıtıma hazır olduğu anlamına gelmez.
 - main, sürüm 00'ın temel kodunu korur. Bu başlangıç hazırlığı tamamlandıktan sonra yeni özelliklerin kod değişiklikleri ayrı, sürüm/iş kapsamı açık yan dallarda yürütülür.
 - **Dal açma yetkisi kullanıcı onayına bağlıdır:** Kullanıcı önceden açıkça onay vermeden hiçbir nedenle yeni dal açılmaz. Sürüm 00 düzeltmeleri `main` üzerinde yapılır. Sürüm 1 için kullanıcı onay verirse kullanılacak dal adı `1.surum-readme-gereksinimler` olacaktır.
-- Geliştirme dalındaki değişiklikler, gerekli testler ve bütünlük kontrolleri tamamlanmadan ve kullanıcı onayı alınmadan main dalına aktarılmaz. Sürüm 1, sürüm 00'ın başlangıç hazırlığıyla karıştırılmaz ve yalnızca belirlenmiş son doğrulama kapısı geçildikten sonra oluşturulur.
 
 ## Kalıcı çalışma kuralları
 
-Bu bölüm, proje boyunca uygulanacak çalışma düzenini tanımlar. Kullanıcının sonradan bildirdiği yeni kurallar bu bölüme eklenir; tekrar eden hükümler birleştirilir, hiçbir kuralın anlamı değiştirilmez. Buradaki kurallar, çelişen eski çalışma notlarına göre önceliklidir ve kullanıcı aksini belirtmedikçe geçerlidir.
+Bu bölüm, proje boyunca uygulanacak çalışma düzenini tanımlar. Kullanıcının sonradan bildirdiği yeni kurallar bu bölüme eklenir; tekrar eden hükümler birleştirilir, hiçbir kuralın anlamı yorumlanmaz, değiştirilmez. Buradaki kurallar, çelişen eski çalışma notlarına göre önceliklidir ve kullanıcı aksini belirtmedikçe geçerlidir.
 
 ### 1. Çalışma alanı ve kayıtların yeri
 
@@ -145,56 +126,56 @@ Bu bölüm, proje boyunca uygulanacak çalışma düzenini tanımlar. Kullanıc�
 
 ### 2. Aşamalar, gereksinimler ve tasarım onayı
 
-- İlk aşamada netleştirilen gereksinimler temel alınır. Her yeni aşama önceki aşamaların üzerine eklenir; önceki kararlar kaybedilmez veya birbirinden kopuk değerlendirilmez.
-- İstenen davranış, programda nasıl uygulanacağı ve hangi mantıkla çalışacağı netleştirilir. Arayüz tasarımında sonucun kullanıcıya nasıl gösterileceği, hangi bilgilerin öne çıkarılacağı ve fırsat kararının nasıl anlaşılacağı somutlaştırılır.
-- Henüz kesinleşmemiş konular kesin karar gibi sunulmaz. Kullanıcının onayladığı her öneri kesinleşmiş karar kabul edilir ve bütün tasarım içinde korunur.
-- Önce gereksinimler kesinleştirilir, sonra programın davranışı ve arayüzü tasarlanır; tasarım bütünüyle tamamlanıp kullanıcı nihai onayını vermeden mevcut program kodlarında değişiklik yapılmaz.
+- İlk aşamada netleştirilen gereksinimler temel alınır. Her yeni aşama ve kod önceki aşamaların üzerine eklenir; önceki kararlar kaybedilmez veya birbirinden kopuk değerlendirilmez.
+- İstenen davranış, programda nasıl uygulanacağı ve hangi mantıkla çalışacağı netleştirilir önce. Arayüz tasarımında sonucun kullanıcıya nasıl gösterileceği, hangi bilgilerin öne çıkarılacağı ve fırsat kararının nasıl anlaşılacağı somutlaştırılır.
+- Henüz kesinleşmemiş konular kesin karar gibi uygulanmaz kullanıcıya sorulur. Kullanıcının onayladığı her öneri kesinleşmiş karar kabul edilir ve bütün tasarım içinde korunur.
+- Önce gereksinimler kesinleştirilir, sonra programın davranışı moyor fonksiyonları ve arayüzü tasarlanır; tasarım bütünüyle tamamlanıp kullanıcı nihai onayını vermeden mevcut program kodlarında değişiklik yapılmaz önce kısaca açıklayıp sorulur.
 - Tasarım ve onay süreci tamamlanmadan sonraki aşamaya geçilmez.
 
 ### 3. Her çalışmanın başında mevcut durumu belirleme
 
-Her yeni çalışma başlangıcında şu bilgiler netleştirilir: mevcut sürüm, aktif aşama, README'de belirtilen gerçek tamamlanma durumu ve sıradaki iş. README, mevcut kod ve mevcut test sonuçları karşılaştırılarak gerçekten tamamlanmış işler ile doğrulanmış eksikler belirlenir. Tamamlanmış işler tekrarlanmaz; yalnızca gerçekten kalan eksikler üzerinde ilerlenir.
+Her yeni çalışma başlangıcında şu bilgiler netleştirilir: mevcut sürüm, aktif aşama, README'de belirtilen gerçek tamamlanma durumu ve sıradaki iş. README, mevcut kod ve mevcut test sonuçları karşılaştırılarak gerçekten tamamlanmış işler ile doğrulanmış eksikler belirlenir daha önce başarılı olan testler tekrarlanmaz. Tamamlanmış işler tekrarlanmaz; yalnızca gerçekten kalan eksikler üzerinde ilerlenir.
 
 ### 4. Gereksinim kaydı, kodlama, test ve durum güncellemesi
 
-- Gereksinimler, kabul edilmiş tasarım kararları ve uygulama yöntemi kodlamadan önce README'ye kaydedilir. Tasarım onayı alınmadan ilgili kodda değişiklik yapılmaz.
-- Birbiriyle ilişkili kodlama işleri anlamlı ve işlevsel gruplar hâlinde tamamlanır; işler gereksiz yere küçük parçalara ayrılmaz.
+- Gereksinimler, kabul edilmiş tasarım kararları ve uygulama yöntemi kodlamadan önce README'ye kaydedilir. Tasarım onayı alınmadan ilgili kodda değişiklik yapılmaz önce sorulur.
+- Birbiriyle ilişkili kodlama işleri anlamlı ve işlevsel gruplar hâlinde tamamlanır; işler gereksiz yere küçük parçalara testlere ayrılmaz.
 - Bir kodlama grubu için belirlenen kapsam bitmeden o gruba ait test turu başlatılmaz. Kodlama tamamlanınca ilgili testler topluca, ardından gerekli genel regresyon testleri çalıştırılır.
-- Testlerde başarısız sonuç varsa gerekli düzeltmeler yapılır ve etkilenen testler yeniden çalıştırılır. Başarısız testleri bulunan bir grup veya sürüm tamamlanmış sayılmaz.
-- **Gereksinim ve tasarım kaydı ile uygulama durumu kaydı birbirinden ayrıdır:** Gereksinimler ve planlanan davranış önceden yazılır; uygulamanın tamamlandığı, test edildiği veya başarılı olduğu bilgileri yalnızca gerçek kod ve test kanıtları görüldükten sonra güncellenir.
+- Testlerde başarısız sonuç varsa gerekli düzeltmeler yapılır ve etkilenen testler yeniden çalıştırılır. Başarısız testleri bulunan bir grup veya sürüm bir daha kontrol edilir.
+- **Gereksinim ve tasarım kaydı ile uygulama durumu kaydı birbirinden ayrıdır:** Gereksinimler ve planlanan davranış önceden yazılır; uygulamanın tamamlandığı, test edildiği veya başarılı olduğu bilgileri yalnızca gerçek kod ve test kanıtları görüldükten sonra güncellenir kullanıcıya bildirilir.
 - İlgili uygulama ve test grubu tamamlandığında sonuçlar, kalan eksikler ve sürüm kayıtları README'de gerçeğe uygun biçimde güncellenir. Uygun olduğunda ilgili kod, test ve durum kayıtları tek commit altında toplanır.
 - Tamamlanmış işler tekrar uygulanmaz. Her yeni değişiklik doğrulanmış bir eksiğe veya kullanıcı tarafından onaylanmış yeni bir gereksinime dayanır.
 
 ### 5. Dal, sürüm, aşamalar arası aktarım ve son ZIP paketi
 
-- Sürüm 00 başlangıç tabanıdır. Bu başlangıç hazırlığında README ve kaynak koddaki APP_VERSION etiketi "00" olarak tutarlılaştırılır. Bu hazırlık, planlanan yeni özelliklerin uygulanmış olduğu anlamına gelmez.
-- **Dal açılmadan önce açık kullanıcı onayı zorunludur.** Onay olmadan dal oluşturulmaz, yeniden adlandırılmaz veya başka bir dal geliştirme alanı olarak seçilmez. Sürüm 00'a ait başlangıç/düzeltme işleri `main` üzerinde yürütülür. Kullanıcı Sürüm 1 dalı açılmasını onaylarsa dal adı tam olarak `1.surum-readme-gereksinimler` olur. Bu dalda geliştirme yapılması da yalnızca onaylanan kapsamla sınırlıdır.
+- Sürüm 00  tabanıdır. Bu başlangıç hazırlığında README ve kaynak koddaki APP_VERSION etiketi "00" olarak tutarlılaştırılır. Bu hazırlık, planlanan yeni özelliklerin uygulanmış olduğu anlamına gelmez.
+- **Dal açılmadan önce açık kullanıcı onayı zorunludur.** Onay olmadan dal oluşturulmaz sorulur, yeniden adlandırılmaz veya başka bir dal geliştirme alanı olarak seçilmez. Sürüm 00'a ait başlangıç/düzeltme işleri `main` üzerinde yürütülür. Kullanıcı Sürüm 1 dalı açılmasını onaylarsa dal adı tam olarak `1.surum-readme-gereksinimler` olur ve 00 sürümün son halinin tüm kodu yeni dala kopyalanır ve artık onun uzerinde geliştirme yapılır ilk main dalına artık müdahale edilmez. Bu yeni dalda geliştirme yapılması da yalnızca onaylanan kapsamla sınırlıdır.
 - Yan dalda yapılan değişiklikler gerekli hesaplama, regresyon, geçmiş veri, panel, raporlama ve paket kontrolleri tamamlanmadan main dalına aktarılmaz. Sürüm 1 ancak bu kontroller ve ilgili kullanıcı onayı sonrasında hazırlanır.
-- Her aşamanın sonunda, yeni sohbet odasında kesintisiz devam edilebilmesi için kesinleşmiş kararlar, tamamlanan işler, doğrulanmış eksikler ve sıradaki aşamanın amacı birlikte aktarılır.
+- Her aşamanın sonunda, yeni sohbet odasında kesintisiz devam edilebilmesi için kesinleşmiş kararlar, tamamlanan işler, doğrulanmış eksikler ve sıradaki aşamanın amacı birlikte özet olarak aktarılır.
 - Bağlam aktarımı tamamlanmış sayılmadan önce güncel README kontrol edilir; aktarım README'deki gerçek durumla tutarlı olmalıdır.
-- ZIP paketi hazırlanırken aktarılan dosyalar arasında BtcTurk evreni bulunur.
-- Nihai ZIP paketi oluşturulmadan önce son paket aşaması kullanıcıya bildirilir ve açık onayı alınır. Bu bildirim ve onay olmadan son ZIP paketi oluşturulmaz.
+- ZIP paketi hazırlanırken aktarılan dosyalar arasında BtcTurk evreni bulunur, fan tokenler hariç olmalı.
+- Nihai ZIP paketi oluşturulmadan önce son paket aşaması kullanıcıya bildirilir,sorulur ve açık onayı alınır. Bu bildirim ve onay olmadan ZIP paketi oluşturulmaz.
 
 ## Geliştirme hedefi ve ortak karar sistemi
 
-### 6. Ana karar: mevcut tek motoru koru, üzerine geliştir
+### 6. Ana karar: mevcut bilgisayar programını koru, üzerine geliştir
 
-Programın amacı, mevcut tek motorlu sistemi koruyarak hızlı yükseliş potansiyeli taşıyan coinleri daha erken ve daha isabetli değerlendirmektir. İlk hedef, mevcut motorun yaptığı hesaplamaları yeniden yazmak değil; eksik kalan yönlerini mevcut işlevler üzerinden geliştirmek ve sonuçlarını ortak bir karar yapısında birleştirmektir.
+Programın amacı,kulanıcının para kazanmasına yönelik, mevcut sistemi koruyarak hızlı yükseliş potansiyeli taşıyan coinleri daha erken ve daha isabetli değerlendirmektir. İlk hedef, mevcut motorun yaptığı hesaplamaları yeniden yazmak değil; eksik kalan yönlerini mevcut işlevler üzerinden geliştirmek ve sonuçlarını ortak bir karar yapısında birleştirerek arayüzde bir bakışta anlaşılacak şekilde yansımasını sağlamaktır.
 
-- Mevcut program baştan yazılmaz; çalışan ve gerekli işlevler korunur.
-- Aynı gösterge, piyasa verisi veya teknik seviye hesabı farklı yerlerde gereksiz yere tekrarlanmaz. Mevcut hesaplamaların çıktıları yeniden kullanılır ve ihtiyaç duyulan geliştirmeler uygun mevcut modüle bağlanır.
-- Yeni bir fonksiyon veya modül ancak mevcut işlevin geliştirilmesiyle ihtiyacın karşılanamayacağı kod incelemesiyle gösterildiğinde değerlendirilir.
+- Mevcut program baştan yazılmaz; kullanıcı istemedikçe, çalışan ve gerekli işlevler korunur asla bozulmaması sağlanır.
+- Aynı gösterge, piyasa verisi veya teknik seviye hesabı farklı yerlerde gereksiz yere tekrarlanmaz. Mevcut hesaplamaların çıktıları yeniden kullanılabilir ve ihtiyaç duyulan geliştirmeler uygun mevcut modüle bağlanır.
+- Yeni bir fonksiyon veya modül kulllanıcı isterse veya  mevcut işlevin geliştirilmesiyle ihtiyacın karşılanamayacağı kod incelemesiyle gösterildiğinde değerlendirilir.
 - Yeni özelliklerin aday sıralamasını, A/B/C aşama sınıflandırmasını, alarmları veya mevcut panel davranışını değiştirmesi tasarımda açıkça belirtilir; sessiz ve doğrulanmamış davranış değişikliği yapılmaz.
 - Amaç, ilk bakışta piyasanın durumunu, hangi coinlerin neden öne çıktığını ve seçilen coindeki olası getirinin riskine değip değmediğini anlamayı sağlamaktır. Ayrıntılı analizler ve mevcut işlevler erişilebilir kalır.
 - Program halka açık piyasa verilerini okuyan bir analiz ve karar destek aracıdır. Bu gereksinimler kendi başına borsa hesabına bağlanma, emir gönderme veya otomatik alım-satım yetkisi oluşturmaz.
 
 ### 7. İlk somut iş: mevcut–eksik–geliştirme–test matrisi
 
-Yeni kod yazmadan önce mevcut sistemin gerçek durumu güvence altına alınır. Kod, mevcut fonksiyonlar, veri akışı ve testler incelenir; hâlihazırda çalışan, kısmen çalışan ve eksik olan işlevler birbirinden kesin biçimde ayrılır. Bir davranış yalnızca tasarım belgesinde yer aldığı için uygulanmış kabul edilmez.
+Yeni kod yazmadan önce mevcut sistemin gerçek durumu güvence altına alınır. Kod, mevcut fonksiyonlar, veri akışı ve testler incelenir; hâlihazırda çalışan, kısmen çalışan ve eksik olan işlevler birbirinden kesin biçimde ayrılır. Bir davranış yalnızca tasarım belgesinde yer aldığı için uygulanmış kabul edilmez kontrolü yapılır.
 
 Her mevcut fonksiyon için şu üç soru yanıtlanır:
 
-1. **Şimdi ne yapıyor?** Kodda gerçekten bulunan işlev ve ürettiği sonuç nedir?
+1. **Şimdi ne yapıyor?** Kodda gerçekten bulunan işlev ve ürettiği sonuç nedir arayüze yansıyormu, yansımalımı kullanıcıyada sorulur?
 2. **Nerede yetersiz kalıyor?** İstenen davranışın hangi parçası eksik, kısmi veya testlerle doğrulanmamış?
 3. **Mevcut fonksiyon nasıl geliştirilirse ihtiyaç karşılanır?** Hangi mevcut modülde, hangi hesaplama ve sonuçlar yeniden kullanılarak geliştirme yapılabilir?
 
@@ -202,7 +183,7 @@ Matris en az şu sütunları içerir:
 
 | Fonksiyon/modül | Şu anki davranış ve kod kanıtı | Eksik veya yetersiz kalan yön | Mevcut yapı üzerinden geliştirme | Yeniden kullanılacak hesaplama/veri | Doğrulama testi | Durum |
 |---|---|---|---|---|---|---|
-| Ortak USDT parite evreni — ortak_piyasa.py:fetch_common_usdt_symbols, tek_motor_evreni.py:build_single_engine_universe | Binance ve BtcTurk Spot USDT çiftlerini eşleştirir; veri kaynağı/cache modu, parite sayıları ve uyarılar döndürülür. | Canlı borsa uç noktaları ve cache geri dönüşleri bu incelemede çalıştırılarak doğrulanmadı. | Mevcut ortak evren ve cache akışı korunur; yeni bir paralel evren hesabı yazılmaz. | pairs, evren modu, kaynak zaman damgası ve mevcut eşleştirme sonuçları. | Canlı ve cache modu, boş/uyumsuz evren, aktif olmayan pariteler ve USDT eşleşmesi için test. | Uygulanmış; çalıştırılmadı |
+| Ortak USDT parite evreni fan token hariç — ortak_piyasa.py:fetch_common_usdt_symbols, tek_motor_evreni.py:build_single_engine_universe | Binance ve BtcTurk Spot USDT çiftlerini eşleştirir; veri kaynağı/cache modu, parite sayıları ve uyarılar döndürülür. | Canlı borsa uç noktaları ve cache geri dönüşleri bu incelemede çalıştırılarak doğrulanmadı. | Mevcut ortak evren ve cache akışı korunur; yeni bir paralel evren hesabı yazılmaz. | pairs, evren modu, kaynak zaman damgası ve mevcut eşleştirme sonuçları. | Canlı ve cache modu, boş/uyumsuz evren, aktif olmayan pariteler ve USDT eşleşmesi için test. | Uygulanmış; çalıştırılmadı |
 | Mum akışı, veri güncelliği ve 8 zaman dilimi — binance_erken_firsat_radari.py:TIMEFRAMES, BinanceRadar; radar_core.py:valid_bars | Motor 5m, 15m, 30m, 1h, 4h, 1d, 1w ve 1M zaman dilimlerini tanımlar; kapanmış ve zaman hizalı mumları, akış tazeliğini ve eksik/kesintili geçmişi kontrol eden yapılar içerir. | Sekiz zaman diliminde canlı akış, boşluk onarımı, zaman hizası ve eski veri davranışı bu turda çalıştırılarak test edilmedi. | Mevcut WebSocket/REST, arşiv ve geçerlilik kontrolleri üzerinde ilerlenir; ikinci bir mum/veri katmanı açılmaz. | Mevcut mum arşivi, valid_bars, zaman dilimi sabitleri ve akış yaşları. | Her zaman dilimi için kapanmış/açık mum, zaman boşluğu, eski akış, onarım ve veri yok senaryoları. | Uygulanmış; çalıştırılmadı |
 | Göstergeler ve A/B/C aşama değerlendirmesi — radar_core.py:_indicator_snapshot, assess_timeframe, evaluate_binance_candidate | EMA, MACD, RSI, ADX, DMI, ATR ve hacim katılımı hesaplanır; zaman dilimi metrikleri ve A/B/C kanıtları aday değerlendirmesine aktarılır. | Hesaplamaların tarihsel veri üzerinde doğruluğu ve farklı piyasa koşullarındaki yanlış sinyalleri bu incelemede ölçülmedi. | Var olan metrikler ile kanıt grupları ortak karar yapısında yeniden kullanılır; aynı göstergeler yeniden hesaplanmaz. | timeframes[*].metrics, mevcut gösterge serileri, evidence_groups, findings, missing_checks. | Bilinen örnek mum serileriyle gösterge referans testleri; eksik/kesintili ve yetersiz geçmiş kontrolleri; aşama regresyonu. | Uygulanmış; çalıştırılmadı |
 | Pivot, destek/direnç, kanal ve Fibonacci — _confirmed_pivot_points, _support_resistance_zones, _confirmed_channel, _fibonacci_swing | Kapanmış mumlardan teyitli pivotlar, kümelenmiş destek/direnç bölgeleri ve teyitli kanal üretir; Fibonacci düzeltme ve uzatma seviyelerini hesaplar. Bu çıktılar risk planında ve fırsat puanlamasında kullanılır. | Sahte/erken pivot, kanal yokluğu, seviye kümelenmesi ve haftalık/aylık Fibonacci sonuçlarının gerçek tarihsel örneklerde doğruluğu ölçülmedi. | Hedef/puanlama iyileştirmesi aynı fonksiyonların çıktılarıyla yapılır; ikinci bir destek/direnç veya Fibonacci motoru yazılmaz. | support_resistance_zones, confirmed_channel, fibonacci, ATR ve teyitli pivotlar. | Elle doğrulanmış fiyat yapılarına sahip örnekler; seviye kaybı, kanal dışı kapanış, eksik pivot ve haftalık/aylık swing senaryoları. | Uygulanmış; çalıştırılmadı |
@@ -216,7 +197,7 @@ Matris en az şu sütunları içerir:
 | Panel ölçüleri, tema, renkler ve kontroller — tek_motor_paneli.pyw:_build_ui | Başlat/durdur, liste güncelleme, rapor/devir ZIP, alarm, ses seviyesi/ses denemesi, aday seçimi ve seviye takibi korunur. Pencere ekran boyutuna göre ortalanır; aydınlık ayarı gri/açık aralığı düzenler. | Gerçek 1920×1080 ve %125 Windows ortamında yarım-ekran hedefi/azami yaklaşık %80 genişlik ve ekran yüksekliğinden en az %7 kısa olma kuralı henüz görsel olarak doğrulanmadı. | Mevcut Tkinter paneli ve kontrolleri korunur; koyu tema kullanılmaz, açık gri zemin ve durum renkleri korunur. | Mevcut Tkinter paneli, aday durumu, risk planı, alarm ve seviye takibi. | Windows'ta %125 ölçek, pencere boyut sınırları, kontrol etkileşimleri, renk/etiket açıklığı ve taşma regresyonu. | Kodda uygulandı; Windows testi bekliyor |
 | Rapor, devir ZIP'i ve depolama bakımı — tek_motor_paneli.pyw:create_report/create_handoff_zip, veri_yasam_dongusu.py, binance_mum_arsivi.py | Rapor ve devir arşivi oluşturma, ZIP bütünlük/SHA-256 kontrolü, mum arşivi ve geçmiş kayıtların saklanması için kod bulunur. | Güncel Windows ortamında uçtan uca ZIP, yeniden açılma, arşiv ve uzun çalışma senaryoları bu turda çalıştırılarak test edilmedi. | Mevcut rapor/arsiv işlevleri korunur; yeni raporlama mekanizması ancak net bir boşluk varsa tasarlanır. | Mevcut JSON/Markdown raporu, tanı çıktısı, SHA-256 manifesti, mum arşivi ve sinyal geçmişi. | ZIP açma ve SHA-256 doğrulaması; bozuk/eksik dosya; arşiv sınırları; devir paketinde gerekli BtcTurk evreni ve raporların bulunması. | Uygulanmış; çalıştırılmadı |
 
-**İnceleme sınırı:** Bu matris, `main` üzerindeki mevcut kaynak kodun statik incelenmesine dayanır. Depoda şu anda `tests/test_btc_correlation_adjustment.py` adlı otomatik test dosyası ve `.github/workflows/validate-and-package.yml` iş akışı bulunur. Ancak en son görünen iş akışı çalıştırıcı tahsis edilmeden başarısız olmuş ve derleme/test/paketleme adımlarına geçmemiştir. Test dosyasının depoda bulunması, testlerin çalıştığı veya geçtiği anlamına gelmez. Canlı Binance/BtcTurk bağlantısı, tarihsel backtest ve Windows panel testi de doğrulanmamıştır; matrisin doğrulama işleri açık kalır.
+**İnceleme sınırı:** Bu matris, `main` üzerindeki mevcut kaynak kodun statik incelenmesine dayanır. Depoda şu anda `tests/test_btc_correlation_adjustment.py` adlı otomatik test dosyası ve `.github/workflows/validate-and-package.yml` iş akışı bulunur. Ancak en son görünen iş akışı çalıştırıcı tahsis edilmeden başarısız olmuş ve derleme/test/paketleme adımlarına geçmemiştir. Test dosyasının depoda bulunması, testlerin çalıştığı veya geçtiği anlamına gelebilir. Canlı Binance/BtcTurk bağlantısı, tarihsel backtest ve Windows panel testi de doğrulanmamıştır; matrisin doğrulama işleri açık kalır.
 
 Bu matris, Sürüm 00'ın başlangıç davranışını, doğrulanmış eksiklerini ve sonraki geliştirme/test işlerini birbirinden ayıran temel kayıt olarak kullanılır.
 
@@ -241,7 +222,7 @@ Program her aday için en az şu sorulara cevap üretebilmelidir:
 - Hedefe kalan alan risk karşısında yeterli mi; hedef çok yakınsa fırsat düşük kaliteli olarak mı sınıflandırılmalı, yoksa değerlendirme dışı mı bırakılmalı?
 - Eksik veri, geçersizleşme koşulu veya sonucu zayıflatan başka bir engel var mı?
 
-Yakın direnç, teknik bulgulara dayalı olası kâr alma bölgesidir; kesin fiyat tahmini veya otomatik satış emri değildir. Teknik hedefler, gerçek destek/direnç ve fiyat yapısıyla gerekçelendirilir. Sadece matematiksel risk katları kullanılarak teknik hedef belirlenmiş gibi gösterilmez.
+Yakın direnç, teknik bulgulara dayalı olası kâr alma bölgesidir; kesin fiyat tahmini veya otomatik satış emri değildir. Teknik hedefler, gerçek destek/direnç ve fiyat yapısıyla gerekçelendirilir. Sadece matematiksel risk katları kullanılarak teknik hedef belirlenmiş gibi gösterilmez diğer fonksiyonlarada bakılır.
 
 Mevcut README'de kayıtlı başlangıç davranışı korunarak dikkate alınır: güçlü fırsat kapısı, en yakın teknik hedef için brüt teknik risk/getiri oranının en az 1,5 olmasını ister; spread ayrı likidite filtresinde değerlendirilir. Bu mevcut kural sessizce değiştirilmez. Eşiğin veya düşük kaliteli fırsatları dışlama koşullarının değiştirilmesi gerekiyorsa kod incelemesi, gerekçeli tasarım ve geçmiş verilerle doğrulama gerekir. Mevcut `ayarlar.json` komisyon/kayma ayarlarını içermez ve mevcut sürüm bu maliyetleri hesaplamaz. Masraflar sonrası net risk/getiri gereksinimi, maliyet varsayımları açıkça tanımlanıp uygulanıp test edilene kadar mevcut özellikmiş gibi gösterilmez.
 
@@ -251,17 +232,17 @@ Panel bütün analizleri aynı anda ekrana yığmak yerine karar için gerekli b
 
 #### Kullanıcının kesinleştirdiği görünüm ve mevcut kontroller
 
-- Hedef çalışma ortamı Windows, ekran çözünürlüğü 1920×1080 ve Windows ölçeklendirmesi %125'tir. Panel başlangıçta ekran genişliğinin yaklaşık yarısına sığacak şekilde tasarlanır; okunabilirlik gerektirirse genişlik en fazla ekranın yaklaşık %80'ine çıkarılabilir. Pencere yüksekliği ekran yüksekliğinden en az %7 daha kısa olmalıdır.
-- Koyu tema temel alınmaz. Açık/normal görünümde kırmızı, sarı, mavi, yeşil, lila, turkuaz ve lacivert gibi durum renkleri kullanılabilir; yazıların arka planı gri tonlarında, ayırıcı çizgiler beyaz olur. Renk tek başına karar gerekçesi sayılmaz; renkli durumun anlaşılır metinsel karşılığı bulunur.
-- Ses seviyesi kontrolüne benzer bir parlaklık/aydınlık ayarı eklenmesi planlanır. Mümkünse ses kontrollerinin yakınında yer alır. Bu kontrol henüz mevcut özellik sayılmaz; kodlamadan önce nihai yerleşim içinde gösterimi netleştirilir.
-- Mevcut yararlı kontroller korunur veya aynı işlev açık kalacak şekilde uyarlanır: parite/harita listesini güncelleme, rapor ve devir ZIP'i oluşturma, Başlat, Durdur, Alarm Açık/Kapalı, ses seviyesi, sesi denetleme ve seçilen coin için giriş/hedef seviyelerini izleme. Kontrol etiketleri tasarım onayında tutarlılaştırılır.
-- Adayların mevcut A/B/C aşamaları ve anlamları korunur: A hazırlık, B yapı/kırılım, C devamlılık. Kapalı mumda katılım, geri test ve devamlılık teyitleri kaybolmaz. Eski/eksik veri için mavi uyarı korunur.
-- Karar alanları mevcut işlevler üzerinden düzenlenir: **Adaylar** listesi; **Giriş Kontrolü** içinde senaryo zaman dilimi, kırılım seviyesi, zarar durdurma ve olası giriş; **Seçilen Coin** içinde kırılım seviyesi, zarar durdurma ve teknik hedefler. Bunlar ham hesap çıktıları yığınına çevrilmez; hızlı karar bilgisi öne çıkarılır, ayrıntılar erişilebilir kalır.
+- Hedef çalışma ortamı Windows, ekran çözünürlüğü 1920×1080 ve Windows ölçeklendirmesi %125'tir. Panel başlangıçta ekran genişliğinin yaklaşık yarısına sığacak şekilde tasarlanır; okunabilirlik gerektirirse genişlik en fazla ekranın yaklaşık %80'ine çıkarılabilir. Pencere yüksekliği ekran yüksekliğinden en az %10 daha kısa olmalıdır.
+- Koyu tema temel alınır. Açık/normal görünümde kırmızı, sarı, mavi, yeşil, açık mor, lila, turkuaz ve lacivert gibi durum renkleri kullanılabilir; yazıların arka planı siyah tonlarında, ayırıcı çizgiler beyaz olur. Renk tek başına karar gerekçesi sayılmazsada; renkli durumun anlaşılır metinsel karşılığı bulunur.
+- Ses seviyesi kontrolüne benzer bir parlaklık/aydınlık ayarı eklenmesi planlanır. Mümkünse ses kontrollerinin yakınında yer alır. Bu kontrol  mevcut özelliklerde var; kodlamadan önce nihai yerleşim içinde gösterimi netleştirilir.
+- Mevcut yararlı kontroller korunur veya aynı işlev açık kalacak şekilde uyarlanır: parite listesini güncelleme, rapor devir ZIP'i oluşturma, Başlat, Durdur, Alarm Açık/Kapalı, ses seviyesi, sesi testi ve seçilen coin için giriş/hedef seviyelerini izleme. Kontrol etiketleri tasarım onayında tutarlılaştırılır.
+- Adayların mevcut A/B/C aşamaları ve anlamları korunur: A hazırlık, B yapı/kırılım, C devamlılık. Kapalı mumda katılım, geri test ve devamlılık teyitleri kaybolmaz. Eski/eksik veri için mavi renk yazı uyarı korunur.
+- Karar alanları mevcut işlevler üzerinden düzenlenir: **Adaylar** listesi; **Giriş Kontrolü** içinde senaryo zaman dilimi, kırılım seviyesi, zarar durdurma ve olası giriş; **Seçilen Coin** içinde kırılım seviyesi, zarar durdurma ve teknik hedefler. Bunlar ham hesap çıktıları yığınına çevrilmez; hızlı karar bilgisi öne çıkarılır, ayrıntılar erişilebilir kalır sunulmayabilir.
 - Yerleşim ve ölçüler için tasarım kararı kod değişikliğinden önce gözden geçirilir. Bu maddeler arayüzün gereksinimidir; mevcut panelin bunları uyguladığı veya ekran üzerinde sınandığı anlamına gelmez.
 
 #### A. Üst bölüm — BTC ve genel piyasa
 
-Mevcut motor durumu, bağlantı bilgileri, alarmlar ve parite evreni bilgileri korunur. Mevcut **“Piyasa ve parite evreni”** alanı kaldırılmaz; BTC piyasa bağlamıyla genişletilir. Burada kısa ve anlaşılır biçimde şunlar gösterilir:
+Mevcut motor durumu, bağlantı bilgileri, alarmlar ve parite evreni bilgileri korunur. Mevcut **“Piyasa ve parite ”** alanı kaldırılmaz; BTC piyasa bağlamıyla genişletilir. Burada kısa ve anlaşılır biçimde şunlar gösterilir vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur:
 
 - BTC ana yönü ve genel piyasa risk durumu.
 - Güçlü destek ve direnç bölgeleri.
@@ -273,7 +254,7 @@ BTC özeti nedeniyle mevcut parite evreninin kapsamı veya durumu kaybolmaz.
 
 #### B. Orta bölüm — öncelikli adaylar
 
-Mevcut aday tablosu korunur. A/B/C aşamaları, fiyat, veri durumu, zaman dilimi ve keşif yolu bilgileri kaybolmaz. Tabloyu gereksiz kalabalıklaştırmadan coin için kısa bir **BTC'ye göre durum** bilgisi eklenir; adayın BTC'den daha güçlü veya daha zayıf performans gösterip göstermediği ilk bakışta anlaşılabilir.
+Mevcut aday tablosu korunur. A/B/C aşamaları, fiyat, veri durumu, zaman dilimi ve keşif yolu bilgileri kaybolmaz. Tabloyu gereksiz kalabalıklaştırmadan coin için kısa bir **BTC'ye göre durum** bilgisi eklenir; adayın BTC'den daha güçlü veya daha zayıf performans gösterip göstermediği ilk bakışta anlaşılabilir.vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur:
 
 Ayrıntılı korelasyon değerleri aday tablosunu doldurmak yerine seçilen coin bölümünde gösterilir. Yeni hesaplamaların gösterimi mevcut aday sıralamasını veya aşama sınıflandırmasını sessizce değiştirmez. Sıralama veya sınıflandırma mantığında yapılacak değişiklik ayrı olarak gerekçelendirilip test edilir.
 
@@ -288,7 +269,7 @@ Mevcut **“Seçilen adayın özeti”** alanı, hızlı karar özeti ile ayrın
 - Ana fiyat yapısı: yükseliş, düşüş veya yatay kanal.
 - En önemli yakın destek ve direnç bölgeleri.
 - Fırsatın önündeki temel engel veya eksik teyit.
-- Açıklanabilir genel durum: “izlemeye değer”, “teyit bekleniyor”, “risk yüksek” veya “veri yetersiz” gibi sonuçlar.
+- Açıklanabilir genel durum: “izlemeye değer”, “teyit bekleniyor”, “risk yüksek” veya “veri yetersiz” gibi sonuçlar.vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur.
 
 **Sağ bölüm — mevcut ayrıntılı analiz:**
 
@@ -297,7 +278,7 @@ Mevcut **“Seçilen adayın özeti”** alanı, hızlı karar özeti ile ayrın
 - A/B/C aşamasının gerekçeleri.
 - Mevcut analiz ve kontrollerin sonuçları, eksik kontroller ve veri güncelliği.
 
-Hızlı özet, ayrıntılı analizin yerine geçmez; mevcut teknik bulguları anlaşılır bir karar görünümünde birleştirir. Renkler ve etiketler sonucu özetleyebilir, ancak bir rengin kendisi karar gerekçesi olamaz. Her önemli uyarının anlaşılır bir nedeni bulunur. Gösterilen durumlar otomatik alım-satım kararı değildir.
+Hızlı özet, ayrıntılı analizin yerine geçmez; mevcut teknik bulguları anlaşılır bir karar görünümünde birleştirir. Renkler ve etiketler sonucu özetleyebilir, ancak bir rengin kendisi karar gerekçesi olamaz. Her önemli uyarının anlaşılır bir nedeni bulunur. Gösterilen durumlar otomatik alım-satım kararı değil öngörü içindir.vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur.
 
 #### D. Alt bölüm — giriş, hedef ve risk kontrolü
 
@@ -312,7 +293,7 @@ Mevcut giriş kontrolü alanı korunur. Bilgiler birbirinden açıkça ayrılır
 | Matematiksel hedefler | Mevcut 1R/2R/3R risk katı projeksiyonları |
 | Son durum | Giriş koşulu, geçersizleşme şartı, eksik veri ve teyit uyarıları |
 
-Gerçek teknik hedef ile matematiksel hedef aynı şeymiş gibi gösterilmez. Teknik hedefe ulaşmak için kalan getiri yetersizse bu, hızlı özette açıkça belirtilir ve fırsat kalitesi kuralları uygulanır. Teknik hedef otomatik emir değildir.
+Gerçek teknik hedef ile matematiksel hedef aynı şeymiş gibi gösterilmez. Teknik hedefe ulaşmak için kalan getiri yetersizse bu, hızlı özette açıkça belirtilir ve fırsat kalitesi kuralları uygulanır. Teknik hedef otomatik emir değildir.vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur
 
 ### 10. Aşamalı uygulama, doğrulama ve sürüm geçişi
 
@@ -361,16 +342,16 @@ Bu gereksinimlerin README'ye kaydedilmesi tek başına kod değişikliği değil
 
 
 
-## Ağ bağımsız piyasa verisi geçidi — kalıcı teknik kayıt
+## Ağ bağımsız piyasa verisi geçidi — kalıcı teknik kayıt( bu kısım kullanıcıya danışılacak sorunlar çözüldü)
 
 ### Sorunun kaynağı ve tanılama bulgusu
 
 - 25 Ekim 2026 tarihli Windows tanılamasında, bilgisayar evdeki TurkTelekom_ZWR3J ağına bağlıyken data-api.binance.vision:443 için TLS ClientHello sonrasında TLS yanıtı yerine düz HTTP 307 Temporary Redirect alındı. Yönlendirme guvenliinternet.turktelekom.com.tr alan adına gidiyordu ve yanıtta Via başlığı vardı. Bu, söz konusu ağ bağlantısında Türk Telekom Güvenli İnternet filtre/yönlendirmesiyle uyumludur.
 - Aynı ev Wi-Fi bağlantısında telefondan borsa siteleri açılırken, bilgisayar telefonun mobil erişim noktasına bağlandığında programın ve tarayıcının çalışması; sorunun masaüstü programının temel veri işleme kodundan ziyade bilgisayarın ev interneti üzerindeki HTTPS/TLS yolunda olduğunu gösteren karşılaştırmalı kanıttır.
 - Windows ortam değişkenleri, Windows Internet Settings ve WinHTTP kontrollerinde yapılandırılmış proxy bulunmadı. Bu nedenle bu sorun için proxy kurulması veya proxy ayarlarının değiştirilmesi çözüm olarak kaydedilmemelidir.
-- Doğrudan ağ yolundaki yönlendirme yerel program tarafından güvenli biçimde düzeltilemeyeceğinden, halka açık piyasa verisinin ayrı bir bulut sunucusundan alınması ve uygulamaya HTTPS/WebSocket üzerinden iletilmesi yaklaşımı seçildi.
+- Doğrudan ağ yolundaki yönlendirme yerel program tarafından güvenli biçimde düzeltilemeyeceğinden, halka açık piyasa verisinin ayrı bir bulut sunucusundan alınması ve uygulamaya HTTPS/WebSocket üzerinden iletilmesi yaklaşımı seçildi. 
 
-### Cloudflare Workers denemesi — sonuç ve korunacak bilgi
+### Cloudflare Workers denemesi — sonuç ve korunacak bilgi( bu kısmı kullanıcıya danış)
 
 - Ücretsiz Cloudflare Worker oluşturulup dağıtıldı. Worker sağlık uç noktası ve BtcTurk halka açık USDT ticker isteği çalıştı.
 - Aynı Worker üzerinden Binance REST istekleri denendi; Cloudflare çıkışından yapılan istekler Binance tarafında HTTP 403/451 ile engellendi. Birden fazla resmî Binance API ana makinesini denemek de sorunu çözmedi. Bu nedenle Cloudflare Worker, Binance piyasa verisi için uygun aktif geçit olarak doğrulanmadı.
@@ -433,7 +414,8 @@ Bağlantı mimarisi: [Cloudflare rapor Worker kılavuzu](cloudflare/report-worke
 
 ## Aday tablosu
 
-Aday tablosu Binance fiyatının yanında BtcTurk fiyatını ve fırsat puanını da gösterir. BtcTurk fiyatı yalnızca görüntüleme içindir; Binance analiz motorunun karar girdisi değildir. Fiyat alınamazsa “veri yok”, son başarılı örnek 90 saniyeden eskiyse “veri eski” yazılır. Fiyat farkı sütunu eklenmez.
+Aday tablosu Binance fiyatının yanında BtcTurk fiyatını ve fırsat puanını da gösterir. BtcTurk fiyatı yalnızca görüntüleme içindir; Binance analiz motorunun karar girdisi değildir. Fiyat alınamazsa “veri yok”, son başarılı örnek 90 saniyeden eskiyse “veri eski” yazılır. Fiyat farkı sütunu eklenmez.vurgulanması gereken kelime rakamlar büyük harf ve farklı renklerde anlam bütünlüğünde olur.
+
 
 ## Üç raporlama düğmesi
 
